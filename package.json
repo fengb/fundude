@@ -1,0 +1,7 @@
+{
+  "name": "fundude",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Benjamin Feng <contact@fengb.me>",
+  "license": "MIT"
+}
