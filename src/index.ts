@@ -6,3 +6,6 @@ if (container instanceof HTMLCanvasElement) {
   const display = new Display(container);
   display.show(NINTENDO);
 }
+
+import m from "../build/fundude.wasm";
+console.log(m);
