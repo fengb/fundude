@@ -1,0 +1,27 @@
+import { DIMENSIONS } from "./display";
+
+function asScreen(str: string): Uint8Array {
+  const nums = str
+    .trim()
+    .split(/\s+/)
+    .map(line => line.padEnd(DIMENSIONS[0], "0"))
+    .join("")
+    .split("")
+    .map(Number);
+  const ret = new Uint8Array(DIMENSIONS[0] * DIMENSIONS[1]);
+  ret.set(nums);
+  return ret;
+}
+
+export const NINTENDO = asScreen(
+  `
+  3300 0330 3300 0000 0000 0000 0000 0000 0000 0003 3000 0000
+  3330 0330 3300 0000 0033 0000 0000 0000 0000 0003 3000 0000
+  3330 0330 0000 0000 0333 3000 0000 0000 0000 0003 3000 0000
+  3303 0330 3303 3033 0033 0033 3300 3303 3000 3333 3003 3330
+  3303 0330 3303 3303 3033 0330 0330 3330 3303 3003 3033 0033
+  3300 3330 3303 3003 3033 0333 3330 3300 3303 3003 3033 0033
+  3300 3330 3303 3003 3033 0330 0000 3300 3303 3003 3033 0033
+  3300 0330 3303 3003 3033 0033 3330 3300 3300 3333 3003 3330
+  `.replace(/ +/g, "")
+);
