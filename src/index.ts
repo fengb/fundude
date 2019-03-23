@@ -7,5 +7,5 @@ if (container instanceof HTMLCanvasElement) {
   display.show(NINTENDO);
 }
 
-import m from "../build/fundude.wasm";
-console.log(m);
+import m from "./wasm";
+Object.assign(window, { m });
