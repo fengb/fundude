@@ -1,5 +1,6 @@
 import Display from "./display";
 import { NINTENDO } from "./data";
+import "./wasm";
 
 const container = document.getElementById("display");
 if (container instanceof HTMLCanvasElement) {
@@ -7,5 +8,3 @@ if (container instanceof HTMLCanvasElement) {
   display.show(NINTENDO);
 }
 
-import m from "./wasm";
-Object.assign(window, { m });

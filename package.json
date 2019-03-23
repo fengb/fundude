@@ -5,10 +5,8 @@
   "author": "Benjamin Feng <contact@fengb.me>",
   "license": "MIT",
   "scripts": {
-    "dev": "npm-run-all --parallel dev:*",
-    "dev:parcel": "parcel index.html",
-    "dev:wasm": "watch 'npm run build:wasm' src/wasm",
-    "build": "npm run build-wasm && npm run build:parcel",
+    "dev": "parcel index.html",
+    "build": "npm run build:wasm && npm run build:parcel",
     "build:parcel": "parcel build index.html",
     "build:wasm": "make"
   },
