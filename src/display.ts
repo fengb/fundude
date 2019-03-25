@@ -1,5 +1,7 @@
 import FundudeWasm from "./wasm";
 
+const PADDING = 1;
+
 const COLORS: Record<number, Uint8Array> = {
   0: Uint8Array.of(15, 56, 15, 0),
   1: Uint8Array.of(15, 56, 15, 85),
@@ -12,8 +14,8 @@ export default class Display {
   private imageData: ImageData;
 
   constructor(private canvas: HTMLCanvasElement, private fd: FundudeWasm) {
-    canvas.width = fd.width;
-    canvas.height = fd.height;
+    canvas.width = fd.width + PADDING * 2;
+    canvas.height = fd.height + PADDING * 2;
     this.imageData = new ImageData(fd.width, fd.height);
     this.ctx = canvas.getContext("2d")!;
   }
@@ -24,6 +26,6 @@ export default class Display {
       const colorIndex = rawData[i];
       this.imageData.data.set(COLORS[colorIndex], 4 * i);
     }
-    this.ctx.putImageData(this.imageData, 0, 0);
+    this.ctx.putImageData(this.imageData, PADDING, PADDING);
   }
 }
