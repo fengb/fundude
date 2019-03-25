@@ -1,8 +1,9 @@
 #include <stdbool.h>
 #include <stdint.h>
+#include "memory.h"
 
 typedef union {
-  uint16_t pair;
+  uint16_t wide;
   uint8_t _[2];
 } fd_register;
 
@@ -11,8 +12,9 @@ typedef struct {
   fd_register BC;
   fd_register DE;
   fd_register HL;
-  fd_register SP;
-  fd_register PC;
+
+  uint16_t SP;
+  uint16_t PC;
 } fd_cpu;
 
 typedef struct {

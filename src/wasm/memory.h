@@ -10,3 +10,4 @@ typedef struct {
 } fd_memory;
 
 uint8_t fdm_get(fd_memory* m, uint16_t addr);
+uint8_t* fdm_set(fd_memory* m, uint16_t addr, uint8_t val);
