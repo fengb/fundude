@@ -3,40 +3,48 @@
 #include "memory.h"
 
 typedef struct {
+  uint8_t _;
+} reg8;
+
+typedef struct {
+  uint16_t _;
+} reg16;
+
+typedef struct {
   union {
-    uint16_t AF;
+    reg16 AF;
     struct {
-      uint8_t A;
-      uint8_t F;
+      reg8 A;
+      reg8 F;
     };
   };
 
   union {
-    uint16_t BC;
+    reg16 BC;
     struct {
-      uint8_t B;
-      uint8_t C;
+      reg8 B;
+      reg8 C;
     };
   };
 
   union {
-    uint16_t DE;
+    reg16 DE;
     struct {
-      uint8_t D;
-      uint8_t E;
+      reg8 D;
+      reg8 E;
     };
   };
 
   union {
-    uint16_t HL;
+    reg16 HL;
     struct {
-      uint8_t H;
-      uint8_t L;
+      reg8 H;
+      reg8 L;
     };
   };
 
-  uint16_t SP;
-  uint16_t PC;
+  reg16 SP;
+  reg16 PC;
 } fd_registers;
 
 typedef struct {

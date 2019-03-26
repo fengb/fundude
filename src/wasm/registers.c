@@ -2,7 +2,7 @@
 #include "registers.h"
 
 fd_flags get_flags(fd_registers* reg) {
-  uint8_t val = reg->F;
+  uint8_t val = reg->F._;
   fd_flags f = {
     .Z = (val >> 7 & 1),
     .N = (val >> 6 & 1),
@@ -19,6 +19,6 @@ uint8_t set_flags(fd_registers* reg, fd_flags f) {
     f.H << 5 |
     f.C << 4
   );
-  reg->F = val;
+  reg->F._ = val;
   return val;
 }
