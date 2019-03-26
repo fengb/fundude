@@ -38,9 +38,8 @@ uint8_t fdm_get(fd_memory* m, uint16_t addr) {
   return *ptr;
 }
 
-uint8_t* fdm_set(fd_memory* m, uint16_t addr, uint8_t val) {
+void fdm_set(fd_memory* m, uint16_t addr, uint8_t val) {
   uint8_t* ptr = fdm_ptr(m, addr);
   assert(ptr != NULL);
   *ptr = val;
-  return ptr;
 }
