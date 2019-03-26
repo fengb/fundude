@@ -1,24 +1,5 @@
 #include <assert.h>
-#include "cpu.h"
-
-fd_flags to_flags(uint8_t reg8) {
-  fd_flags f = {
-    .Z = (reg8 >> 7 & 1),
-    .N = (reg8 >> 6 & 1),
-    .H = (reg8 >> 5 & 1),
-    .C = (reg8 >> 4 & 1),
-  };
-  return f;
-}
-
-uint8_t from_flags(fd_flags f) {
-  return (
-    f.Z << 7 |
-    f.N << 6 |
-    f.H << 5 |
-    f.C << 4
-  );
-}
+#include "registers.h"
 
 typedef int cycles;
 
@@ -40,11 +21,11 @@ uint16_t wide(uint8_t upper, uint8_t lower) {
   return (upper << 8) + lower;
 }
 
-cycles run(fd_cpu* cpu, fd_memory* mem, uint8_t opcode, uint8_t p1, uint8_t p2) {
+cycles run(fd_registers* reg, fd_memory* mem, uint8_t opcode, uint8_t p1, uint8_t p2) {
   switch (opcode) {
     case 0x00: return op_noop();
-    case 0x01: return op_ld_wide_d16(&cpu->BC.wide, wide(p1, p2));
-    case 0x02: return op_ld_awide_narrow(mem, &cpu->BC.wide, &cpu->AF._[0]);
+    case 0x01: return op_ld_wide_d16(&reg->BC, wide(p1, p2));
+    case 0x02: return op_ld_awide_narrow(mem, &reg->BC, &reg->A);
     case 0x03: return 0;
     case 0x04: return 0;
     case 0x05: return 0;
@@ -64,7 +45,7 @@ cycles run(fd_cpu* cpu, fd_memory* mem, uint8_t opcode, uint8_t p1, uint8_t p2) 
   return 0;
 }
 
-void tick(fd_cpu* cpu, fd_memory* mem) {
-  cycles c = run(cpu, mem, fdm_get(mem, cpu->PC), fdm_get(mem, cpu->PC + 1), fdm_get(mem, cpu->PC + 2));
-  cpu->PC += c;
+void tick(fd_registers* reg, fd_memory* mem) {
+  cycles c = run(reg, mem, fdm_get(mem, reg->PC), fdm_get(mem, reg->PC + 1), fdm_get(mem, reg->PC + 2));
+  reg->PC += c;
 }
