@@ -12,7 +12,7 @@ typedef struct {
   int duration;
 } instr;
 
-#define INSTR(length, duration) ((instr){ length, duration })
+#define INSTR(length, duration) ((instr){length, duration})
 
 uint16_t w2(uint8_t op[]) {
   return (op[1] << 8) + op[2];
@@ -26,7 +26,9 @@ bool will_underflow(uint8_t a, uint8_t b) {
   return a < b;
 }
 
-/* These functions are a lot more scannable if the names line up, hence the cryptic abbreviations:
+/* op_ functions are a lot more scannable if the names line up, hence the
+   cryptic abbreviations:
+
      rr -- register (8bit)
      ww -- wide register (16bit)
      08 -- byte literal (8bit)
@@ -102,6 +104,7 @@ instr op_dec_rr___(fd_cpu* cpu, reg8* tgt) {
 }
 
 instr run(fd_cpu* cpu, uint8_t op[]) {
+  // clang-format off
   switch (op[0]) {
     case 0x00: return op_nop();
     case 0x01: return op_lod_ww_16(cpu, &cpu->reg.BC, w2(op));
@@ -120,8 +123,9 @@ instr run(fd_cpu* cpu, uint8_t op[]) {
     case 0x0E: return INSTR(0, 0);
     case 0x0F: return INSTR(0, 0);
   }
+  // clang-format on
 
-  assert(false); // Op not implemented
+  assert(false);  // Op not implemented
   return INSTR(0, 0);
 }
 
