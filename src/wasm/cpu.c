@@ -18,12 +18,12 @@ uint16_t w2(uint8_t op[]) {
   return (op[1] << 8) + op[2];
 }
 
-bool will_overflow(uint8_t a, uint8_t b) {
-  return a > UINT8_MAX - b;
+bool will_carry_from(int bit, uint8_t a, uint8_t b) {
+  return (a >> bit) & (b >> bit);
 }
 
-bool will_underflow(uint8_t a, uint8_t b) {
-  return a < b;
+bool will_borrow_from(int bit, uint8_t a, uint8_t b) {
+  return will_carry_from(bit - 1, a, ~b + 1);
 }
 
 /* op_ functions are a lot more scannable if the names line up, hence the
@@ -78,17 +78,29 @@ instr op_inc_ww___(fd_cpu* _, reg16* tgt) {
 instr op_add_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
   fd_flags f = fd_get_flags(&cpu->reg);
   f.N = false;
-  f.H = will_overflow(tgt->_, val);
+  f.H = will_carry_from(3, tgt->_, val);
+
   tgt->_ += val;
   f.Z = tgt->_ == 0;
   fd_set_flags(&cpu->reg, f);
   return INSTR(1, 4);
 }
 
+instr op_add_ww_ww(fd_cpu* cpu, reg16* tgt, reg16* src) {
+  fd_flags f = fd_get_flags(&cpu->reg);
+  f.N = false;
+  f.H = will_carry_from(11, tgt->_, src->_);
+  f.C = will_carry_from(15, tgt->_, src->_);
+
+  tgt->_ += src->_;
+  fd_set_flags(&cpu->reg, f);
+  return INSTR(1, 8);
+}
+
 instr op_sub_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
   fd_flags f = fd_get_flags(&cpu->reg);
   f.N = true;
-  f.H = will_underflow(tgt->_, val);
+  f.H = !will_carry_from(4, tgt->_, val);
   tgt->_ -= val;
   f.Z = tgt->_ == 0;
   fd_set_flags(&cpu->reg, f);
@@ -115,7 +127,7 @@ instr run(fd_cpu* cpu, uint8_t op[]) {
     case 0x06: return op_lod_rr_08(cpu, &cpu->reg.B, op[1]);
     case 0x07: return op_rlc_rr___(cpu, &cpu->reg.A);
     case 0x08: return op_lod_1F_ww(cpu, w2(op), &cpu->reg.SP);
-    case 0x09: return INSTR(0, 0);
+    case 0x09: return op_add_ww_ww(cpu, &cpu->reg.HL, &cpu->reg.BC);
     case 0x0A: return INSTR(0, 0);
     case 0x0B: return INSTR(0, 0);
     case 0x0C: return INSTR(0, 0);
