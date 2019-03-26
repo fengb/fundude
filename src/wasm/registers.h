@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include "memory.h"
 
 typedef struct {
   uint8_t _;

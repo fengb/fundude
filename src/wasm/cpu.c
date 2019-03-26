@@ -1,23 +1,14 @@
 #include <assert.h>
+#include "memory.h"
 #include "registers.h"
 
-uint16_t wide(uint8_t upper, uint8_t lower) {
-  return (upper << 8) + lower;
-}
+typedef struct {
+  fd_registers reg;
+  fd_memory mem;
+} fd_cpu;
 
-typedef int cycles;
-
-cycles op_noop() {
-  return 1;
-}
-cycles op_ld_wide_d16(reg16* tgt, uint16_t val) {
-  tgt->_ = val;
-  return 3;
-}
-
-cycles op_ld_awide_narrow(fd_memory* mem, reg16* tgt, reg8* src) {
-  fdm_set(mem, tgt->_, src->_);
-  return 2;
+uint16_t w2(uint8_t op[]) {
+  return (op[1] << 8) + op[2];
 }
 
 bool will_overflow(uint8_t a, uint8_t b) {
@@ -28,47 +19,75 @@ bool will_underflow(uint8_t a, uint8_t b) {
   return a < b;
 }
 
-cycles op_inc_wide(reg16* tgt) {
+typedef int cycles;
+
+/* These functions are a lot more scannable if the names line up, hence the cryptic abbreviations:
+     rr -- register (8bit)
+     ww -- wide register (16bit)
+     08 -- byte literal (8bit)
+     16 -- double-byte literal (16bit)
+
+     RR -- register address (8bit + $FF00)
+     WW -- wide register address (16bit)
+     0A -- byte address (8bit + $FF00)
+     1F -- double-byte address (16bit)
+*/
+
+cycles op_nop() {
+  return 1;
+}
+
+cycles op_lod_ww_16(fd_cpu* _, reg16* tgt, uint16_t val) {
+  tgt->_ = val;
+  return 3;
+}
+
+cycles op_lod_WW_rr(fd_cpu* cpu, reg16* tgt, reg8* src) {
+  fdm_set(&cpu->mem, tgt->_, src->_);
+  return 2;
+}
+
+cycles op_inc_ww___(fd_cpu* _, reg16* tgt) {
   tgt->_++;
   return 2;
 }
 
-cycles op_add(fd_registers* reg, reg8* tgt, uint8_t val) {
-  fd_flags f = fd_get_flags(reg);
+cycles op_add_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
+  fd_flags f = fd_get_flags(&cpu->reg);
   f.N = false;
   f.H = will_overflow(tgt->_, val);
   tgt->_ += val;
   f.Z = tgt->_ == 0;
-  fd_set_flags(reg, f);
+  fd_set_flags(&cpu->reg, f);
   return 2;
 }
 
-cycles op_sub(fd_registers* reg, reg8* tgt, uint8_t val) {
-  fd_flags f = fd_get_flags(reg);
+cycles op_sub_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
+  fd_flags f = fd_get_flags(&cpu->reg);
   f.N = true;
   f.H = will_underflow(tgt->_, val);
   tgt->_ -= val;
   f.Z = tgt->_ == 0;
-  fd_set_flags(reg, f);
+  fd_set_flags(&cpu->reg, f);
   return 2;
 }
 
-cycles op_inc(fd_registers* cpu, reg8* tgt) {
-  return op_add(cpu, tgt, 1);
+cycles op_inc_rr___(fd_cpu* cpu, reg8* tgt) {
+  return op_add_rr_08(cpu, tgt, 1);
 }
 
-cycles op_dec(fd_registers* cpu, reg8* tgt) {
-  return op_sub(cpu, tgt, 1);
+cycles op_dec_rr___(fd_cpu* cpu, reg8* tgt) {
+  return op_sub_rr_08(cpu, tgt, 1);
 }
 
-cycles run(fd_registers* reg, fd_memory* mem, uint8_t op[]) {
+cycles run(fd_cpu* cpu, uint8_t op[]) {
   switch (op[0]) {
-    case 0x00: return op_noop();
-    case 0x01: return op_ld_wide_d16(&reg->BC, wide(op[1], op[2]));
-    case 0x02: return op_ld_awide_narrow(mem, &reg->BC, &reg->A);
-    case 0x03: return op_inc_wide(&reg->BC);
-    case 0x04: return op_inc(reg, &reg->B);
-    case 0x05: return op_dec(reg, &reg->B);
+    case 0x00: return op_nop();
+    case 0x01: return op_lod_ww_16(cpu, &cpu->reg.BC, w2(op));
+    case 0x02: return op_lod_WW_rr(cpu, &cpu->reg.BC, &cpu->reg.A);
+    case 0x03: return op_inc_ww___(cpu, &cpu->reg.BC);
+    case 0x04: return op_inc_rr___(cpu, &cpu->reg.B);
+    case 0x05: return op_dec_rr___(cpu, &cpu->reg.B);
     case 0x06: return 0;
     case 0x07: return 0;
     case 0x08: return 0;
@@ -85,7 +104,7 @@ cycles run(fd_registers* reg, fd_memory* mem, uint8_t op[]) {
   return 0;
 }
 
-void tick(fd_registers* reg, fd_memory* mem) {
-  cycles c = run(reg, mem, fdm_ptr(mem, reg->PC._));
-  reg->PC._ += c;
+void tick(fd_cpu* cpu) {
+  cycles c = run(cpu, fdm_ptr(&cpu->mem, cpu->reg.PC._));
+  cpu->reg.PC._ += c;
 }
