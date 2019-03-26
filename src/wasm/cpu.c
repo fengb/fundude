@@ -37,14 +37,30 @@ cycles op_nop() {
   return 1;
 }
 
-cycles op_lod_ww_16(fd_cpu* _, reg16* tgt, uint16_t val) {
-  tgt->_ = val;
+cycles op_rlc_rr___(fd_cpu* _, reg8* tgt) {
+  int msb = tgt->_ >> 7 & 1;
+  tgt->_ = tgt->_ << 1 | msb;
+  return 1;
+}
+
+cycles op_lod_rr_08(fd_cpu* _, reg8* tgt, uint8_t d8) {
+  tgt->_ = d8;
+  return 2;
+}
+
+cycles op_lod_ww_16(fd_cpu* _, reg16* tgt, uint16_t d16) {
+  tgt->_ = d16;
   return 3;
 }
 
 cycles op_lod_WW_rr(fd_cpu* cpu, reg16* tgt, reg8* src) {
   fdm_set(&cpu->mem, tgt->_, src->_);
   return 2;
+}
+
+cycles op_lod_1F_ww(fd_cpu* cpu, uint16_t a16, reg16* src) {
+  fdm_set(&cpu->mem, a16, src->_);
+  return 3;
 }
 
 cycles op_inc_ww___(fd_cpu* _, reg16* tgt) {
@@ -59,7 +75,7 @@ cycles op_add_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
   tgt->_ += val;
   f.Z = tgt->_ == 0;
   fd_set_flags(&cpu->reg, f);
-  return 2;
+  return 1;
 }
 
 cycles op_sub_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
@@ -69,7 +85,7 @@ cycles op_sub_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
   tgt->_ -= val;
   f.Z = tgt->_ == 0;
   fd_set_flags(&cpu->reg, f);
-  return 2;
+  return 1;
 }
 
 cycles op_inc_rr___(fd_cpu* cpu, reg8* tgt) {
@@ -88,9 +104,9 @@ cycles run(fd_cpu* cpu, uint8_t op[]) {
     case 0x03: return op_inc_ww___(cpu, &cpu->reg.BC);
     case 0x04: return op_inc_rr___(cpu, &cpu->reg.B);
     case 0x05: return op_dec_rr___(cpu, &cpu->reg.B);
-    case 0x06: return 0;
-    case 0x07: return 0;
-    case 0x08: return 0;
+    case 0x06: return op_lod_rr_08(cpu, &cpu->reg.B, op[1]);
+    case 0x07: return op_rlc_rr___(cpu, &cpu->reg.A);
+    case 0x08: return op_lod_1F_ww(cpu, w2(op), &cpu->reg.SP);
     case 0x09: return 0;
     case 0x0A: return 0;
     case 0x0B: return 0;
