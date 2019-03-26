@@ -1,7 +1,7 @@
 #include <assert.h>
 #include "registers.h"
 
-fd_flags get_flags(fd_registers* reg) {
+fd_flags fd_get_flags(fd_registers* reg) {
   uint8_t val = reg->F._;
   fd_flags f = {
     .Z = (val >> 7 & 1),
@@ -12,7 +12,7 @@ fd_flags get_flags(fd_registers* reg) {
   return f;
 }
 
-uint8_t set_flags(fd_registers* reg, fd_flags f) {
+uint8_t fd_set_flags(fd_registers* reg, fd_flags f) {
   uint8_t val = (
     f.Z << 7 |
     f.N << 6 |

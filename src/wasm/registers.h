@@ -54,5 +54,5 @@ typedef struct {
   bool C;
 } fd_flags;
 
-fd_flags get_flags(fd_registers* reg);
-uint8_t set_flags(fd_registers* reg, fd_flags f);
+fd_flags fd_get_flags(fd_registers* reg);
+uint8_t fd_set_flags(fd_registers* reg, fd_flags f);
