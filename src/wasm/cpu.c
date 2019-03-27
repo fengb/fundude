@@ -18,6 +18,10 @@ uint16_t w2(uint8_t op[]) {
   return (op[1] << 8) + op[2];
 }
 
+bool is_uint8_zero(int val) {
+  return (val & 0xFF) == 0;
+}
+
 bool will_carry_from(int bit, uint8_t a, uint8_t b) {
   uint8_t mask = (1 << (bit + 1)) - 1;
   return (a & mask) + (b & mask) > mask;
@@ -48,25 +52,27 @@ instr op_nop() {
 
 instr op_rlc_rr___(fd_cpu* cpu, reg8* tgt) {
   int msb = tgt->_ >> 7 & 1;
+
   tgt->_ = tgt->_ << 1 | msb;
-  fd_set_flags(&cpu->reg, (fd_flags){
-      .Z = tgt->_ == 0,
+  cpu->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_),
       .N = false,
       .H = false,
-      .C = msb
-  });
+      .C = msb,
+  };
   return INSTR(1, 4);
 }
 
 instr op_rrc_rr___(fd_cpu* cpu, reg8* tgt) {
   int lsb = tgt->_ & 1;
+
   tgt->_ = tgt->_ >> 1 | (lsb << 7);
-  fd_set_flags(&cpu->reg, (fd_flags){
-      .Z = tgt->_ == 0,
+  cpu->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_),
       .N = false,
       .H = false,
-      .C = lsb
-  });
+      .C = lsb,
+  };
   return INSTR(1, 4);
 }
 
@@ -106,43 +112,58 @@ instr op_dec_ww___(fd_cpu* _, reg16* tgt) {
 }
 
 instr op_add_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
-  fd_flags f = fd_get_flags(&cpu->reg);
-  f.N = false;
-  f.H = will_carry_from(3, tgt->_, val);
-
+  cpu->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ + val),
+      .N = false,
+      .H = will_carry_from(3, tgt->_, val),
+      .C = will_carry_from(7, tgt->_, val),
+  };
   tgt->_ += val;
-  f.Z = tgt->_ == 0;
-  fd_set_flags(&cpu->reg, f);
   return INSTR(1, 4);
 }
 
 instr op_add_ww_ww(fd_cpu* cpu, reg16* tgt, reg16* src) {
-  fd_flags f = fd_get_flags(&cpu->reg);
-  f.N = false;
-  f.H = will_carry_from(11, tgt->_, src->_);
-  f.C = will_carry_from(15, tgt->_, src->_);
-
+  cpu->reg.FLAGS = (fd_flags){
+      .Z = cpu->reg.FLAGS.Z,
+      .N = false,
+      .H = will_carry_from(11, tgt->_, src->_),
+      .C = will_carry_from(15, tgt->_, src->_),
+  };
   tgt->_ += src->_;
-  fd_set_flags(&cpu->reg, f);
   return INSTR(1, 8);
 }
 
 instr op_sub_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
-  fd_flags f = fd_get_flags(&cpu->reg);
-  f.N = true;
-  f.H = !will_carry_from(4, tgt->_, val);
+  cpu->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ - val),
+      .N = true,
+      .H = !will_borrow_from(4, tgt->_, val),
+      .C = !will_borrow_from(8, tgt->_, val),
+  };
   tgt->_ -= val;
-  f.Z = tgt->_ == 0;
-  fd_set_flags(&cpu->reg, f);
   return INSTR(1, 4);
 }
 
 instr op_inc_rr___(fd_cpu* cpu, reg8* tgt) {
-  return op_add_rr_08(cpu, tgt, 1);
+  cpu->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ + 1),
+      .N = false,
+      .H = will_carry_from(3, tgt->_, 1),
+      .C = cpu->reg.FLAGS.C,
+  };
+  tgt->_++;
+  return INSTR(1, 4);
 }
 
 instr op_dec_rr___(fd_cpu* cpu, reg8* tgt) {
-  return op_sub_rr_08(cpu, tgt, 1);
+  cpu->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ - 1),
+      .N = true,
+      .H = will_carry_from(3, tgt->_, 1),
+      .C = cpu->reg.FLAGS.C,
+  };
+  tgt->_--;
+  return INSTR(1, 4);
 }
 
 instr run(fd_cpu* cpu, uint8_t op[]) {

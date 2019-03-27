@@ -2,6 +2,22 @@
 #include <stdint.h>
 
 typedef struct {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  unsigned int _padding : 4;
+  bool C : 1;
+  bool H : 1;
+  bool N : 1;
+  bool Z : 1;
+#else
+  bool Z : 1;
+  bool N : 1;
+  bool H : 1;
+  bool C : 1;
+  unsigned int _padding : 4;
+#endif
+} fd_flags;
+
+typedef struct {
   uint8_t _;
 } reg8;
 
@@ -14,7 +30,10 @@ typedef struct {
     reg16 AF;
     struct {
       reg8 A;
-      reg8 F;
+      union {
+        reg8 F;
+        fd_flags FLAGS;
+      };
     };
   };
 
@@ -45,13 +64,3 @@ typedef struct {
   reg16 SP;
   reg16 PC;
 } fd_registers;
-
-typedef struct {
-  bool Z;
-  bool N;
-  bool H;
-  bool C;
-} fd_flags;
-
-fd_flags fd_get_flags(fd_registers* reg);
-uint8_t fd_set_flags(fd_registers* reg, fd_flags f);

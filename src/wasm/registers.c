@@ -3,13 +3,12 @@
 
 fd_flags fd_get_flags(fd_registers* reg) {
   uint8_t val = reg->F._;
-  fd_flags f = {
+  return (fd_flags){
       .Z = (val >> 7 & 1),
       .N = (val >> 6 & 1),
       .H = (val >> 5 & 1),
       .C = (val >> 4 & 1),
   };
-  return f;
 }
 
 uint8_t fd_set_flags(fd_registers* reg, fd_flags f) {
