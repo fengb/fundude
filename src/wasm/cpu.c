@@ -46,15 +46,38 @@ instr op_nop() {
   return INSTR(1, 4);
 }
 
-instr op_rlc_rr___(fd_cpu* _, reg8* tgt) {
+instr op_rlc_rr___(fd_cpu* cpu, reg8* tgt) {
   int msb = tgt->_ >> 7 & 1;
   tgt->_ = tgt->_ << 1 | msb;
+  fd_set_flags(&cpu->reg, (fd_flags){
+      .Z = tgt->_ == 0,
+      .N = false,
+      .H = false,
+      .C = msb
+  });
+  return INSTR(1, 4);
+}
+
+instr op_rrc_rr___(fd_cpu* cpu, reg8* tgt) {
+  int lsb = tgt->_ & 1;
+  tgt->_ = tgt->_ >> 1 | (lsb << 7);
+  fd_set_flags(&cpu->reg, (fd_flags){
+      .Z = tgt->_ == 0,
+      .N = false,
+      .H = false,
+      .C = lsb
+  });
   return INSTR(1, 4);
 }
 
 instr op_lod_rr_08(fd_cpu* _, reg8* tgt, uint8_t d8) {
   tgt->_ = d8;
   return INSTR(2, 8);
+}
+
+instr op_lod_rr_WW(fd_cpu* cpu, reg8* tgt, reg16* src) {
+  tgt->_ = fdm_get(&cpu->mem, src->_);
+  return INSTR(1, 8);
 }
 
 instr op_lod_ww_16(fd_cpu* _, reg16* tgt, uint16_t d16) {
@@ -74,6 +97,11 @@ instr op_lod_1F_ww(fd_cpu* cpu, uint16_t a16, reg16* src) {
 
 instr op_inc_ww___(fd_cpu* _, reg16* tgt) {
   tgt->_++;
+  return INSTR(1, 8);
+}
+
+instr op_dec_ww___(fd_cpu* _, reg16* tgt) {
+  tgt->_--;
   return INSTR(1, 8);
 }
 
@@ -130,12 +158,12 @@ instr run(fd_cpu* cpu, uint8_t op[]) {
     case 0x07: return op_rlc_rr___(cpu, &cpu->reg.A);
     case 0x08: return op_lod_1F_ww(cpu, w2(op), &cpu->reg.SP);
     case 0x09: return op_add_ww_ww(cpu, &cpu->reg.HL, &cpu->reg.BC);
-    case 0x0A: return INSTR(0, 0);
-    case 0x0B: return INSTR(0, 0);
-    case 0x0C: return INSTR(0, 0);
-    case 0x0D: return INSTR(0, 0);
-    case 0x0E: return INSTR(0, 0);
-    case 0x0F: return INSTR(0, 0);
+    case 0x0A: return op_lod_rr_WW(cpu, &cpu->reg.A, &cpu->reg.BC);
+    case 0x0B: return op_dec_ww___(cpu, &cpu->reg.BC);
+    case 0x0C: return op_inc_rr___(cpu, &cpu->reg.C);
+    case 0x0D: return op_dec_rr___(cpu, &cpu->reg.C);
+    case 0x0E: return op_lod_rr_08(cpu, &cpu->reg.C, op[1]);
+    case 0x0F: return op_rrc_rr___(cpu, &cpu->reg.A);
   }
   // clang-format on
 
