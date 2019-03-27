@@ -1,12 +1,6 @@
 #include <assert.h>
 #include "cpu.h"
-#include "memory.h"
-#include "registers.h"
-
-typedef struct {
-  fd_registers reg;
-  fd_memory mem;
-} fd_cpu;
+#include "fundude.h"
 
 typedef struct {
   int length;
@@ -51,11 +45,11 @@ instr op_nop() {
   return INSTR(1, 4);
 }
 
-instr op_rlc_rr___(fd_cpu* cpu, reg8* tgt) {
+instr op_rlc_rr___(fundude* fd, reg8* tgt) {
   int msb = tgt->_ >> 7 & 1;
 
   tgt->_ = tgt->_ << 1 | msb;
-  cpu->reg.FLAGS = (fd_flags){
+  fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_),
       .N = false,
       .H = false,
@@ -64,11 +58,11 @@ instr op_rlc_rr___(fd_cpu* cpu, reg8* tgt) {
   return INSTR(1, 4);
 }
 
-instr op_rrc_rr___(fd_cpu* cpu, reg8* tgt) {
+instr op_rrc_rr___(fundude* fd, reg8* tgt) {
   int lsb = tgt->_ & 1;
 
   tgt->_ = tgt->_ >> 1 | (lsb << 7);
-  cpu->reg.FLAGS = (fd_flags){
+  fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_),
       .N = false,
       .H = false,
@@ -77,43 +71,43 @@ instr op_rrc_rr___(fd_cpu* cpu, reg8* tgt) {
   return INSTR(1, 4);
 }
 
-instr op_lod_rr_08(fd_cpu* _, reg8* tgt, uint8_t d8) {
+instr op_lod_rr_08(fundude* _, reg8* tgt, uint8_t d8) {
   tgt->_ = d8;
   return INSTR(2, 8);
 }
 
-instr op_lod_rr_WW(fd_cpu* cpu, reg8* tgt, reg16* src) {
-  tgt->_ = fdm_get(&cpu->mem, src->_);
+instr op_lod_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  tgt->_ = fdm_get(&fd->mem, src->_);
   return INSTR(1, 8);
 }
 
-instr op_lod_ww_16(fd_cpu* _, reg16* tgt, uint16_t d16) {
+instr op_lod_ww_16(fundude* _, reg16* tgt, uint16_t d16) {
   tgt->_ = d16;
   return INSTR(3, 12);
 }
 
-instr op_lod_WW_rr(fd_cpu* cpu, reg16* tgt, reg8* src) {
-  fdm_set(&cpu->mem, tgt->_, src->_);
+instr op_lod_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
+  fdm_set(&fd->mem, tgt->_, src->_);
   return INSTR(1, 8);
 }
 
-instr op_lod_1F_ww(fd_cpu* cpu, uint16_t a16, reg16* src) {
-  fdm_set(&cpu->mem, a16, src->_);
+instr op_lod_1F_ww(fundude* fd, uint16_t a16, reg16* src) {
+  fdm_set(&fd->mem, a16, src->_);
   return INSTR(3, 20);
 }
 
-instr op_inc_ww___(fd_cpu* _, reg16* tgt) {
+instr op_inc_ww___(fundude* _, reg16* tgt) {
   tgt->_++;
   return INSTR(1, 8);
 }
 
-instr op_dec_ww___(fd_cpu* _, reg16* tgt) {
+instr op_dec_ww___(fundude* _, reg16* tgt) {
   tgt->_--;
   return INSTR(1, 8);
 }
 
-instr op_add_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
-  cpu->reg.FLAGS = (fd_flags){
+instr op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+  fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ + val),
       .N = false,
       .H = will_carry_from(3, tgt->_, val),
@@ -123,9 +117,9 @@ instr op_add_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
   return INSTR(1, 4);
 }
 
-instr op_add_ww_ww(fd_cpu* cpu, reg16* tgt, reg16* src) {
-  cpu->reg.FLAGS = (fd_flags){
-      .Z = cpu->reg.FLAGS.Z,
+instr op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = fd->reg.FLAGS.Z,
       .N = false,
       .H = will_carry_from(11, tgt->_, src->_),
       .C = will_carry_from(15, tgt->_, src->_),
@@ -134,8 +128,8 @@ instr op_add_ww_ww(fd_cpu* cpu, reg16* tgt, reg16* src) {
   return INSTR(1, 8);
 }
 
-instr op_sub_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
-  cpu->reg.FLAGS = (fd_flags){
+instr op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+  fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ - val),
       .N = true,
       .H = !will_borrow_from(4, tgt->_, val),
@@ -145,47 +139,47 @@ instr op_sub_rr_08(fd_cpu* cpu, reg8* tgt, uint8_t val) {
   return INSTR(1, 4);
 }
 
-instr op_inc_rr___(fd_cpu* cpu, reg8* tgt) {
-  cpu->reg.FLAGS = (fd_flags){
+instr op_inc_rr___(fundude* fd, reg8* tgt) {
+  fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ + 1),
       .N = false,
       .H = will_carry_from(3, tgt->_, 1),
-      .C = cpu->reg.FLAGS.C,
+      .C = fd->reg.FLAGS.C,
   };
   tgt->_++;
   return INSTR(1, 4);
 }
 
-instr op_dec_rr___(fd_cpu* cpu, reg8* tgt) {
-  cpu->reg.FLAGS = (fd_flags){
+instr op_dec_rr___(fundude* fd, reg8* tgt) {
+  fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ - 1),
       .N = true,
       .H = will_carry_from(3, tgt->_, 1),
-      .C = cpu->reg.FLAGS.C,
+      .C = fd->reg.FLAGS.C,
   };
   tgt->_--;
   return INSTR(1, 4);
 }
 
-instr run(fd_cpu* cpu, uint8_t op[]) {
+instr run(fundude* fd, uint8_t op[]) {
   // clang-format off
   switch (op[0]) {
     case 0x00: return op_nop();
-    case 0x01: return op_lod_ww_16(cpu, &cpu->reg.BC, w2(op));
-    case 0x02: return op_lod_WW_rr(cpu, &cpu->reg.BC, &cpu->reg.A);
-    case 0x03: return op_inc_ww___(cpu, &cpu->reg.BC);
-    case 0x04: return op_inc_rr___(cpu, &cpu->reg.B);
-    case 0x05: return op_dec_rr___(cpu, &cpu->reg.B);
-    case 0x06: return op_lod_rr_08(cpu, &cpu->reg.B, op[1]);
-    case 0x07: return op_rlc_rr___(cpu, &cpu->reg.A);
-    case 0x08: return op_lod_1F_ww(cpu, w2(op), &cpu->reg.SP);
-    case 0x09: return op_add_ww_ww(cpu, &cpu->reg.HL, &cpu->reg.BC);
-    case 0x0A: return op_lod_rr_WW(cpu, &cpu->reg.A, &cpu->reg.BC);
-    case 0x0B: return op_dec_ww___(cpu, &cpu->reg.BC);
-    case 0x0C: return op_inc_rr___(cpu, &cpu->reg.C);
-    case 0x0D: return op_dec_rr___(cpu, &cpu->reg.C);
-    case 0x0E: return op_lod_rr_08(cpu, &cpu->reg.C, op[1]);
-    case 0x0F: return op_rrc_rr___(cpu, &cpu->reg.A);
+    case 0x01: return op_lod_ww_16(fd, &fd->reg.BC, w2(op));
+    case 0x02: return op_lod_WW_rr(fd, &fd->reg.BC, &fd->reg.A);
+    case 0x03: return op_inc_ww___(fd, &fd->reg.BC);
+    case 0x04: return op_inc_rr___(fd, &fd->reg.B);
+    case 0x05: return op_dec_rr___(fd, &fd->reg.B);
+    case 0x06: return op_lod_rr_08(fd, &fd->reg.B, op[1]);
+    case 0x07: return op_rlc_rr___(fd, &fd->reg.A);
+    case 0x08: return op_lod_1F_ww(fd, w2(op), &fd->reg.SP);
+    case 0x09: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.BC);
+    case 0x0A: return op_lod_rr_WW(fd, &fd->reg.A, &fd->reg.BC);
+    case 0x0B: return op_dec_ww___(fd, &fd->reg.BC);
+    case 0x0C: return op_inc_rr___(fd, &fd->reg.C);
+    case 0x0D: return op_dec_rr___(fd, &fd->reg.C);
+    case 0x0E: return op_lod_rr_08(fd, &fd->reg.C, op[1]);
+    case 0x0F: return op_rrc_rr___(fd, &fd->reg.A);
   }
   // clang-format on
 
@@ -193,9 +187,9 @@ instr run(fd_cpu* cpu, uint8_t op[]) {
   return INSTR(0, 0);
 }
 
-void tick(fd_cpu* cpu) {
-  instr c = run(cpu, fdm_ptr(&cpu->mem, cpu->reg.PC._));
+void tick(fundude* fd) {
+  instr c = run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
   assert(c.length > 0);
   assert(c.duration > 0);
-  cpu->reg.PC._ += c.length;
+  fd->reg.PC._ += c.length;
 }
