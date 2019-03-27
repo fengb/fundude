@@ -1,4 +1,5 @@
 #include <assert.h>
+#include "cpu.h"
 #include "memory.h"
 #include "registers.h"
 
@@ -22,13 +23,13 @@ bool is_uint8_zero(int val) {
   return (val & 0xFF) == 0;
 }
 
-bool will_carry_from(int bit, uint8_t a, uint8_t b) {
-  uint8_t mask = (1 << (bit + 1)) - 1;
+bool will_carry_from(int bit, int a, int b) {
+  int mask = (1 << (bit + 1)) - 1;
   return (a & mask) + (b & mask) > mask;
 }
 
-bool will_borrow_from(int bit, uint8_t a, uint8_t b) {
-  uint8_t mask = (1 << bit) - 1;
+bool will_borrow_from(int bit, int a, int b) {
+  int mask = (1 << bit) - 1;
   return (a & mask) < (b & mask);
 }
 
