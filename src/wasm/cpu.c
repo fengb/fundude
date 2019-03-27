@@ -19,11 +19,13 @@ uint16_t w2(uint8_t op[]) {
 }
 
 bool will_carry_from(int bit, uint8_t a, uint8_t b) {
-  return (a >> bit) & (b >> bit);
+  uint8_t mask = (1 << (bit + 1)) - 1;
+  return (a & mask) + (b & mask) > mask;
 }
 
 bool will_borrow_from(int bit, uint8_t a, uint8_t b) {
-  return will_carry_from(bit - 1, a, ~b + 1);
+  uint8_t mask = (1 << bit) - 1;
+  return (a & mask) < (b & mask);
 }
 
 /* op_ functions are a lot more scannable if the names line up, hence the

@@ -19,7 +19,7 @@ $(OUT_DIR)/%.bc: $(SRC_DIR)/%.c
 
 $(TEST_OUT_DIR)/test_%: $(OBJ_FILES) $(TEST_MAIN_DIR)/test_%.c
 	@mkdir -p build/test
-	$(CC) -Wno-override-module -o "$@" $^
+	$(CC) -Wno-override-module -I$(SRC_DIR) -o "$@" $^
 
 .PHONY: build test clean
 
