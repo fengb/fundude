@@ -1,8 +1,6 @@
 #include <stddef.h>
 #include "memory.h"
-#include "tap.c"
-
-#define eqhex(a, b) ok(a == b, "0x%X == 0x%X", a, b)
+#include "tap_eq.h"
 
 int main() {
   plan(9);

@@ -1,5 +1,5 @@
 #include "registers.h"
-#include "tap.c"
+#include "tap_eq.h"
 
 int main() {
   plan(3);
@@ -12,7 +12,7 @@ int main() {
       .H = true,
       .C = true,
   };
-  ok(reg.F._ == 0xF0, "0xF0 == 0x%X", reg.F._);
+  eqhex(reg.F._, 0xF0);
 
   reg.FLAGS = (fd_flags){
       .Z = true,
@@ -20,7 +20,7 @@ int main() {
       .H = false,
       .C = false,
   };
-  ok(reg.F._ == 0b10000000, "0x80 == 0x%X", reg.F._);
+  eqhex(reg.F._, 0b10000000);
 
   reg.FLAGS = (fd_flags){
       .Z = false,
@@ -28,7 +28,7 @@ int main() {
       .H = false,
       .C = true,
   };
-  ok(reg.F._ == 0b00010000, "0x10 == 0x%X", reg.F._);
+  eqhex(reg.F._, 0b00010000);
 
   done_testing();
 }
