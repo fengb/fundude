@@ -149,6 +149,11 @@ instr op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   return INSTR(1, 8);
 }
 
+instr op_ldi_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  fdm_set(&fd->mem, tgt->_, src->_++);
+  return INSTR(1, 8);
+}
+
 instr op_inc_ww___(fundude* _, reg16* tgt) {
   tgt->_++;
   return INSTR(1, 8);
@@ -214,6 +219,16 @@ instr op_dec_rr___(fundude* fd, reg8* tgt) {
   return INSTR(1, 4);
 }
 
+instr op_cpl_rr___(fundude* fd, reg8* tgt) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = fd->reg.FLAGS.Z,
+      .N = true,
+      .H = true,
+      .C = fd->reg.FLAGS.C,
+  };
+  return INSTR(1, 4);
+}
+
 instr run(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop();
@@ -259,6 +274,13 @@ instr run(fundude* fd, uint8_t op[]) {
     case 0x26: return op_lod_rr_08(fd, &fd->reg.H, op[1]);
     case 0x27: return op_scf(fd);
     case 0x28: return op_jmp_if_08(fd, fd->reg.FLAGS.Z, op[1]);
+    case 0x29: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.HL);
+    case 0x2A: return op_ldi_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0x2B: return op_dec_ww___(fd, &fd->reg.HL);
+    case 0x2C: return op_inc_rr___(fd, &fd->reg.L);
+    case 0x2D: return op_dec_rr___(fd, &fd->reg.L);
+    case 0x2E: return op_lod_rr_08(fd, &fd->reg.L, op[1]);
+    case 0x2F: return op_cpl_rr___(fd, &fd->reg.A);
   }
 
   assert(false);  // Op not implemented
