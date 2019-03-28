@@ -14,6 +14,15 @@ typedef enum {
   COND_C = 'C',
 } cond_zc;
 
+bool cond_success(fd_flags flags, cond_zc zc) {
+  switch (zc) {
+    case COND_NZ: return !flags.Z;
+    case COND_Z: return flags.Z;
+    case COND_NC: return !flags.C;
+    case COND_C: return flags.C;
+  }
+}
+
 #define INSTR(length, duration) ((instr){length, duration})
 
 uint16_t w2(uint8_t op[]) {
@@ -56,21 +65,22 @@ instr op_sys(fundude* fd, sys_mode mode, int length) {
   return INSTR(length, 4);
 }
 
+instr op_scf(fundude* fd) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = fd->reg.FLAGS.Z,
+      .N = false,
+      .H = false,
+      .C = true,
+  };
+  return INSTR(1, 4);
+}
+
 instr op_jmp_08___(fundude* fd, uint8_t val) {
   return INSTR(val, 8);
 }
 
-bool cond_success(fundude* fd, cond_zc zc) {
-  switch (zc) {
-    case COND_NZ: return !fd->reg.FLAGS.Z;
-    case COND_Z: return fd->reg.FLAGS.Z;
-    case COND_NC: return !fd->reg.FLAGS.C;
-    case COND_C: return fd->reg.FLAGS.C;
-  }
-}
-
 instr op_jmp_zc_08(fundude* fd, cond_zc zc, uint8_t val) {
-  return INSTR(cond_success(fd, zc) ? val : 2, 8);
+  return INSTR(cond_success(fd->reg.FLAGS, zc) ? val : 2, 8);
 }
 
 instr op_rlc_rr___(fundude* fd, reg8* tgt) {
@@ -148,6 +158,11 @@ instr op_lod_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
 instr op_lod_1F_ww(fundude* fd, uint16_t a16, reg16* src) {
   fdm_set(&fd->mem, a16, src->_);
   return INSTR(3, 20);
+}
+
+instr op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
+  fdm_set(&fd->mem, tgt->_++, src->_);
+  return INSTR(1, 8);
 }
 
 instr op_inc_ww___(fundude* _, reg16* tgt) {
@@ -252,6 +267,13 @@ instr run(fundude* fd, uint8_t op[]) {
     case 0x1F: return op_rra_rr___(fd, &fd->reg.A);
 
     case 0x20: return op_jmp_zc_08(fd, COND_NZ, op[1]);
+    case 0x21: return op_lod_ww_16(fd, &fd->reg.HL, w2(op));
+    case 0x22: return op_ldi_WW_rr(fd, &fd->reg.HL, &fd->reg.A);
+    case 0x23: return op_inc_ww___(fd, &fd->reg.HL);
+    case 0x24: return op_inc_rr___(fd, &fd->reg.H);
+    case 0x25: return op_dec_rr___(fd, &fd->reg.H);
+    case 0x26: return op_lod_rr_08(fd, &fd->reg.H, op[1]);
+    case 0x27: return op_scf(fd);
   }
 
   assert(false);  // Op not implemented
