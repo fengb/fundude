@@ -7,6 +7,13 @@ typedef struct {
   int duration;
 } instr;
 
+typedef enum {
+  COND_NZ = ~'Z',
+  COND_Z = 'Z',
+  COND_NC = ~'C',
+  COND_C = 'C',
+} cond_zc;
+
 #define INSTR(length, duration) ((instr){length, duration})
 
 uint16_t w2(uint8_t op[]) {
@@ -51,6 +58,19 @@ instr op_sys(fundude* fd, sys_mode mode, int length) {
 
 instr op_jmp_08___(fundude* fd, uint8_t val) {
   return INSTR(val, 8);
+}
+
+bool cond_success(fundude* fd, cond_zc zc) {
+  switch (zc) {
+    case COND_NZ: return !fd->reg.FLAGS.Z;
+    case COND_Z: return fd->reg.FLAGS.Z;
+    case COND_NC: return !fd->reg.FLAGS.C;
+    case COND_C: return fd->reg.FLAGS.C;
+  }
+}
+
+instr op_jmp_zc_08(fundude* fd, cond_zc zc, uint8_t val) {
+  return INSTR(cond_success(fd, zc) ? val : 2, 8);
 }
 
 instr op_rlc_rr___(fundude* fd, reg8* tgt) {
@@ -196,7 +216,6 @@ instr op_dec_rr___(fundude* fd, reg8* tgt) {
 }
 
 instr run(fundude* fd, uint8_t op[]) {
-  // clang-format off
   switch (op[0]) {
     case 0x00: return op_nop();
     case 0x01: return op_lod_ww_16(fd, &fd->reg.BC, w2(op));
@@ -231,8 +250,9 @@ instr run(fundude* fd, uint8_t op[]) {
     case 0x1D: return op_dec_rr___(fd, &fd->reg.E);
     case 0x1E: return op_lod_rr_08(fd, &fd->reg.E, op[1]);
     case 0x1F: return op_rra_rr___(fd, &fd->reg.A);
+
+    case 0x20: return op_jmp_zc_08(fd, COND_NZ, op[1]);
   }
-  // clang-format on
 
   assert(false);  // Op not implemented
   return INSTR(0, 0);
