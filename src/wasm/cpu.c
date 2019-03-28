@@ -1,5 +1,5 @@
-#include <assert.h>
 #include "cpu.h"
+#include <assert.h>
 #include "fundude.h"
 
 typedef struct {
@@ -45,6 +45,14 @@ instr op_nop() {
   return INSTR(1, 4);
 }
 
+instr op_sys(fundude* fd, sys_mode mode, int length) {
+  return INSTR(length, 4);
+}
+
+instr op_jmp_08___(fundude* fd, uint8_t val) {
+  return INSTR(val, 8);
+}
+
 instr op_rlc_rr___(fundude* fd, reg8* tgt) {
   int msb = tgt->_ >> 7 & 1;
 
@@ -58,10 +66,36 @@ instr op_rlc_rr___(fundude* fd, reg8* tgt) {
   return INSTR(1, 4);
 }
 
+instr op_rla_rr___(fundude* fd, reg8* tgt) {
+  int msb = tgt->_ >> 7 & 1;
+
+  tgt->_ = tgt->_ << 1 | fd->reg.FLAGS.C;
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_),
+      .N = false,
+      .H = false,
+      .C = msb,
+  };
+  return INSTR(1, 4);
+}
+
 instr op_rrc_rr___(fundude* fd, reg8* tgt) {
   int lsb = tgt->_ & 1;
 
   tgt->_ = tgt->_ >> 1 | (lsb << 7);
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_),
+      .N = false,
+      .H = false,
+      .C = lsb,
+  };
+  return INSTR(1, 4);
+}
+
+instr op_rra_rr___(fundude* fd, reg8* tgt) {
+  int lsb = tgt->_ & 1;
+
+  tgt->_ = tgt->_ >> 1 | (fd->reg.FLAGS.C << 7);
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_),
       .N = false,
@@ -180,6 +214,23 @@ instr run(fundude* fd, uint8_t op[]) {
     case 0x0D: return op_dec_rr___(fd, &fd->reg.C);
     case 0x0E: return op_lod_rr_08(fd, &fd->reg.C, op[1]);
     case 0x0F: return op_rrc_rr___(fd, &fd->reg.A);
+
+    case 0x10: return op_sys(fd, SYS_STOP, 2);
+    case 0x11: return op_lod_ww_16(fd, &fd->reg.DE, w2(op));
+    case 0x12: return op_lod_WW_rr(fd, &fd->reg.DE, &fd->reg.A);
+    case 0x13: return op_inc_ww___(fd, &fd->reg.DE);
+    case 0x14: return op_inc_rr___(fd, &fd->reg.D);
+    case 0x15: return op_dec_rr___(fd, &fd->reg.D);
+    case 0x16: return op_lod_rr_08(fd, &fd->reg.D, op[1]);
+    case 0x17: return op_rla_rr___(fd, &fd->reg.A);
+    case 0x18: return op_jmp_08___(fd, op[1]);
+    case 0x19: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.DE);
+    case 0x1A: return op_lod_rr_WW(fd, &fd->reg.A, &fd->reg.DE);
+    case 0x1B: return op_dec_ww___(fd, &fd->reg.DE);
+    case 0x1C: return op_inc_rr___(fd, &fd->reg.E);
+    case 0x1D: return op_dec_rr___(fd, &fd->reg.E);
+    case 0x1E: return op_lod_rr_08(fd, &fd->reg.E, op[1]);
+    case 0x1F: return op_rra_rr___(fd, &fd->reg.A);
   }
   // clang-format on
 
