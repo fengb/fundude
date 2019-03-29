@@ -162,6 +162,11 @@ instr op_lod_rr_08(fundude* _, reg8* tgt, uint8_t d8) {
   return INSTR(2, 8);
 }
 
+instr op_lod_rr_rr(fundude* _, reg8* tgt, reg8* src) {
+  tgt->_ = src->_;
+  return INSTR(1, 4);
+}
+
 instr op_lod_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   tgt->_ = fdm_get(&fd->mem, src->_);
   return INSTR(1, 8);
@@ -377,6 +382,74 @@ instr fd_run(fundude* fd, uint8_t op[]) {
     case 0x3D: return op_dec_rr___(fd, &fd->reg.A);
     case 0x3E: return op_lod_rr_08(fd, &fd->reg.A, op[1]);
     case 0x3F: return op_ccf(fd);
+
+    case 0x40: return op_lod_rr_rr(fd, &fd->reg.B, &fd->reg.B);
+    case 0x41: return op_lod_rr_rr(fd, &fd->reg.B, &fd->reg.C);
+    case 0x42: return op_lod_rr_rr(fd, &fd->reg.B, &fd->reg.D);
+    case 0x43: return op_lod_rr_rr(fd, &fd->reg.B, &fd->reg.E);
+    case 0x44: return op_lod_rr_rr(fd, &fd->reg.B, &fd->reg.H);
+    case 0x45: return op_lod_rr_rr(fd, &fd->reg.B, &fd->reg.L);
+    case 0x46: return op_lod_rr_WW(fd, &fd->reg.B, &fd->reg.HL);
+    case 0x47: return op_lod_rr_rr(fd, &fd->reg.B, &fd->reg.A);
+    case 0x48: return op_lod_rr_rr(fd, &fd->reg.C, &fd->reg.B);
+    case 0x49: return op_lod_rr_rr(fd, &fd->reg.C, &fd->reg.C);
+    case 0x4A: return op_lod_rr_rr(fd, &fd->reg.C, &fd->reg.D);
+    case 0x4B: return op_lod_rr_rr(fd, &fd->reg.C, &fd->reg.E);
+    case 0x4C: return op_lod_rr_rr(fd, &fd->reg.C, &fd->reg.H);
+    case 0x4D: return op_lod_rr_rr(fd, &fd->reg.C, &fd->reg.L);
+    case 0x4E: return op_lod_rr_WW(fd, &fd->reg.C, &fd->reg.HL);
+    case 0x4F: return op_lod_rr_rr(fd, &fd->reg.C, &fd->reg.A);
+
+    case 0x50: return op_lod_rr_rr(fd, &fd->reg.D, &fd->reg.B);
+    case 0x51: return op_lod_rr_rr(fd, &fd->reg.D, &fd->reg.C);
+    case 0x52: return op_lod_rr_rr(fd, &fd->reg.D, &fd->reg.D);
+    case 0x53: return op_lod_rr_rr(fd, &fd->reg.D, &fd->reg.E);
+    case 0x54: return op_lod_rr_rr(fd, &fd->reg.D, &fd->reg.H);
+    case 0x55: return op_lod_rr_rr(fd, &fd->reg.D, &fd->reg.L);
+    case 0x56: return op_lod_rr_WW(fd, &fd->reg.D, &fd->reg.HL);
+    case 0x57: return op_lod_rr_rr(fd, &fd->reg.D, &fd->reg.A);
+    case 0x58: return op_lod_rr_rr(fd, &fd->reg.E, &fd->reg.B);
+    case 0x59: return op_lod_rr_rr(fd, &fd->reg.E, &fd->reg.C);
+    case 0x5A: return op_lod_rr_rr(fd, &fd->reg.E, &fd->reg.D);
+    case 0x5B: return op_lod_rr_rr(fd, &fd->reg.E, &fd->reg.E);
+    case 0x5C: return op_lod_rr_rr(fd, &fd->reg.E, &fd->reg.H);
+    case 0x5D: return op_lod_rr_rr(fd, &fd->reg.E, &fd->reg.L);
+    case 0x5E: return op_lod_rr_WW(fd, &fd->reg.E, &fd->reg.HL);
+    case 0x5F: return op_lod_rr_rr(fd, &fd->reg.E, &fd->reg.A);
+
+    case 0x60: return op_lod_rr_rr(fd, &fd->reg.H, &fd->reg.B);
+    case 0x61: return op_lod_rr_rr(fd, &fd->reg.H, &fd->reg.C);
+    case 0x62: return op_lod_rr_rr(fd, &fd->reg.H, &fd->reg.D);
+    case 0x63: return op_lod_rr_rr(fd, &fd->reg.H, &fd->reg.E);
+    case 0x64: return op_lod_rr_rr(fd, &fd->reg.H, &fd->reg.H);
+    case 0x65: return op_lod_rr_rr(fd, &fd->reg.H, &fd->reg.L);
+    case 0x66: return op_lod_rr_WW(fd, &fd->reg.H, &fd->reg.HL);
+    case 0x67: return op_lod_rr_rr(fd, &fd->reg.H, &fd->reg.A);
+    case 0x68: return op_lod_rr_rr(fd, &fd->reg.L, &fd->reg.B);
+    case 0x69: return op_lod_rr_rr(fd, &fd->reg.L, &fd->reg.C);
+    case 0x6A: return op_lod_rr_rr(fd, &fd->reg.L, &fd->reg.D);
+    case 0x6B: return op_lod_rr_rr(fd, &fd->reg.L, &fd->reg.E);
+    case 0x6C: return op_lod_rr_rr(fd, &fd->reg.L, &fd->reg.H);
+    case 0x6D: return op_lod_rr_rr(fd, &fd->reg.L, &fd->reg.L);
+    case 0x6E: return op_lod_rr_WW(fd, &fd->reg.L, &fd->reg.HL);
+    case 0x6F: return op_lod_rr_rr(fd, &fd->reg.L, &fd->reg.A);
+
+    case 0x70: return op_lod_WW_rr(fd, &fd->reg.HL, &fd->reg.B);
+    case 0x71: return op_lod_WW_rr(fd, &fd->reg.HL, &fd->reg.C);
+    case 0x72: return op_lod_WW_rr(fd, &fd->reg.HL, &fd->reg.D);
+    case 0x73: return op_lod_WW_rr(fd, &fd->reg.HL, &fd->reg.E);
+    case 0x74: return op_lod_WW_rr(fd, &fd->reg.HL, &fd->reg.H);
+    case 0x75: return op_lod_WW_rr(fd, &fd->reg.HL, &fd->reg.L);
+    case 0x76: return op_sys(fd, SYS_HALT, 1);
+    case 0x77: return op_lod_WW_rr(fd, &fd->reg.HL, &fd->reg.A);
+    case 0x78: return op_lod_rr_rr(fd, &fd->reg.A, &fd->reg.B);
+    case 0x79: return op_lod_rr_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0x7A: return op_lod_rr_rr(fd, &fd->reg.A, &fd->reg.D);
+    case 0x7B: return op_lod_rr_rr(fd, &fd->reg.A, &fd->reg.E);
+    case 0x7C: return op_lod_rr_rr(fd, &fd->reg.A, &fd->reg.H);
+    case 0x7D: return op_lod_rr_rr(fd, &fd->reg.A, &fd->reg.L);
+    case 0x7E: return op_lod_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0x7F: return op_lod_rr_rr(fd, &fd->reg.A, &fd->reg.A);
 
     // --
     case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
