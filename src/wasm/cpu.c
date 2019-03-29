@@ -1,8 +1,6 @@
 #include "cpu.h"
 #include <assert.h>
 
-#define INSTR(length, duration) ((instr){length, duration})
-
 uint16_t w2(uint8_t op[]) {
   return (op[1] << 8) + op[2];
 }
@@ -35,35 +33,35 @@ bool will_borrow_from(int bit, int a, int b) {
      1F -- double-byte address (16bit)
 */
 
-instr op_nop() {
-  return INSTR(1, 4);
+op_result op_nop() {
+  return OP_RESULT(1, 4, "NOP");
 }
 
-instr op_sys(fundude* fd, sys_mode mode, int length) {
-  return INSTR(length, 4);
+op_result op_sys(fundude* fd, sys_mode mode, int length) {
+  return OP_RESULT(length, 4, "SYS %d", mode);
 }
 
-instr op_scf(fundude* fd) {
+op_result op_scf(fundude* fd) {
   fd->reg.FLAGS = (fd_flags){
       .Z = fd->reg.FLAGS.Z,
       .N = false,
       .H = false,
       .C = true,
   };
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "SCF");
 }
 
-instr op_ccf(fundude* fd) {
+op_result op_ccf(fundude* fd) {
   fd->reg.FLAGS = (fd_flags){
       .Z = fd->reg.FLAGS.Z,
       .N = false,
       .H = false,
       .C = !fd->reg.FLAGS.C,
   };
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "CCF");
 }
 
-instr op_daa_rr___(fundude* fd, reg8* dst) {
+op_result op_daa_rr___(fundude* fd, reg8* dst) {
   uint8_t lb = dst->_ & 0xF;
   uint8_t hb = (dst->_ >> 4) & 0xF;
   bool carry = fd->reg.FLAGS.C;
@@ -94,18 +92,18 @@ instr op_daa_rr___(fundude* fd, reg8* dst) {
       .H = false,
       .C = carry,
   };
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "DAA");
 }
 
-instr op_jmp_08___(fundude* fd, uint8_t val) {
-  return INSTR(val, 8);
+op_result op_jmp_08___(fundude* fd, uint8_t val) {
+  return OP_RESULT(val, 8, "JR %d", val);
 }
 
-instr op_jmp_if_08(fundude* fd, bool check, uint8_t val) {
-  return INSTR(check ? val : 2, 8);
+op_result op_jmp_if_08(fundude* fd, bool check, uint8_t val) {
+  return OP_RESULT(check ? val : 2, 8, "JR%d %d", check, val);
 }
 
-instr op_rlc_rr___(fundude* fd, reg8* tgt) {
+op_result op_rlc_rr___(fundude* fd, reg8* tgt) {
   int msb = tgt->_ >> 7 & 1;
 
   tgt->_ = tgt->_ << 1 | msb;
@@ -115,10 +113,10 @@ instr op_rlc_rr___(fundude* fd, reg8* tgt) {
       .H = false,
       .C = msb,
   };
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "RLCA");
 }
 
-instr op_rla_rr___(fundude* fd, reg8* tgt) {
+op_result op_rla_rr___(fundude* fd, reg8* tgt) {
   int msb = tgt->_ >> 7 & 1;
 
   tgt->_ = tgt->_ << 1 | fd->reg.FLAGS.C;
@@ -128,10 +126,10 @@ instr op_rla_rr___(fundude* fd, reg8* tgt) {
       .H = false,
       .C = msb,
   };
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "RLA");
 }
 
-instr op_rrc_rr___(fundude* fd, reg8* tgt) {
+op_result op_rrc_rr___(fundude* fd, reg8* tgt) {
   int lsb = tgt->_ & 1;
 
   tgt->_ = tgt->_ >> 1 | (lsb << 7);
@@ -141,10 +139,10 @@ instr op_rrc_rr___(fundude* fd, reg8* tgt) {
       .H = false,
       .C = lsb,
   };
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "RRCA");
 }
 
-instr op_rra_rr___(fundude* fd, reg8* tgt) {
+op_result op_rra_rr___(fundude* fd, reg8* tgt) {
   int lsb = tgt->_ & 1;
 
   tgt->_ = tgt->_ >> 1 | (fd->reg.FLAGS.C << 7);
@@ -154,70 +152,70 @@ instr op_rra_rr___(fundude* fd, reg8* tgt) {
       .H = false,
       .C = lsb,
   };
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "RRA");
 }
 
-instr op_lod_rr_08(fundude* _, reg8* tgt, uint8_t d8) {
+op_result op_lod_rr_08(fundude* _, reg8* tgt, uint8_t d8) {
   tgt->_ = d8;
-  return INSTR(2, 8);
+  return OP_RESULT(2, 8, "LD");
 }
 
-instr op_lod_rr_rr(fundude* _, reg8* tgt, reg8* src) {
+op_result op_lod_rr_rr(fundude* _, reg8* tgt, reg8* src) {
   tgt->_ = src->_;
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "LD");
 }
 
-instr op_lod_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+op_result op_lod_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   tgt->_ = fdm_get(&fd->mem, src->_);
-  return INSTR(1, 8);
+  return OP_RESULT(1, 8, "LD");
 }
 
-instr op_lod_ww_16(fundude* _, reg16* tgt, uint16_t d16) {
+op_result op_lod_ww_16(fundude* _, reg16* tgt, uint16_t d16) {
   tgt->_ = d16;
-  return INSTR(3, 12);
+  return OP_RESULT(3, 12, "LD");
 }
 
-instr op_lod_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
+op_result op_lod_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_, src->_);
-  return INSTR(1, 8);
+  return OP_RESULT(1, 8, "LD");
 }
 
-instr op_lod_1F_ww(fundude* fd, uint16_t a16, reg16* src) {
+op_result op_lod_1F_ww(fundude* fd, uint16_t a16, reg16* src) {
   fdm_set(&fd->mem, a16, src->_);
-  return INSTR(3, 20);
+  return OP_RESULT(3, 20, "LD");
 }
 
-instr op_lod_WW_08(fundude* fd, reg16* tgt, uint8_t val) {
+op_result op_lod_WW_08(fundude* fd, reg16* tgt, uint8_t val) {
   fdm_set(&fd->mem, tgt->_, val);
-  return INSTR(2, 12);
+  return OP_RESULT(2, 12, "LD");
 }
 
-instr op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
+op_result op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_++, src->_);
-  return INSTR(1, 8);
+  return OP_RESULT(1, 8, "LDI");
 }
 
-instr op_ldi_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+op_result op_ldi_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   fdm_set(&fd->mem, tgt->_, src->_++);
-  return INSTR(1, 8);
+  return OP_RESULT(1, 8, "LDI");
 }
 
-instr op_ldd_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
+op_result op_ldd_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_--, src->_);
-  return INSTR(1, 8);
+  return OP_RESULT(1, 8, "LDD");
 }
 
-instr op_ldd_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+op_result op_ldd_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   fdm_set(&fd->mem, tgt->_, src->_--);
-  return INSTR(1, 8);
+  return OP_RESULT(1, 8, "LDD");
 }
 
-instr op_inc_ww___(fundude* _, reg16* tgt) {
+op_result op_inc_ww___(fundude* _, reg16* tgt) {
   tgt->_++;
-  return INSTR(1, 8);
+  return OP_RESULT(1, 8, "INC");
 }
 
-instr op_inc_WW___(fundude* fd, reg16* tgt) {
+op_result op_inc_WW___(fundude* fd, reg16* tgt) {
   uint8_t* mem = fdm_ptr(&fd->mem, tgt->_);
 
   fd->reg.FLAGS = (fd_flags){
@@ -227,15 +225,15 @@ instr op_inc_WW___(fundude* fd, reg16* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   (*mem)++;
-  return INSTR(1, 12);
+  return OP_RESULT(1, 12, "INC");
 }
 
-instr op_dec_ww___(fundude* _, reg16* tgt) {
+op_result op_dec_ww___(fundude* _, reg16* tgt) {
   tgt->_--;
-  return INSTR(1, 8);
+  return OP_RESULT(1, 8, "DEC");
 }
 
-instr op_dec_WW___(fundude* fd, reg16* tgt) {
+op_result op_dec_WW___(fundude* fd, reg16* tgt) {
   uint8_t* mem = fdm_ptr(&fd->mem, tgt->_);
 
   fd->reg.FLAGS = (fd_flags){
@@ -245,10 +243,10 @@ instr op_dec_WW___(fundude* fd, reg16* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   (*mem)--;
-  return INSTR(1, 12);
+  return OP_RESULT(1, 12, "DEC");
 }
 
-instr op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+op_result op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ + val),
       .N = false,
@@ -256,10 +254,10 @@ instr op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
       .C = will_carry_from(7, tgt->_, val),
   };
   tgt->_ += val;
-  return INSTR(2, 8);
+  return OP_RESULT(2, 8, "ADD");
 }
 
-instr op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
+op_result op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
   fd->reg.FLAGS = (fd_flags){
       .Z = fd->reg.FLAGS.Z,
       .N = false,
@@ -267,10 +265,10 @@ instr op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
       .C = will_carry_from(15, tgt->_, src->_),
   };
   tgt->_ += src->_;
-  return INSTR(1, 8);
+  return OP_RESULT(1, 8, "ADD");
 }
 
-instr op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+op_result op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ - val),
       .N = true,
@@ -278,10 +276,10 @@ instr op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
       .C = will_borrow_from(8, tgt->_, val),
   };
   tgt->_ -= val;
-  return INSTR(2, 8);
+  return OP_RESULT(2, 8, "SUB");
 }
 
-instr op_inc_rr___(fundude* fd, reg8* tgt) {
+op_result op_inc_rr___(fundude* fd, reg8* tgt) {
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ + 1),
       .N = false,
@@ -289,10 +287,10 @@ instr op_inc_rr___(fundude* fd, reg8* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   tgt->_++;
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "INC");
 }
 
-instr op_dec_rr___(fundude* fd, reg8* tgt) {
+op_result op_dec_rr___(fundude* fd, reg8* tgt) {
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ - 1),
       .N = true,
@@ -300,20 +298,20 @@ instr op_dec_rr___(fundude* fd, reg8* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   tgt->_--;
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "DEC");
 }
 
-instr op_cpl_rr___(fundude* fd, reg8* tgt) {
+op_result op_cpl_rr___(fundude* fd, reg8* tgt) {
   fd->reg.FLAGS = (fd_flags){
       .Z = fd->reg.FLAGS.Z,
       .N = true,
       .H = true,
       .C = fd->reg.FLAGS.C,
   };
-  return INSTR(1, 4);
+  return OP_RESULT(1, 4, "CPL");
 }
 
-instr fd_run(fundude* fd, uint8_t op[]) {
+op_result fd_run(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop();
     case 0x01: return op_lod_ww_16(fd, &fd->reg.BC, w2(op));
@@ -457,11 +455,11 @@ instr fd_run(fundude* fd, uint8_t op[]) {
   }
 
   assert(false);  // Op not implemented
-  return INSTR(0, 0);
+  return OP_RESULT(0, 0, "");
 }
 
 void fd_tick(fundude* fd) {
-  instr c = fd_run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
+  op_result c = fd_run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
   assert(c.length > 0);
   assert(c.duration > 0);
   fd->reg.PC._ += c.length;

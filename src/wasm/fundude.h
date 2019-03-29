@@ -1,3 +1,6 @@
+#ifndef __FUNDUDE_H
+#define __FUNDUDE_H
+
 #include <stdint.h>
 #include "memory.h"
 #include "registers.h"
@@ -21,3 +24,5 @@ typedef struct {
 } fundude;
 
 fundude* fd_init(void);
+
+#endif
