@@ -1,11 +1,5 @@
 #include "cpu.h"
 #include <assert.h>
-#include "fundude.h"
-
-typedef struct {
-  int length;
-  int duration;
-} instr;
 
 #define INSTR(length, duration) ((instr){length, duration})
 
@@ -70,7 +64,36 @@ instr op_ccf(fundude* fd) {
 }
 
 instr op_daa_rr___(fundude* fd, reg8* dst) {
-  // FIXME
+  uint8_t lb = dst->_ & 0xF;
+  uint8_t hb = (dst->_ >> 4) & 0xF;
+  bool carry = fd->reg.FLAGS.C;
+
+  if (fd->reg.FLAGS.N) {
+    if (lb >= 10) {
+      lb -= 6;
+    }
+    if (hb >= 10) {
+      hb -= 10;
+      carry = true;
+    }
+  } else {
+    if (lb >= 10) {
+      lb -= 10;
+      hb++;
+    }
+    if (hb >= 10) {
+      hb -= 10;
+      carry = true;
+    }
+  }
+
+  dst->_ = (hb << 4) | lb;
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(dst->_),
+      .N = fd->reg.FLAGS.N,
+      .H = false,
+      .C = carry,
+  };
   return INSTR(1, 4);
 }
 
@@ -213,7 +236,7 @@ instr op_dec_WW___(fundude* fd, reg16* tgt) {
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero((*mem) - 1),
       .N = 1,
-      .H = !will_borrow_from(4, *mem, 1),
+      .H = will_borrow_from(4, *mem, 1),
       .C = fd->reg.FLAGS.C,
   };
   (*mem)--;
@@ -246,8 +269,8 @@ instr op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ - val),
       .N = true,
-      .H = !will_borrow_from(4, tgt->_, val),
-      .C = !will_borrow_from(8, tgt->_, val),
+      .H = will_borrow_from(4, tgt->_, val),
+      .C = will_borrow_from(8, tgt->_, val),
   };
   tgt->_ -= val;
   return INSTR(2, 8);
@@ -285,7 +308,7 @@ instr op_cpl_rr___(fundude* fd, reg8* tgt) {
   return INSTR(1, 4);
 }
 
-instr run(fundude* fd, uint8_t op[]) {
+instr fd_run(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop();
     case 0x01: return op_lod_ww_16(fd, &fd->reg.BC, w2(op));
@@ -354,14 +377,18 @@ instr run(fundude* fd, uint8_t op[]) {
     case 0x3D: return op_dec_rr___(fd, &fd->reg.A);
     case 0x3E: return op_lod_rr_08(fd, &fd->reg.A, op[1]);
     case 0x3F: return op_ccf(fd);
+
+    // --
+    case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
+    case 0xD6: return op_sub_rr_08(fd, &fd->reg.A, op[1]);
   }
 
   assert(false);  // Op not implemented
   return INSTR(0, 0);
 }
 
-void tick(fundude* fd) {
-  instr c = run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
+void fd_tick(fundude* fd) {
+  instr c = fd_run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
   assert(c.length > 0);
   assert(c.duration > 0);
   fd->reg.PC._ += c.length;

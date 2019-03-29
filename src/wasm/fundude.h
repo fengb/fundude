@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include "cpu.h"
 #include "memory.h"
 #include "registers.h"
 
