@@ -59,6 +59,21 @@ instr op_scf(fundude* fd) {
   return INSTR(1, 4);
 }
 
+instr op_ccf(fundude* fd) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = fd->reg.FLAGS.Z,
+      .N = false,
+      .H = false,
+      .C = !fd->reg.FLAGS.C,
+  };
+  return INSTR(1, 4);
+}
+
+instr op_daa_rr___(fundude* fd, reg8* dst) {
+  // FIXME
+  return INSTR(1, 4);
+}
+
 instr op_jmp_08___(fundude* fd, uint8_t val) {
   return INSTR(val, 8);
 }
@@ -144,6 +159,11 @@ instr op_lod_1F_ww(fundude* fd, uint16_t a16, reg16* src) {
   return INSTR(3, 20);
 }
 
+instr op_lod_WW_08(fundude* fd, reg16* tgt, uint8_t val) {
+  fdm_set(&fd->mem, tgt->_, val);
+  return INSTR(2, 12);
+}
+
 instr op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_++, src->_);
   return INSTR(1, 8);
@@ -154,14 +174,50 @@ instr op_ldi_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   return INSTR(1, 8);
 }
 
+instr op_ldd_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
+  fdm_set(&fd->mem, tgt->_--, src->_);
+  return INSTR(1, 8);
+}
+
+instr op_ldd_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  fdm_set(&fd->mem, tgt->_, src->_--);
+  return INSTR(1, 8);
+}
+
 instr op_inc_ww___(fundude* _, reg16* tgt) {
   tgt->_++;
   return INSTR(1, 8);
 }
 
+instr op_inc_WW___(fundude* fd, reg16* tgt) {
+  uint8_t* mem = fdm_ptr(&fd->mem, tgt->_);
+
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero((*mem) + 1),
+      .N = 0,
+      .H = will_carry_from(3, *mem, 1),
+      .C = fd->reg.FLAGS.C,
+  };
+  (*mem)++;
+  return INSTR(1, 12);
+}
+
 instr op_dec_ww___(fundude* _, reg16* tgt) {
   tgt->_--;
   return INSTR(1, 8);
+}
+
+instr op_dec_WW___(fundude* fd, reg16* tgt) {
+  uint8_t* mem = fdm_ptr(&fd->mem, tgt->_);
+
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero((*mem) - 1),
+      .N = 1,
+      .H = !will_borrow_from(4, *mem, 1),
+      .C = fd->reg.FLAGS.C,
+  };
+  (*mem)--;
+  return INSTR(1, 12);
 }
 
 instr op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
@@ -172,7 +228,7 @@ instr op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
       .C = will_carry_from(7, tgt->_, val),
   };
   tgt->_ += val;
-  return INSTR(1, 4);
+  return INSTR(2, 8);
 }
 
 instr op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
@@ -194,7 +250,7 @@ instr op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
       .C = !will_borrow_from(8, tgt->_, val),
   };
   tgt->_ -= val;
-  return INSTR(1, 4);
+  return INSTR(2, 8);
 }
 
 instr op_inc_rr___(fundude* fd, reg8* tgt) {
@@ -272,7 +328,7 @@ instr run(fundude* fd, uint8_t op[]) {
     case 0x24: return op_inc_rr___(fd, &fd->reg.H);
     case 0x25: return op_dec_rr___(fd, &fd->reg.H);
     case 0x26: return op_lod_rr_08(fd, &fd->reg.H, op[1]);
-    case 0x27: return op_scf(fd);
+    case 0x27: return op_daa_rr___(fd, &fd->reg.A);
     case 0x28: return op_jmp_if_08(fd, fd->reg.FLAGS.Z, op[1]);
     case 0x29: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.HL);
     case 0x2A: return op_ldi_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
@@ -281,6 +337,23 @@ instr run(fundude* fd, uint8_t op[]) {
     case 0x2D: return op_dec_rr___(fd, &fd->reg.L);
     case 0x2E: return op_lod_rr_08(fd, &fd->reg.L, op[1]);
     case 0x2F: return op_cpl_rr___(fd, &fd->reg.A);
+
+    case 0x30: return op_jmp_if_08(fd, !fd->reg.FLAGS.C, op[1]);
+    case 0x31: return op_lod_ww_16(fd, &fd->reg.SP, w2(op));
+    case 0x32: return op_ldd_WW_rr(fd, &fd->reg.HL, &fd->reg.A);
+    case 0x33: return op_inc_ww___(fd, &fd->reg.SP);
+    case 0x34: return op_inc_WW___(fd, &fd->reg.HL);
+    case 0x35: return op_dec_WW___(fd, &fd->reg.HL);
+    case 0x36: return op_lod_WW_08(fd, &fd->reg.HL, op[1]);
+    case 0x37: return op_scf(fd);
+    case 0x38: return op_jmp_if_08(fd, fd->reg.FLAGS.C, op[1]);
+    case 0x39: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.SP);
+    case 0x3A: return op_ldd_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0x3B: return op_dec_ww___(fd, &fd->reg.SP);
+    case 0x3C: return op_inc_rr___(fd, &fd->reg.A);
+    case 0x3D: return op_dec_rr___(fd, &fd->reg.A);
+    case 0x3E: return op_lod_rr_08(fd, &fd->reg.A, op[1]);
+    case 0x3F: return op_ccf(fd);
   }
 
   assert(false);  // Op not implemented
