@@ -1,3 +1,6 @@
+#ifndef __REGISTERS_H
+#define __REGISTERS_H
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -111,3 +114,5 @@ typedef struct {
   reg16 SP;
   reg16 PC;
 } fd_registers;
+
+#endif

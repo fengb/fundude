@@ -92,7 +92,7 @@ op_result op_daa_rr___(fundude* fd, reg8* dst) {
       .H = false,
       .C = carry,
   };
-  return OP_RESULT(1, 4, "DAA");
+  return OP_RESULT(1, 4, "DAA %s", db_reg8(fd, dst));
 }
 
 op_result op_jmp_08___(fundude* fd, uint8_t val) {
@@ -100,7 +100,7 @@ op_result op_jmp_08___(fundude* fd, uint8_t val) {
 }
 
 op_result op_jmp_if_08(fundude* fd, bool check, uint8_t val) {
-  return OP_RESULT(check ? val : 2, 8, "JR%d %d", check, val);
+  return OP_RESULT(check ? val : 2, 8, "JR %c %d", check ? 'Y' : 'N', val);
 }
 
 op_result op_rlc_rr___(fundude* fd, reg8* tgt) {
@@ -113,7 +113,7 @@ op_result op_rlc_rr___(fundude* fd, reg8* tgt) {
       .H = false,
       .C = msb,
   };
-  return OP_RESULT(1, 4, "RLCA");
+  return OP_RESULT(1, 4, "RLCA %s", db_reg8(fd, tgt));
 }
 
 op_result op_rla_rr___(fundude* fd, reg8* tgt) {
@@ -126,7 +126,7 @@ op_result op_rla_rr___(fundude* fd, reg8* tgt) {
       .H = false,
       .C = msb,
   };
-  return OP_RESULT(1, 4, "RLA");
+  return OP_RESULT(1, 4, "RLA %s", db_reg8(fd, tgt));
 }
 
 op_result op_rrc_rr___(fundude* fd, reg8* tgt) {
@@ -139,7 +139,7 @@ op_result op_rrc_rr___(fundude* fd, reg8* tgt) {
       .H = false,
       .C = lsb,
   };
-  return OP_RESULT(1, 4, "RRCA");
+  return OP_RESULT(1, 4, "RRC %s", db_reg8(fd, tgt));
 }
 
 op_result op_rra_rr___(fundude* fd, reg8* tgt) {
@@ -152,67 +152,67 @@ op_result op_rra_rr___(fundude* fd, reg8* tgt) {
       .H = false,
       .C = lsb,
   };
-  return OP_RESULT(1, 4, "RRA");
+  return OP_RESULT(1, 4, "RRA %s", db_reg8(fd, tgt));
 }
 
-op_result op_lod_rr_08(fundude* _, reg8* tgt, uint8_t d8) {
+op_result op_lod_rr_08(fundude* fd, reg8* tgt, uint8_t d8) {
   tgt->_ = d8;
-  return OP_RESULT(2, 8, "LD");
+  return OP_RESULT(2, 8, "LD %s,d8", db_reg8(fd, tgt));
 }
 
-op_result op_lod_rr_rr(fundude* _, reg8* tgt, reg8* src) {
+op_result op_lod_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   tgt->_ = src->_;
-  return OP_RESULT(1, 4, "LD");
+  return OP_RESULT(1, 4, "LD %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
 }
 
 op_result op_lod_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   tgt->_ = fdm_get(&fd->mem, src->_);
-  return OP_RESULT(1, 8, "LD");
+  return OP_RESULT(1, 8, "LD %s,(%s)", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
-op_result op_lod_ww_16(fundude* _, reg16* tgt, uint16_t d16) {
+op_result op_lod_ww_16(fundude* fd, reg16* tgt, uint16_t d16) {
   tgt->_ = d16;
-  return OP_RESULT(3, 12, "LD");
+  return OP_RESULT(3, 12, "LD %s,d16", db_reg16(fd, tgt));
 }
 
 op_result op_lod_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_, src->_);
-  return OP_RESULT(1, 8, "LD");
+  return OP_RESULT(1, 8, "LD (%s),%s", db_reg16(fd, tgt), db_reg8(fd, src));
 }
 
 op_result op_lod_1F_ww(fundude* fd, uint16_t a16, reg16* src) {
   fdm_set(&fd->mem, a16, src->_);
-  return OP_RESULT(3, 20, "LD");
+  return OP_RESULT(3, 20, "LD d16,%s", db_reg16(fd, src));
 }
 
 op_result op_lod_WW_08(fundude* fd, reg16* tgt, uint8_t val) {
   fdm_set(&fd->mem, tgt->_, val);
-  return OP_RESULT(2, 12, "LD");
+  return OP_RESULT(2, 12, "LD (%s),d8", db_reg16(fd, tgt));
 }
 
 op_result op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_++, src->_);
-  return OP_RESULT(1, 8, "LDI");
+  return OP_RESULT(1, 8, "LD (%s+),%s", db_reg16(fd, tgt), db_reg8(fd, src));
 }
 
 op_result op_ldi_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   fdm_set(&fd->mem, tgt->_, src->_++);
-  return OP_RESULT(1, 8, "LDI");
+  return OP_RESULT(1, 8, "LD %s,(%s+)", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
 op_result op_ldd_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_--, src->_);
-  return OP_RESULT(1, 8, "LDD");
+  return OP_RESULT(1, 8, "LD (%s-),%s", db_reg16(fd, tgt), db_reg8(fd, src));
 }
 
 op_result op_ldd_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   fdm_set(&fd->mem, tgt->_, src->_--);
-  return OP_RESULT(1, 8, "LDD");
+  return OP_RESULT(1, 8, "LD %s,(%s-)", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
-op_result op_inc_ww___(fundude* _, reg16* tgt) {
+op_result op_inc_ww___(fundude* fd, reg16* tgt) {
   tgt->_++;
-  return OP_RESULT(1, 8, "INC");
+  return OP_RESULT(1, 8, "INC %s", db_reg16(fd, tgt));
 }
 
 op_result op_inc_WW___(fundude* fd, reg16* tgt) {
@@ -225,12 +225,12 @@ op_result op_inc_WW___(fundude* fd, reg16* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   (*mem)++;
-  return OP_RESULT(1, 12, "INC");
+  return OP_RESULT(1, 12, "INC (%s)", db_reg16(fd, tgt));
 }
 
-op_result op_dec_ww___(fundude* _, reg16* tgt) {
+op_result op_dec_ww___(fundude* fd, reg16* tgt) {
   tgt->_--;
-  return OP_RESULT(1, 8, "DEC");
+  return OP_RESULT(1, 8, "DEC %s", db_reg16(fd, tgt));
 }
 
 op_result op_dec_WW___(fundude* fd, reg16* tgt) {
@@ -243,7 +243,7 @@ op_result op_dec_WW___(fundude* fd, reg16* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   (*mem)--;
-  return OP_RESULT(1, 12, "DEC");
+  return OP_RESULT(1, 12, "DEC (%s)", db_reg16(fd, tgt));
 }
 
 op_result op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
@@ -254,7 +254,7 @@ op_result op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
       .C = will_carry_from(7, tgt->_, val),
   };
   tgt->_ += val;
-  return OP_RESULT(2, 8, "ADD");
+  return OP_RESULT(2, 8, "ADD %s,d8", db_reg8(fd, tgt));
 }
 
 op_result op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
@@ -265,7 +265,7 @@ op_result op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
       .C = will_carry_from(15, tgt->_, src->_),
   };
   tgt->_ += src->_;
-  return OP_RESULT(1, 8, "ADD");
+  return OP_RESULT(1, 8, "ADD %s,%s", db_reg16(fd, tgt), db_reg16(fd, src));
 }
 
 op_result op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
@@ -276,7 +276,7 @@ op_result op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
       .C = will_borrow_from(8, tgt->_, val),
   };
   tgt->_ -= val;
-  return OP_RESULT(2, 8, "SUB");
+  return OP_RESULT(2, 8, "SUB %s,d8", db_reg8(fd, tgt));
 }
 
 op_result op_inc_rr___(fundude* fd, reg8* tgt) {
@@ -287,7 +287,7 @@ op_result op_inc_rr___(fundude* fd, reg8* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   tgt->_++;
-  return OP_RESULT(1, 4, "INC");
+  return OP_RESULT(1, 4, "INC %s", db_reg8(fd, tgt));
 }
 
 op_result op_dec_rr___(fundude* fd, reg8* tgt) {
@@ -298,7 +298,7 @@ op_result op_dec_rr___(fundude* fd, reg8* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   tgt->_--;
-  return OP_RESULT(1, 4, "DEC");
+  return OP_RESULT(1, 4, "DEC %s", db_reg8(fd, tgt));
 }
 
 op_result op_cpl_rr___(fundude* fd, reg8* tgt) {
@@ -308,7 +308,7 @@ op_result op_cpl_rr___(fundude* fd, reg8* tgt) {
       .H = true,
       .C = fd->reg.FLAGS.C,
   };
-  return OP_RESULT(1, 4, "CPL");
+  return OP_RESULT(1, 4, "CPL %s", db_reg8(fd, tgt));
 }
 
 op_result fd_run(fundude* fd, uint8_t op[]) {

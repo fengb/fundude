@@ -9,9 +9,15 @@ int main() {
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
       op_result r = fd_run(&fd, op);
-      printf("%s\t", r.op_name._);
+      printf("%-10s|", r.op_name._);
     }
     printf("\n");
+    for (int l = 0; l <= 0xF; l++) {
+      op[0] = (h << 4) | l;
+      op_result r = fd_run(&fd, op);
+      printf("%2d %3d    |", r.length, r.duration);
+    }
+    printf("\n\n");
   }
 
   return 0;
