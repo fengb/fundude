@@ -43,6 +43,16 @@ static void do_add_rr(fundude* fd, reg8* tgt, uint8_t val) {
   tgt->_ += val;
 }
 
+static void do_sub_rr(fundude* fd, reg8* tgt, uint8_t val) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ - val),
+      .N = true,
+      .H = will_borrow_from(4, tgt->_, val),
+      .C = will_borrow_from(8, tgt->_, val),
+  };
+  tgt->_ -= val;
+}
+
 op_result op_nop() {
   return OP_RESULT(1, 4, "NOP");
 }
@@ -292,15 +302,29 @@ op_result op_adc_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   return OP_RESULT(1, 8, "ADC %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
+op_result op_sub_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
+  do_sub_rr(fd, tgt, src->_);
+  return OP_RESULT(1, 4, "SUB %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
+}
+
+op_result op_sub_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  do_sub_rr(fd, tgt, fdm_get(&fd->mem, src->_));
+  return OP_RESULT(1, 8, "SUB %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
+}
+
 op_result op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_ - val),
-      .N = true,
-      .H = will_borrow_from(4, tgt->_, val),
-      .C = will_borrow_from(8, tgt->_, val),
-  };
-  tgt->_ -= val;
+  do_sub_rr(fd, tgt, val);
   return OP_RESULT(2, 8, "SUB %s,d8", db_reg8(fd, tgt));
+}
+
+op_result op_sbc_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
+  do_sub_rr(fd, tgt, fd->reg.FLAGS.C + src->_);
+  return OP_RESULT(1, 4, "SBC %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
+}
+
+op_result op_sbc_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  do_sub_rr(fd, tgt, fd->reg.FLAGS.C + fdm_get(&fd->mem, src->_));
+  return OP_RESULT(1, 8, "SBC %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
 op_result op_inc_rr___(fundude* fd, reg8* tgt) {
@@ -489,6 +513,23 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
     case 0x8D: return op_adc_rr_rr(fd, &fd->reg.A, &fd->reg.L);
     case 0x8E: return op_adc_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
     case 0x8F: return op_adc_rr_rr(fd, &fd->reg.A, &fd->reg.A);
+
+    case 0x90: return op_sub_rr_rr(fd, &fd->reg.A, &fd->reg.B);
+    case 0x91: return op_sub_rr_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0x92: return op_sub_rr_rr(fd, &fd->reg.A, &fd->reg.D);
+    case 0x93: return op_sub_rr_rr(fd, &fd->reg.A, &fd->reg.E);
+    case 0x94: return op_sub_rr_rr(fd, &fd->reg.A, &fd->reg.H);
+    case 0x95: return op_sub_rr_rr(fd, &fd->reg.A, &fd->reg.L);
+    case 0x96: return op_sub_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0x97: return op_sub_rr_rr(fd, &fd->reg.A, &fd->reg.A);
+    case 0x98: return op_sbc_rr_rr(fd, &fd->reg.A, &fd->reg.B);
+    case 0x99: return op_sbc_rr_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0x9A: return op_sbc_rr_rr(fd, &fd->reg.A, &fd->reg.D);
+    case 0x9B: return op_sbc_rr_rr(fd, &fd->reg.A, &fd->reg.E);
+    case 0x9C: return op_sbc_rr_rr(fd, &fd->reg.A, &fd->reg.H);
+    case 0x9D: return op_sbc_rr_rr(fd, &fd->reg.A, &fd->reg.L);
+    case 0x9E: return op_sbc_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0x9F: return op_sbc_rr_rr(fd, &fd->reg.A, &fd->reg.A);
 
     // --
     case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
