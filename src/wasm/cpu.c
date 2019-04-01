@@ -33,6 +33,45 @@ bool will_borrow_from(int bit, int a, int b) {
      1F -- double-byte address (16bit)
 */
 
+static void do_and_rr(fundude* fd, reg8* tgt, uint8_t val) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ && val),
+      .N = false,
+      .H = true,
+      .C = false,
+  };
+  tgt->_ = tgt->_ && val;
+}
+
+static void do_or__rr(fundude* fd, reg8* tgt, uint8_t val) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ || val),
+      .N = false,
+      .H = false,
+      .C = false,
+  };
+  tgt->_ = tgt->_ || val;
+}
+
+static void do_xor_rr(fundude* fd, reg8* tgt, uint8_t val) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(!tgt->_ != !val),
+      .N = false,
+      .H = false,
+      .C = false,
+  };
+  tgt->_ = !tgt->_ != !val;
+}
+
+static void do_cmp_rr(fundude* fd, reg8* tgt, uint8_t val) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ - val),
+      .N = true,
+      .H = will_borrow_from(4, tgt->_, val),
+      .C = will_borrow_from(8, tgt->_, val),
+  };
+}
+
 static void do_add_rr(fundude* fd, reg8* tgt, uint8_t val) {
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ + val),
@@ -44,12 +83,7 @@ static void do_add_rr(fundude* fd, reg8* tgt, uint8_t val) {
 }
 
 static void do_sub_rr(fundude* fd, reg8* tgt, uint8_t val) {
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_ - val),
-      .N = true,
-      .H = will_borrow_from(4, tgt->_, val),
-      .C = will_borrow_from(8, tgt->_, val),
-  };
+  do_cmp_rr(fd, tgt, val);
   tgt->_ -= val;
 }
 
@@ -327,6 +361,46 @@ op_result op_sbc_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   return OP_RESULT(1, 8, "SBC %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
+op_result op_and_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
+  do_and_rr(fd, tgt, src->_);
+  return OP_RESULT(1, 4, "AND %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
+}
+
+op_result op_and_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  do_and_rr(fd, tgt, fdm_get(&fd->mem, src->_));
+  return OP_RESULT(1, 8, "AND %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
+}
+
+op_result op_or__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
+  do_or__rr(fd, tgt, src->_);
+  return OP_RESULT(1, 4, "OR %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
+}
+
+op_result op_or__rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  do_or__rr(fd, tgt, fdm_get(&fd->mem, src->_));
+  return OP_RESULT(1, 8, "OR %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
+}
+
+op_result op_xor_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
+  do_xor_rr(fd, tgt, src->_);
+  return OP_RESULT(1, 4, "XOR %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
+}
+
+op_result op_xor_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  do_xor_rr(fd, tgt, fdm_get(&fd->mem, src->_));
+  return OP_RESULT(1, 8, "XOR %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
+}
+
+op_result op_cmp_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
+  do_cmp_rr(fd, tgt, src->_);
+  return OP_RESULT(1, 4, "CP %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
+}
+
+op_result op_cmp_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  do_cmp_rr(fd, tgt, fdm_get(&fd->mem, src->_));
+  return OP_RESULT(1, 8, "CMP %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
+}
+
 op_result op_inc_rr___(fundude* fd, reg8* tgt) {
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ + 1),
@@ -530,6 +604,40 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
     case 0x9D: return op_sbc_rr_rr(fd, &fd->reg.A, &fd->reg.L);
     case 0x9E: return op_sbc_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
     case 0x9F: return op_sbc_rr_rr(fd, &fd->reg.A, &fd->reg.A);
+
+    case 0xA0: return op_and_rr_rr(fd, &fd->reg.A, &fd->reg.B);
+    case 0xA1: return op_and_rr_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0xA2: return op_and_rr_rr(fd, &fd->reg.A, &fd->reg.D);
+    case 0xA3: return op_and_rr_rr(fd, &fd->reg.A, &fd->reg.E);
+    case 0xA4: return op_and_rr_rr(fd, &fd->reg.A, &fd->reg.H);
+    case 0xA5: return op_and_rr_rr(fd, &fd->reg.A, &fd->reg.L);
+    case 0xA6: return op_and_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0xA7: return op_and_rr_rr(fd, &fd->reg.A, &fd->reg.A);
+    case 0xA8: return op_xor_rr_rr(fd, &fd->reg.A, &fd->reg.B);
+    case 0xA9: return op_xor_rr_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0xAA: return op_xor_rr_rr(fd, &fd->reg.A, &fd->reg.D);
+    case 0xAB: return op_xor_rr_rr(fd, &fd->reg.A, &fd->reg.E);
+    case 0xAC: return op_xor_rr_rr(fd, &fd->reg.A, &fd->reg.H);
+    case 0xAD: return op_xor_rr_rr(fd, &fd->reg.A, &fd->reg.L);
+    case 0xAE: return op_xor_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0xAF: return op_xor_rr_rr(fd, &fd->reg.A, &fd->reg.A);
+
+    case 0xB0: return op_or__rr_rr(fd, &fd->reg.A, &fd->reg.B);
+    case 0xB1: return op_or__rr_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0xB2: return op_or__rr_rr(fd, &fd->reg.A, &fd->reg.D);
+    case 0xB3: return op_or__rr_rr(fd, &fd->reg.A, &fd->reg.E);
+    case 0xB4: return op_or__rr_rr(fd, &fd->reg.A, &fd->reg.H);
+    case 0xB5: return op_or__rr_rr(fd, &fd->reg.A, &fd->reg.L);
+    case 0xB6: return op_or__rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0xB7: return op_or__rr_rr(fd, &fd->reg.A, &fd->reg.A);
+    case 0xB8: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.B);
+    case 0xB9: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0xBA: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.D);
+    case 0xBB: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.E);
+    case 0xBC: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.H);
+    case 0xBD: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.L);
+    case 0xBE: return op_cmp_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0xBF: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.A);
 
     // --
     case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
