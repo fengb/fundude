@@ -455,6 +455,15 @@ op_result op_cpl_rr___(fundude* fd, reg8* tgt) {
   return OP_RESULT(1, 4, "CPL %s", db_reg8(fd, tgt));
 }
 
+op_result op_pop_ww___(fundude* fd, reg16* tgt) {
+  // This logic would be easier of we passed in 2x reg8,
+  // but it would be semantically incorrect. Sad panda.
+  uint8_t hb = fdm_get(&fd->mem, fd->reg.SP._++);
+  uint8_t lb = fdm_get(&fd->mem, fd->reg.SP._++);
+  tgt->_ = (hb << 8) & lb;
+  return OP_RESULT(1, 12, "POP %s", db_reg16(fd, tgt));
+}
+
 op_result fd_run(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop();
@@ -662,6 +671,7 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
     case 0xBF: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.A);
 
     case 0xC0: return op_ret_if___(fd, COND_NZ);
+    case 0xC1: return op_pop_ww___(fd, &fd->reg.BC);
 
     // --
     case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
