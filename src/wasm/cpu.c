@@ -246,6 +246,29 @@ op_result op_dec_WW___(fundude* fd, reg16* tgt) {
   return OP_RESULT(1, 12, "DEC (%s)", db_reg16(fd, tgt));
 }
 
+op_result op_add_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ + src->_),
+      .N = false,
+      .H = will_carry_from(3, tgt->_, src->_),
+      .C = will_carry_from(7, tgt->_, src->_),
+  };
+  tgt->_ += src->_;
+  return OP_RESULT(1, 4, "ADD %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
+}
+
+op_result op_add_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
+  uint8_t val = fdm_get(&fd->mem, src->_);
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ + val),
+      .N = false,
+      .H = will_carry_from(3, tgt->_, val),
+      .C = will_carry_from(7, tgt->_, val),
+  };
+  tgt->_ += val;
+  return OP_RESULT(1, 8, "ADD %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
+}
+
 op_result op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero(tgt->_ + val),
@@ -266,6 +289,18 @@ op_result op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
   };
   tgt->_ += src->_;
   return OP_RESULT(1, 8, "ADD %s,%s", db_reg16(fd, tgt), db_reg16(fd, src));
+}
+
+op_result op_adc_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
+  uint8_t val = src->_ + fd->reg.FLAGS.C;
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(tgt->_ + val),
+      .N = false,
+      .H = will_carry_from(3, tgt->_, val),
+      .C = will_carry_from(7, tgt->_, val),
+  };
+  tgt->_ += val;
+  return OP_RESULT(1, 4, "ADD %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
 }
 
 op_result op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
@@ -448,6 +483,23 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
     case 0x7D: return op_lod_rr_rr(fd, &fd->reg.A, &fd->reg.L);
     case 0x7E: return op_lod_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
     case 0x7F: return op_lod_rr_rr(fd, &fd->reg.A, &fd->reg.A);
+
+    case 0x80: return op_add_rr_rr(fd, &fd->reg.A, &fd->reg.B);
+    case 0x81: return op_add_rr_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0x82: return op_add_rr_rr(fd, &fd->reg.A, &fd->reg.D);
+    case 0x83: return op_add_rr_rr(fd, &fd->reg.A, &fd->reg.E);
+    case 0x84: return op_add_rr_rr(fd, &fd->reg.A, &fd->reg.H);
+    case 0x85: return op_add_rr_rr(fd, &fd->reg.A, &fd->reg.L);
+    case 0x86: return op_add_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0x87: return op_add_rr_rr(fd, &fd->reg.A, &fd->reg.A);
+    case 0x88: return op_adc_rr_rr(fd, &fd->reg.A, &fd->reg.B);
+    case 0x89: return op_adc_rr_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0x8A: return op_adc_rr_rr(fd, &fd->reg.A, &fd->reg.D);
+    case 0x8B: return op_adc_rr_rr(fd, &fd->reg.A, &fd->reg.E);
+    case 0x8C: return op_adc_rr_rr(fd, &fd->reg.A, &fd->reg.H);
+    case 0x8D: return op_adc_rr_rr(fd, &fd->reg.A, &fd->reg.L);
+    // case 0x8E: return op_adc_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
+    case 0x8F: return op_adc_rr_rr(fd, &fd->reg.A, &fd->reg.A);
 
     // --
     case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
