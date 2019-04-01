@@ -166,6 +166,16 @@ op_result op_jr__if_08(fundude* fd, cond c, uint8_t val) {
   return OP_RESULT(cond_check(fd, c) ? val : 2, 8, "JR %s %d", db_cond(c), val);
 }
 
+op_result op_jp__1F___(fundude* fd, uint16_t val) {
+  int offset = val - (int)fd->reg.PC._;
+  return OP_RESULT(offset, 12, "JR %d", offset);
+}
+
+op_result op_jp__if_1F(fundude* fd, cond c, uint16_t val) {
+  int offset = val - (int)fd->reg.PC._;
+  return OP_RESULT(cond_check(fd, c) ? offset : 3, 12, "JR %s %d", db_cond(c), offset);
+}
+
 op_result op_ret______(fundude* fd) {
   uint8_t val = fdm_get(&fd->mem, fd->reg.SP._++);
   return OP_RESULT(val, 8, "RET");
@@ -672,6 +682,8 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
 
     case 0xC0: return op_ret_if___(fd, COND_NZ);
     case 0xC1: return op_pop_ww___(fd, &fd->reg.BC);
+    case 0xC2: return op_jp__if_1F(fd, COND_NZ, w2(op));
+    case 0xC3: return op_jp__1F___(fd, w2(op));
 
     // --
     case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
