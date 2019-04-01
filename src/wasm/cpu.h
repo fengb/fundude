@@ -17,7 +17,8 @@ void fd_tick(fundude* fd);
 op_result fd_run(fundude* fd, uint8_t op[]);
 
 #ifndef NDEBUG
-#define OP_RESULT(length, duration, ...) ((op_result){length, duration, db_printf(__VA_ARGS__)})
+#define OP_RESULT(length, duration, ...) \
+  ((op_result){length, duration, db_printf(__VA_ARGS__)})
 #else
 #define OP_RESULT(length, duration, ...) ((op_result){length, duration})
 #endif

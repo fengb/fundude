@@ -87,6 +87,15 @@ static void do_sub_rr(fundude* fd, reg8* tgt, uint8_t val) {
   tgt->_ -= val;
 }
 
+static bool cond_check(fundude* fd, cond c) {
+  switch (c) {
+    case COND_NZ: return !fd->reg.FLAGS.Z;
+    case COND_Z: return fd->reg.FLAGS.Z;
+    case COND_NC: return !fd->reg.FLAGS.C;
+    case COND_C: return fd->reg.FLAGS.C;
+  }
+}
+
 op_result op_nop() {
   return OP_RESULT(1, 4, "NOP");
 }
@@ -153,8 +162,21 @@ op_result op_jmp_08___(fundude* fd, uint8_t val) {
   return OP_RESULT(val, 8, "JR %d", val);
 }
 
-op_result op_jmp_if_08(fundude* fd, bool check, uint8_t val) {
-  return OP_RESULT(check ? val : 2, 8, "JR %c %d", check ? 'Y' : 'N', val);
+op_result op_jmp_if_08(fundude* fd, cond c, uint8_t val) {
+  return OP_RESULT(cond_check(fd, c) ? val : 2, 8, "JR %s %d", db_cond(c), val);
+}
+
+op_result op_ret______(fundude* fd) {
+  uint8_t val = fdm_get(&fd->mem, fd->reg.SP._++);
+  return OP_RESULT(val, 8, "RET");
+}
+
+op_result op_ret_if___(fundude* fd, cond c) {
+  if (!cond_check(fd, c)) {
+    return OP_RESULT(1, 8, "RET %s", db_cond(c));
+  }
+  uint8_t val = fdm_get(&fd->mem, fd->reg.SP._++);
+  return OP_RESULT(val, 8, "RET %s", db_cond(c));
 }
 
 op_result op_rlc_rr___(fundude* fd, reg8* tgt) {
@@ -638,6 +660,8 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
     case 0xBD: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.L);
     case 0xBE: return op_cmp_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
     case 0xBF: return op_cmp_rr_rr(fd, &fd->reg.A, &fd->reg.A);
+
+    case 0xC0: return op_ret_if___(fd, COND_NZ);
 
     // --
     case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);

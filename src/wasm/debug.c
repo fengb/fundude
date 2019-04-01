@@ -12,6 +12,16 @@ db_str db_printf(char* fmt, ...) {
   return s;
 }
 
+char* db_cond(cond c) {
+  switch (c) {
+    case COND_NZ: return "NZ";
+    case COND_Z: return "Z";
+    case COND_NC: return "NC";
+    case COND_C: return "C";
+    default: return "?";
+  }
+}
+
 char* db_reg8(fundude* fd, reg8* reg) {
   switch ((void*)reg - (void*)&fd->reg) {
     case offsetof(fd_registers, A): return "A";
