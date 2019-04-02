@@ -1,6 +1,6 @@
 #include "cpu.h"
-#include "debug.h"
 #include <assert.h>
+#include "debug.h"
 
 uint16_t w2(uint8_t op[]) {
   return (op[1] << 8) + op[2];
@@ -33,6 +33,14 @@ bool will_borrow_from(int bit, int a, int b) {
      0A -- byte address (8bit + $FF00)
      1F -- double-byte address (16bit)
 */
+
+static void do_push(fundude* fd, uint8_t val) {
+  fdm_set(&fd->mem, --fd->reg.SP._, val);
+}
+
+static uint8_t do_pop(fundude* fd) {
+  return fdm_get(&fd->mem, fd->reg.SP._++);
+}
 
 static void do_and_rr(fundude* fd, reg8* tgt, uint8_t val) {
   fd->reg.FLAGS = (fd_flags){
@@ -184,7 +192,7 @@ op_result op_jp__if_1F(fundude* fd, cond c, uint16_t target) {
 }
 
 op_result op_ret______(fundude* fd) {
-  uint8_t val = fdm_get(&fd->mem, fd->reg.SP._++);
+  uint8_t val = do_pop(fd);
   return OP_STEP(fd, val, 8, "RET");
 }
 
@@ -192,7 +200,7 @@ op_result op_ret_if___(fundude* fd, cond c) {
   if (!cond_check(fd, c)) {
     return OP_STEP(fd, 1, 8, "RET %s", db_cond(c));
   }
-  uint8_t val = fdm_get(&fd->mem, fd->reg.SP._++);
+  uint8_t val = do_pop(fd);
   return OP_STEP(fd, val, 8, "RET %s", db_cond(c));
 }
 
@@ -475,17 +483,25 @@ op_result op_cpl_rr___(fundude* fd, reg8* tgt) {
 op_result op_pop_ww___(fundude* fd, reg16* tgt) {
   // This logic would be easier of we passed in 2x reg8,
   // but it would be semantically incorrect. Sad panda.
-  uint8_t hb = fdm_get(&fd->mem, fd->reg.SP._++);
-  uint8_t lb = fdm_get(&fd->mem, fd->reg.SP._++);
+  uint8_t hb = do_pop(fd);
+  uint8_t lb = do_pop(fd);
   tgt->_ = (hb << 8) & lb;
   return OP_STEP(fd, 1, 12, "POP %s", db_reg16(fd, tgt));
+}
+
+op_result op_psh_ww___(fundude* fd, reg16* tgt) {
+  uint8_t hb = tgt->_ >> 8;
+  uint8_t lb = tgt->_ & 0xFF;
+  do_push(fd, lb);
+  do_push(fd, hb);
+  return OP_STEP(fd, 1, 16, "PUSH %s", db_reg16(fd, tgt));
 }
 
 op_result op_cal_if_1F(fundude* fd, cond c, uint16_t val) {
   if (!cond_check(fd, c)) {
     return OP_STEP(fd, 3, 12, "CALL %s,a16", db_cond(c));
   }
-  fdm_set(&fd->mem, fd->reg.SP._--, fd->reg.PC._ + 3);
+  do_push(fd, fd->reg.PC._ + 3);
   return OP_JUMP(val, 3, 12, "CALL %s,a16", db_cond(c));
 }
 
@@ -700,9 +716,10 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
     case 0xC2: return op_jp__if_1F(fd, COND_NZ, w2(op));
     case 0xC3: return op_jp__1F___(fd, w2(op));
     case 0xC4: return op_cal_if_1F(fd, COND_NZ, w2(op));
+    case 0xC5: return op_psh_ww___(fd, &fd->reg.BC);
+    case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
 
     // --
-    case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
     case 0xD6: return op_sub_rr_08(fd, &fd->reg.A, op[1]);
   }
 
