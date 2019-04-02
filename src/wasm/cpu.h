@@ -1,15 +1,25 @@
+#ifndef __CPU_H
+#define __CPU_H
+
 #include <stdbool.h>
-#include "debug.h"
 #include "fundude.h"
+#include "str.h"
 
 typedef struct {
-  uint16_t next;
+  uint16_t jump;
   int length;
   int duration;
 #ifndef NDEBUG
-  db_str op_name;
+  str op_name;
 #endif
 } op_result;
+
+typedef enum {
+  COND_NZ,
+  COND_Z,
+  COND_NC,
+  COND_C,
+} cond;
 
 bool will_carry_from(int bit, int a, int b);
 bool will_borrow_from(int bit, int a, int b);
@@ -18,12 +28,14 @@ void fd_tick(fundude* fd);
 op_result fd_run(fundude* fd, uint8_t op[]);
 
 #ifndef NDEBUG
-#define OP_JUMP(next, length, duration, ...) \
-  ((op_result){next, (length), (duration), db_printf(__VA_ARGS__)})
+#define OP_JUMP(jump, length, duration, ...) \
+  ((op_result){jump, (length), (duration), db_sprintf(__VA_ARGS__)})
 #else
 #define OP_JUMP(fd, length, duration, ...) \
-  ((op_result){next, (length), (duration)})
+  ((op_result){jump, (length), (duration)})
 #endif
 
 #define OP_STEP(fd, length, ...) \
   OP_JUMP(fd->reg.PC._ + (length), (length), __VA_ARGS__)
+
+#endif

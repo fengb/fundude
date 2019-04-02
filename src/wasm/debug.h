@@ -1,10 +1,8 @@
+#include "cpu.h"
 #include "fundude.h"
+#include "str.h"
 
-typedef struct {
-  char _[64];
-} db_str;
-
-db_str db_printf(char* fmt, ...);
+str db_sprintf(char* fmt, ...);
 
 char* db_cond(cond c);
 

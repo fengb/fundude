@@ -3,11 +3,11 @@
 #include <stddef.h>
 #include <stdio.h>
 
-db_str db_printf(char* fmt, ...) {
-  db_str s;
+str db_sprintf(char* fmt, ...) {
+  str s;
   va_list args;
   va_start(args, fmt);
-  vsnprintf(s._, sizeof(db_str), fmt, args);
+  vsnprintf(s._, sizeof(str), fmt, args);
   va_end(args);
   return s;
 }

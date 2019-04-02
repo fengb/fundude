@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include "debug.h"
 #include <assert.h>
 
 uint16_t w2(uint8_t op[]) {
@@ -713,5 +714,5 @@ void fd_tick(fundude* fd) {
   op_result c = fd_run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
   assert(c.length > 0);
   assert(c.duration > 0);
-  fd->reg.PC._ = c.next;
+  fd->reg.PC._ = c.jump;
 }
