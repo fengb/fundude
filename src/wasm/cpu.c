@@ -480,6 +480,14 @@ op_result op_pop_ww___(fundude* fd, reg16* tgt) {
   return OP_STEP(fd, 1, 12, "POP %s", db_reg16(fd, tgt));
 }
 
+op_result op_cal_if_1F(fundude* fd, cond c, uint16_t val) {
+  if (!cond_check(fd, c)) {
+    return OP_STEP(fd, 3, 12, "CALL %s,a16", db_cond(c));
+  }
+  fdm_set(&fd->mem, fd->reg.SP._--, fd->reg.PC._ + 3);
+  return OP_JUMP(val, 3, 12, "CALL %s,a16", db_cond(c));
+}
+
 op_result fd_run(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop(fd);
@@ -690,6 +698,7 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
     case 0xC1: return op_pop_ww___(fd, &fd->reg.BC);
     case 0xC2: return op_jp__if_1F(fd, COND_NZ, w2(op));
     case 0xC3: return op_jp__1F___(fd, w2(op));
+    case 0xC4: return op_cal_if_1F(fd, COND_NZ, w2(op));
 
     // --
     case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
