@@ -5,9 +5,9 @@
   "author": "Benjamin Feng <contact@fengb.me>",
   "license": "MIT",
   "scripts": {
-    "dev": "parcel index.html",
+    "dev": "parcel src/wasm/index.html",
     "build": "npm run build:wasm && npm run build:parcel",
-    "build:parcel": "parcel build index.html",
+    "build:parcel": "parcel build src/wasm/index.html",
     "build:wasm": "make"
   },
   "devDependencies": {
