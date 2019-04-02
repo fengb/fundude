@@ -180,7 +180,7 @@ op_result op_jr__if_08(fundude* fd, cond c, uint8_t offset) {
 }
 
 op_result op_jp__1F___(fundude* fd, uint16_t target) {
-  return OP_JUMP(target, 3, 12, "JR %d", target);
+  return OP_JUMP(target, 3, 12, "JP %d", target);
 }
 
 op_result op_jp__if_1F(fundude* fd, cond c, uint16_t target) {
@@ -188,12 +188,12 @@ op_result op_jp__if_1F(fundude* fd, cond c, uint16_t target) {
   if (!cond_check(fd, c)) {
     target = fd->reg.PC._ + 3;
   }
-  return OP_JUMP(target, 3, 12, "JR %s %d", db_cond(c), target);
+  return OP_JUMP(target, 3, 12, "JP %s %d", db_cond(c), target);
 }
 
 op_result op_ret______(fundude* fd) {
   uint8_t val = do_pop(fd);
-  return OP_STEP(fd, val, 8, "RET");
+  return OP_JUMP(val, 1, 8, "RET");
 }
 
 op_result op_ret_if___(fundude* fd, cond c) {
@@ -201,7 +201,12 @@ op_result op_ret_if___(fundude* fd, cond c) {
     return OP_STEP(fd, 1, 8, "RET %s", db_cond(c));
   }
   uint8_t val = do_pop(fd);
-  return OP_STEP(fd, val, 8, "RET %s", db_cond(c));
+  return OP_JUMP(val, 1, 8, "RET %s", db_cond(c));
+}
+
+op_result op_rst_08___(fundude* fd, uint8_t val) {
+  do_push(fd, fd->reg.PC._);
+  return OP_JUMP(val, 1, 32, "RST %02XH", val);
 }
 
 op_result op_rlc_rr___(fundude* fd, reg8* tgt) {
@@ -383,6 +388,11 @@ op_result op_adc_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   return OP_STEP(fd, 1, 8, "ADC %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
+op_result op_adc_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+  do_add_rr(fd, tgt, fd->reg.FLAGS.C + val);
+  return OP_STEP(fd, 1, 4, "ADC %s,d8", db_reg8(fd, tgt));
+}
+
 op_result op_sub_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_sub_rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4, "SUB %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
@@ -497,12 +507,22 @@ op_result op_psh_ww___(fundude* fd, reg16* tgt) {
   return OP_STEP(fd, 1, 16, "PUSH %s", db_reg16(fd, tgt));
 }
 
+op_result op_cal_1F___(fundude* fd, uint16_t val) {
+  do_push(fd, fd->reg.PC._ + 3);
+  return OP_JUMP(val, 3, 12, "CALL a16");
+}
+
 op_result op_cal_if_1F(fundude* fd, cond c, uint16_t val) {
   if (!cond_check(fd, c)) {
     return OP_STEP(fd, 3, 12, "CALL %s,a16", db_cond(c));
   }
   do_push(fd, fd->reg.PC._ + 3);
   return OP_JUMP(val, 3, 12, "CALL %s,a16", db_cond(c));
+}
+
+op_result fd_cb(fundude* fd, uint8_t op) {
+  // TODO
+  return OP_STEP(fd, 2, 8, "CB");
 }
 
 op_result fd_run(fundude* fd, uint8_t op[]) {
@@ -718,6 +738,15 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
     case 0xC4: return op_cal_if_1F(fd, COND_NZ, w2(op));
     case 0xC5: return op_psh_ww___(fd, &fd->reg.BC);
     case 0xC6: return op_add_rr_08(fd, &fd->reg.A, op[1]);
+    case 0xC7: return op_rst_08___(fd, 0x00);
+    case 0xC8: return op_ret_if___(fd, COND_Z);
+    case 0xC9: return op_ret______(fd);
+    case 0xCA: return op_jp__if_1F(fd, COND_Z, w2(op));
+    case 0xCB: return fd_cb(fd, op[1]);
+    case 0xCC: return op_cal_if_1F(fd, COND_Z, w2(op));
+    case 0xCD: return op_cal_1F___(fd, w2(op));
+    case 0xCE: return op_adc_rr_08(fd, &fd->reg.A, op[1]);
+    case 0xCF: return op_rst_08___(fd, 0x08);
 
     // --
     case 0xD6: return op_sub_rr_08(fd, &fd->reg.A, op[1]);
