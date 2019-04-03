@@ -1,5 +1,5 @@
-#ifndef __CPU_H
-#define __CPU_H
+#ifndef __OP_H
+#define __OP_H
 
 #include <stdbool.h>
 #include "fundude.h"
@@ -24,8 +24,8 @@ typedef enum {
 bool will_carry_from(int bit, int a, int b);
 bool will_borrow_from(int bit, int a, int b);
 
-void fd_tick(fundude* fd);
-op_result fd_run(fundude* fd, uint8_t op[]);
+void op_tick(fundude* fd);
+op_result op_run(fundude* fd, uint8_t op[]);
 
 #ifndef NDEBUG
 #define OP_JUMP(jump, length, duration, ...) \

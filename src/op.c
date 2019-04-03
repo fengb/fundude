@@ -1,6 +1,7 @@
-#include "cpu.h"
+#include "op.h"
 #include <assert.h>
 #include "debug.h"
+#include "op_cb.h"
 
 uint16_t w2(uint8_t op[]) {
   return (op[1] << 8) + op[2];
@@ -520,12 +521,7 @@ op_result op_cal_if_1F(fundude* fd, cond c, uint16_t val) {
   return OP_JUMP(val, 3, 12, "CALL %s,a16", db_cond(c));
 }
 
-op_result fd_cb(fundude* fd, uint8_t op) {
-  // TODO
-  return OP_STEP(fd, 2, 8, "CB");
-}
-
-op_result fd_run(fundude* fd, uint8_t op[]) {
+op_result op_run(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop(fd);
     case 0x01: return op_ld__ww_16(fd, &fd->reg.BC, w2(op));
@@ -742,7 +738,7 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
     case 0xC8: return op_ret_if___(fd, COND_Z);
     case 0xC9: return op_ret______(fd);
     case 0xCA: return op_jp__if_1F(fd, COND_Z, w2(op));
-    case 0xCB: return fd_cb(fd, op[1]);
+    case 0xCB: return op_cb(fd, op[1]);
     case 0xCC: return op_cal_if_1F(fd, COND_Z, w2(op));
     case 0xCD: return op_cal_1F___(fd, w2(op));
     case 0xCE: return op_adc_rr_08(fd, &fd->reg.A, op[1]);
@@ -756,8 +752,8 @@ op_result fd_run(fundude* fd, uint8_t op[]) {
   return OP_STEP(fd, 0, 0, "");
 }
 
-void fd_tick(fundude* fd) {
-  op_result c = fd_run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
+void op_tick(fundude* fd) {
+  op_result c = op_run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
   assert(c.length > 0);
   assert(c.duration > 0);
   fd->reg.PC._ = c.jump;

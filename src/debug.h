@@ -1,4 +1,4 @@
-#include "cpu.h"
+#include "op.h"
 #include "fundude.h"
 #include "str.h"
 
