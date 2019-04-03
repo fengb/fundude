@@ -1,5 +1,5 @@
 #include "tap.c"
-#include "op.h"
+#include "op_do.h"
 
 int main() {
   plan(11);

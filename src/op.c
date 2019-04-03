@@ -2,23 +2,19 @@
 #include <assert.h>
 #include "debug.h"
 #include "op_cb.h"
+#include "op_do.h"
 
-uint16_t w2(uint8_t op[]) {
+static uint16_t w2(uint8_t op[]) {
   return (op[1] << 8) + op[2];
 }
 
-bool is_uint8_zero(int val) {
-  return (val & 0xFF) == 0;
-}
-
-bool will_carry_from(int bit, int a, int b) {
-  int mask = (1 << (bit + 1)) - 1;
-  return (a & mask) + (b & mask) > mask;
-}
-
-bool will_borrow_from(int bit, int a, int b) {
-  int mask = (1 << bit) - 1;
-  return (a & mask) < (b & mask);
+static bool cond_check(fundude* fd, cond c) {
+  switch (c) {
+    case COND_NZ: return !fd->reg.FLAGS.Z;
+    case COND_Z: return fd->reg.FLAGS.Z;
+    case COND_NC: return !fd->reg.FLAGS.C;
+    case COND_C: return fd->reg.FLAGS.C;
+  }
 }
 
 /* op_ functions are a lot more scannable if the names line up, hence the
@@ -34,77 +30,6 @@ bool will_borrow_from(int bit, int a, int b) {
      0A -- byte address (8bit + $FF00)
      1F -- double-byte address (16bit)
 */
-
-static void do_push(fundude* fd, uint8_t val) {
-  fdm_set(&fd->mem, --fd->reg.SP._, val);
-}
-
-static uint8_t do_pop(fundude* fd) {
-  return fdm_get(&fd->mem, fd->reg.SP._++);
-}
-
-static void do_and_rr(fundude* fd, reg8* tgt, uint8_t val) {
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_ && val),
-      .N = false,
-      .H = true,
-      .C = false,
-  };
-  tgt->_ = tgt->_ && val;
-}
-
-static void do_or__rr(fundude* fd, reg8* tgt, uint8_t val) {
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_ || val),
-      .N = false,
-      .H = false,
-      .C = false,
-  };
-  tgt->_ = tgt->_ || val;
-}
-
-static void do_xor_rr(fundude* fd, reg8* tgt, uint8_t val) {
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(!tgt->_ != !val),
-      .N = false,
-      .H = false,
-      .C = false,
-  };
-  tgt->_ = !tgt->_ != !val;
-}
-
-static void do_cp__rr(fundude* fd, reg8* tgt, uint8_t val) {
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_ - val),
-      .N = true,
-      .H = will_borrow_from(4, tgt->_, val),
-      .C = will_borrow_from(8, tgt->_, val),
-  };
-}
-
-static void do_add_rr(fundude* fd, reg8* tgt, uint8_t val) {
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_ + val),
-      .N = false,
-      .H = will_carry_from(3, tgt->_, val),
-      .C = will_carry_from(7, tgt->_, val),
-  };
-  tgt->_ += val;
-}
-
-static void do_sub_rr(fundude* fd, reg8* tgt, uint8_t val) {
-  do_cp__rr(fd, tgt, val);
-  tgt->_ -= val;
-}
-
-static bool cond_check(fundude* fd, cond c) {
-  switch (c) {
-    case COND_NZ: return !fd->reg.FLAGS.Z;
-    case COND_Z: return fd->reg.FLAGS.Z;
-    case COND_NC: return !fd->reg.FLAGS.C;
-    case COND_C: return fd->reg.FLAGS.C;
-  }
-}
 
 op_result op_nop(fundude* fd) {
   return OP_STEP(fd, 1, 4, "NOP");
@@ -211,54 +136,22 @@ op_result op_rst_08___(fundude* fd, uint8_t val) {
 }
 
 op_result op_rlc_rr___(fundude* fd, reg8* tgt) {
-  int msb = tgt->_ >> 7 & 1;
-
-  tgt->_ = tgt->_ << 1 | msb;
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_),
-      .N = false,
-      .H = false,
-      .C = msb,
-  };
+  do_rlc(fd, &tgt->_);
   return OP_STEP(fd, 1, 4, "RLCA %s", db_reg8(fd, tgt));
 }
 
 op_result op_rla_rr___(fundude* fd, reg8* tgt) {
-  int msb = tgt->_ >> 7 & 1;
-
-  tgt->_ = tgt->_ << 1 | fd->reg.FLAGS.C;
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_),
-      .N = false,
-      .H = false,
-      .C = msb,
-  };
+  do_rl(fd, &tgt->_);
   return OP_STEP(fd, 1, 4, "RLA %s", db_reg8(fd, tgt));
 }
 
 op_result op_rrc_rr___(fundude* fd, reg8* tgt) {
-  int lsb = tgt->_ & 1;
-
-  tgt->_ = tgt->_ >> 1 | (lsb << 7);
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_),
-      .N = false,
-      .H = false,
-      .C = lsb,
-  };
+  do_rrc(fd, &tgt->_);
   return OP_STEP(fd, 1, 4, "RRC %s", db_reg8(fd, tgt));
 }
 
 op_result op_rra_rr___(fundude* fd, reg8* tgt) {
-  int lsb = tgt->_ & 1;
-
-  tgt->_ = tgt->_ >> 1 | (fd->reg.FLAGS.C << 7);
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(tgt->_),
-      .N = false,
-      .H = false,
-      .C = lsb,
-  };
+  do_rr(fd, &tgt->_);
   return OP_STEP(fd, 1, 4, "RRA %s", db_reg8(fd, tgt));
 }
 

@@ -1,60 +1,24 @@
 #include "op_cb.h"
 #include "debug.h"
+#include "op_do.h"
 
-static bool is_uint8_zero(int val) {
-  return (val & 0xFF) == 0;
-}
-
-// TODO: refactor cb_rlc/rrc/rl/rc and op_rlc/rrc/rla/rca
 op_result cb_rlc(fundude* fd, uint8_t* tgt) {
-  int msb = *tgt >> 7 & 1;
-
-  *tgt = *tgt << 1 | msb;
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(*tgt),
-      .N = false,
-      .H = false,
-      .C = msb,
-  };
+  do_rlc(fd, tgt);
   return OP_STEP(fd, 2, 8, "RLC %s", db_reg8(fd, (void*)tgt));
 }
 
 op_result cb_rrc(fundude* fd, uint8_t* tgt) {
-  int lsb = *tgt & 1;
-
-  *tgt = *tgt >> 1 | (lsb << 7);
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(*tgt),
-      .N = false,
-      .H = false,
-      .C = lsb,
-  };
+  do_rrc(fd, tgt);
   return OP_STEP(fd, 2, 8, "RRC %s", db_reg8(fd, (void*)tgt));
 }
 
 op_result cb_rl(fundude* fd, uint8_t* tgt) {
-  int msb = *tgt >> 7 & 1;
-
-  *tgt = *tgt << 1 | fd->reg.FLAGS.C;
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(*tgt),
-      .N = false,
-      .H = false,
-      .C = msb,
-  };
+  do_rl(fd, tgt);
   return OP_STEP(fd, 2, 8, "RL %s", db_reg8(fd, (void*)tgt));
 }
 
 op_result cb_rr(fundude* fd, uint8_t* tgt) {
-  int lsb = *tgt & 1;
-
-  *tgt = *tgt >> 1 | (fd->reg.FLAGS.C << 7);
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(*tgt),
-      .N = false,
-      .H = false,
-      .C = lsb,
-  };
+  do_rr(fd, tgt);
   return OP_STEP(fd, 2, 8, "RR %s", db_reg8(fd, (void*)tgt));
 }
 

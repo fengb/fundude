@@ -21,9 +21,6 @@ typedef enum {
   COND_C,
 } cond;
 
-bool will_carry_from(int bit, int a, int b);
-bool will_borrow_from(int bit, int a, int b);
-
 void op_tick(fundude* fd);
 op_result op_run(fundude* fd, uint8_t op[]);
 
