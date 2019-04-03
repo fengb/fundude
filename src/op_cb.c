@@ -45,6 +45,30 @@ char* cb_srl(fundude* fd, uint8_t* tgt) {
   return "SRA";
 }
 
+char* cb_bit(fundude* fd, uint8_t* tgt, int bit) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = (*tgt >> bit & 1) == 0,
+      .N = false,
+      .H = true,
+      .C = fd->reg.FLAGS.C,
+  };
+#ifndef NDEBUG
+  switch (bit) {
+    case 0: return "BIT 0";
+    case 1: return "BIT 1";
+    case 2: return "BIT 2";
+    case 3: return "BIT 3";
+    case 4: return "BIT 4";
+    case 5: return "BIT 5";
+    case 6: return "BIT 6";
+    case 7: return "BIT 7";
+    default: return "BIT ?";
+  }
+#else
+  return "BIT";
+#endif
+}
+
 uint8_t* cb_tgt(fundude* fd, uint8_t op) {
   switch (op & 7) {
     case 0: return &fd->reg.B._;
@@ -70,6 +94,14 @@ char* cb_run(fundude* fd, uint8_t op, uint8_t* tgt) {
     case 0x28: return cb_sra(fd, tgt);
     case 0x30: return cb_swap(fd, tgt);
     case 0x38: return cb_srl(fd, tgt);
+    case 0x40: return cb_bit(fd, tgt, 0);
+    case 0x48: return cb_bit(fd, tgt, 1);
+    case 0x50: return cb_bit(fd, tgt, 2);
+    case 0x58: return cb_bit(fd, tgt, 3);
+    case 0x60: return cb_bit(fd, tgt, 4);
+    case 0x68: return cb_bit(fd, tgt, 5);
+    case 0x70: return cb_bit(fd, tgt, 6);
+    case 0x78: return cb_bit(fd, tgt, 7);
   }
 
   return "???";
