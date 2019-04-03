@@ -1,4 +1,3 @@
-#include "op_cb.h"
 #include "debug.h"
 #include "op_do.h"
 
@@ -20,6 +19,28 @@ op_result cb_rl(fundude* fd, uint8_t* tgt) {
 op_result cb_rr(fundude* fd, uint8_t* tgt) {
   do_rr(fd, tgt);
   return OP_STEP(fd, 2, 8, "RR %s", db_reg8(fd, (void*)tgt));
+}
+
+op_result cb_sla(fundude* fd, uint8_t* tgt) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(*tgt << 1),
+      .N = false,
+      .H = false,
+      .C = *tgt >> 7,
+  };
+  *tgt <<= 1;
+  return OP_STEP(fd, 2, 8, "SLA %s", db_reg8(fd, (void*)tgt));
+}
+
+op_result cb_sra(fundude* fd, uint8_t* tgt) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = is_uint8_zero(*tgt >> 1),
+      .N = false,
+      .H = false,
+      .C = *tgt & 1,
+  };
+  *tgt >>= 1;
+  return OP_STEP(fd, 2, 8, "SRA %s", db_reg8(fd, (void*)tgt));
 }
 
 uint8_t* cb_tgt(fundude* fd, uint8_t op) {
@@ -44,6 +65,8 @@ op_result op_cb(fundude* fd, uint8_t op) {
     case 0x08: return cb_rrc(fd, tgt);
     case 0x10: return cb_rl(fd, tgt);
     case 0x18: return cb_rr(fd, tgt);
+    case 0x20: return cb_sla(fd, tgt);
+    case 0x28: return cb_sra(fd, tgt);
   }
 
   // TODO
