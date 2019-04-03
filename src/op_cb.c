@@ -45,6 +45,23 @@ char* cb_srl(fundude* fd, uint8_t* tgt) {
   return "SRA";
 }
 
+#ifndef NDEBUG
+#define NAME_GLUE(prefix, var)   \
+  switch (var) {                 \
+    case 0: return prefix " 0";  \
+    case 1: return prefix " 1";  \
+    case 2: return prefix " 2";  \
+    case 3: return prefix " 3";  \
+    case 4: return prefix " 4";  \
+    case 5: return prefix " 5";  \
+    case 6: return prefix " 6";  \
+    case 7: return prefix " 7";  \
+    default: return prefix " ?"; \
+  }
+#else
+#define SWITCH_IT(prefix, var) return prefix;
+#endif
+
 char* cb_bit(fundude* fd, uint8_t* tgt, int bit) {
   fd->reg.FLAGS = (fd_flags){
       .Z = (*tgt >> bit & 1) == 0,
@@ -52,21 +69,19 @@ char* cb_bit(fundude* fd, uint8_t* tgt, int bit) {
       .H = true,
       .C = fd->reg.FLAGS.C,
   };
-#ifndef NDEBUG
-  switch (bit) {
-    case 0: return "BIT 0";
-    case 1: return "BIT 1";
-    case 2: return "BIT 2";
-    case 3: return "BIT 3";
-    case 4: return "BIT 4";
-    case 5: return "BIT 5";
-    case 6: return "BIT 6";
-    case 7: return "BIT 7";
-    default: return "BIT ?";
-  }
-#else
-  return "BIT";
-#endif
+  NAME_GLUE("BIT", bit);
+}
+
+char* cb_res(fundude* fd, uint8_t* tgt, int bit) {
+  uint8_t mask = ~(1 << bit);
+  *tgt = *tgt & mask;
+  NAME_GLUE("RES", bit);
+}
+
+char* cb_set(fundude* fd, uint8_t* tgt, int bit) {
+  uint8_t mask = 1 << bit;
+  *tgt = *tgt | mask;
+  NAME_GLUE("SET", bit);
 }
 
 uint8_t* cb_tgt(fundude* fd, uint8_t op) {
@@ -94,6 +109,7 @@ char* cb_run(fundude* fd, uint8_t op, uint8_t* tgt) {
     case 0x28: return cb_sra(fd, tgt);
     case 0x30: return cb_swap(fd, tgt);
     case 0x38: return cb_srl(fd, tgt);
+
     case 0x40: return cb_bit(fd, tgt, 0);
     case 0x48: return cb_bit(fd, tgt, 1);
     case 0x50: return cb_bit(fd, tgt, 2);
@@ -102,6 +118,24 @@ char* cb_run(fundude* fd, uint8_t op, uint8_t* tgt) {
     case 0x68: return cb_bit(fd, tgt, 5);
     case 0x70: return cb_bit(fd, tgt, 6);
     case 0x78: return cb_bit(fd, tgt, 7);
+
+    case 0x80: return cb_res(fd, tgt, 0);
+    case 0x88: return cb_res(fd, tgt, 1);
+    case 0x90: return cb_res(fd, tgt, 2);
+    case 0x98: return cb_res(fd, tgt, 3);
+    case 0xA0: return cb_res(fd, tgt, 4);
+    case 0xA8: return cb_res(fd, tgt, 5);
+    case 0xB0: return cb_res(fd, tgt, 6);
+    case 0xB8: return cb_res(fd, tgt, 7);
+
+    case 0xC0: return cb_set(fd, tgt, 0);
+    case 0xC8: return cb_set(fd, tgt, 1);
+    case 0xD0: return cb_set(fd, tgt, 2);
+    case 0xD8: return cb_set(fd, tgt, 3);
+    case 0xE0: return cb_set(fd, tgt, 4);
+    case 0xE8: return cb_set(fd, tgt, 5);
+    case 0xF0: return cb_set(fd, tgt, 6);
+    case 0xF8: return cb_set(fd, tgt, 7);
   }
 
   return "???";
