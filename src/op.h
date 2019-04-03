@@ -21,7 +21,7 @@ typedef enum {
   COND_C,
 } cond;
 
-void op_tick(fundude* fd);
+void op_tick(fundude* fd, uint32_t µs);
 op_result op_run(fundude* fd, uint8_t op[]);
 
 #ifndef NDEBUG

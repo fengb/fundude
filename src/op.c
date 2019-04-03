@@ -645,7 +645,7 @@ op_result op_run(fundude* fd, uint8_t op[]) {
   return OP_STEP(fd, 0, 0, "");
 }
 
-void op_tick(fundude* fd) {
+void op_tick(fundude* fd, uint32_t µs) {
   op_result c = op_run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
   assert(c.length > 0);
   assert(c.duration > 0);

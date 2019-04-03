@@ -21,8 +21,9 @@ typedef struct {
   fd_memory mem;
 
   sys_mode mode;
+  uint32_t us;
 } fundude;
 
-fundude* fd_init(void);
+fundude* fd_init(uint32_t us_ref);
 
 #endif

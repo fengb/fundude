@@ -7,8 +7,8 @@ uint8_t NINTENDO[] = {
 };
 
 EMSCRIPTEN_KEEPALIVE
-fundude* init(void) {
-  fundude* fd = fd_init();
+fundude* init(uint32_t µs_ref) {
+  fundude* fd = fd_init(µs_ref);
   memcpy(fd->display, NINTENDO, sizeof(fd->display));
   return fd;
 }
@@ -26,4 +26,9 @@ int display_width() {
 EMSCRIPTEN_KEEPALIVE
 int display_height() {
   return HEIGHT;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int fd_us(fundude *fd) {
+  return fd->us;
 }
