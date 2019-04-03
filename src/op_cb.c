@@ -99,7 +99,7 @@ uint8_t* cb_tgt(fundude* fd, uint8_t op) {
   return NULL;
 }
 
-char* cb_run(fundude* fd, uint8_t op, uint8_t* tgt) {
+char* cb_tick(fundude* fd, uint8_t op, uint8_t* tgt) {
   switch (op & 0xF8) {
     case 0x00: return cb_rlc(fd, tgt);
     case 0x08: return cb_rrc(fd, tgt);
@@ -144,11 +144,11 @@ char* cb_run(fundude* fd, uint8_t op, uint8_t* tgt) {
 op_result op_cb(fundude* fd, uint8_t op) {
   uint8_t* tgt = cb_tgt(fd, op);
   if (tgt) {
-    char* op_name = cb_run(fd, op, tgt);
+    char* op_name = cb_tick(fd, op, tgt);
     return OP_STEP(fd, 2, 8, "%s %s", op_name, db_reg8(fd, (void*)tgt));
   } else {
     tgt = fdm_ptr(&fd->mem, fd->reg.HL._);
-    char* op_name = cb_run(fd, op, tgt);
+    char* op_name = cb_tick(fd, op, tgt);
     return OP_STEP(fd, 2, 16, "%s (HL)", op_name);
   }
 }

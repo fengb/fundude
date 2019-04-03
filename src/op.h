@@ -21,8 +21,8 @@ typedef enum {
   COND_C,
 } cond;
 
-void op_tick(fundude* fd, uint32_t µs);
-op_result op_run(fundude* fd, uint8_t op[]);
+void op_run(fundude* fd, uint32_t µs);
+op_result op_tick(fundude* fd, uint8_t op[]);
 
 #ifndef NDEBUG
 #define OP_JUMP(jump, length, duration, ...) \

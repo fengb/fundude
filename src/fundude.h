@@ -8,6 +8,8 @@
 #define WIDTH 160
 #define HEIGHT 144
 
+#define MHz 4194304
+
 typedef enum {
   SYS_NORM,
   SYS_HALT,
@@ -21,9 +23,11 @@ typedef struct {
   fd_memory mem;
 
   sys_mode mode;
-  uint32_t us;
+  uint64_t cycles;
 } fundude;
 
 fundude* fd_init(uint32_t us_ref);
+uint64_t to_cycles(uint32_t us);
+uint32_t to_us(uint64_t clock);
 
 #endif

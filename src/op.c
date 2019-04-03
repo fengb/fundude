@@ -414,7 +414,7 @@ op_result op_cal_if_1F(fundude* fd, cond c, uint16_t val) {
   return OP_JUMP(val, 3, 12, "CALL %s,a16", db_cond(c));
 }
 
-op_result op_run(fundude* fd, uint8_t op[]) {
+op_result op_tick(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop(fd);
     case 0x01: return op_ld__ww_16(fd, &fd->reg.BC, w2(op));
@@ -645,9 +645,11 @@ op_result op_run(fundude* fd, uint8_t op[]) {
   return OP_STEP(fd, 0, 0, "");
 }
 
-void op_tick(fundude* fd, uint32_t µs) {
-  op_result c = op_run(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
-  assert(c.length > 0);
-  assert(c.duration > 0);
-  fd->reg.PC._ = c.jump;
+void op_run(fundude* fd, uint32_t us) {
+  uint64_t cycles = to_cycles(us);
+  while (fd->cycles < cycles) {
+    op_result res = op_tick(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
+    fd->reg.PC._ = res.jump;
+    fd->cycles += res.duration;
+  }
 }

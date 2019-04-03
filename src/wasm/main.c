@@ -30,5 +30,5 @@ int display_height() {
 
 EMSCRIPTEN_KEEPALIVE
 int fd_us(fundude *fd) {
-  return fd->us;
+  return to_us(fd->cycles);
 }
