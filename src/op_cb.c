@@ -1,34 +1,35 @@
+#include <stdlib.h>
 #include "debug.h"
 #include "op_do.h"
 
-op_result cb_rlc(fundude* fd, uint8_t* tgt) {
+char* cb_rlc(fundude* fd, uint8_t* tgt) {
   do_rlc(fd, tgt);
-  return OP_STEP(fd, 2, 8, "RLC %s", db_reg8(fd, (void*)tgt));
+  return "RLC";
 }
 
-op_result cb_rrc(fundude* fd, uint8_t* tgt) {
+char* cb_rrc(fundude* fd, uint8_t* tgt) {
   do_rrc(fd, tgt);
-  return OP_STEP(fd, 2, 8, "RRC %s", db_reg8(fd, (void*)tgt));
+  return "RRC";
 }
 
-op_result cb_rl(fundude* fd, uint8_t* tgt) {
+char* cb_rl(fundude* fd, uint8_t* tgt) {
   do_rl(fd, tgt);
-  return OP_STEP(fd, 2, 8, "RL %s", db_reg8(fd, (void*)tgt));
+  return "RL";
 }
 
-op_result cb_rr(fundude* fd, uint8_t* tgt) {
+char* cb_rr(fundude* fd, uint8_t* tgt) {
   do_rr(fd, tgt);
-  return OP_STEP(fd, 2, 8, "RR %s", db_reg8(fd, (void*)tgt));
+  return "RR";
 }
 
-op_result cb_sla(fundude* fd, uint8_t* tgt) {
+char* cb_sla(fundude* fd, uint8_t* tgt) {
   *tgt = flag_shift(fd, *tgt << 1, *tgt >> 7);
-  return OP_STEP(fd, 2, 8, "SLA %s", db_reg8(fd, (void*)tgt));
+  return "SLA";
 }
 
-op_result cb_sra(fundude* fd, uint8_t* tgt) {
+char* cb_sra(fundude* fd, uint8_t* tgt) {
   *tgt = flag_shift(fd, *tgt >> 1, *tgt & 1);
-  return OP_STEP(fd, 2, 8, "SRA %s", db_reg8(fd, (void*)tgt));
+  return "SRA";
 }
 
 uint8_t* cb_tgt(fundude* fd, uint8_t op) {
@@ -39,15 +40,14 @@ uint8_t* cb_tgt(fundude* fd, uint8_t op) {
     case 3: return &fd->reg.E._;
     case 4: return &fd->reg.H._;
     case 5: return &fd->reg.L._;
-    case 6: return fdm_ptr(&fd->mem, fd->reg.HL._);
+    case 6: return NULL;
     case 7: return &fd->reg.A._;
   }
 
-  return 0;
+  return NULL;
 }
 
-op_result op_cb(fundude* fd, uint8_t op) {
-  uint8_t* tgt = cb_tgt(fd, op);
+char* cb_run(fundude* fd, uint8_t op, uint8_t* tgt) {
   switch (op & 0xF8) {
     case 0x00: return cb_rlc(fd, tgt);
     case 0x08: return cb_rrc(fd, tgt);
@@ -57,6 +57,17 @@ op_result op_cb(fundude* fd, uint8_t op) {
     case 0x28: return cb_sra(fd, tgt);
   }
 
-  // TODO
-  return OP_STEP(fd, 2, 8, "CB");
+  return "???";
+}
+
+op_result op_cb(fundude* fd, uint8_t op) {
+  uint8_t* tgt = cb_tgt(fd, op);
+  if (tgt) {
+    char* op_name = cb_run(fd, op, tgt);
+    return OP_STEP(fd, 2, 8, "%s %s", op_name, db_reg8(fd, (void*)tgt));
+  } else {
+    tgt = fdm_ptr(&fd->mem, fd->reg.HL._);
+    char* op_name = cb_run(fd, op, tgt);
+    return OP_STEP(fd, 2, 16, "%s (HL)", op_name);
+  }
 }
