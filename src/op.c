@@ -220,7 +220,7 @@ op_result op_inc_WW___(fundude* fd, reg16* tgt) {
 
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero((*mem) + 1),
-      .N = 0,
+      .N = false,
       .H = will_carry_from(3, *mem, 1),
       .C = fd->reg.FLAGS.C,
   };
@@ -238,7 +238,7 @@ op_result op_dec_WW___(fundude* fd, reg16* tgt) {
 
   fd->reg.FLAGS = (fd_flags){
       .Z = is_uint8_zero((*mem) - 1),
-      .N = 1,
+      .N = true,
       .H = will_borrow_from(4, *mem, 1),
       .C = fd->reg.FLAGS.C,
   };

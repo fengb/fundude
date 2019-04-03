@@ -22,24 +22,12 @@ op_result cb_rr(fundude* fd, uint8_t* tgt) {
 }
 
 op_result cb_sla(fundude* fd, uint8_t* tgt) {
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(*tgt << 1),
-      .N = false,
-      .H = false,
-      .C = *tgt >> 7,
-  };
-  *tgt <<= 1;
+  *tgt = flag_shift(fd, *tgt << 1, *tgt >> 7);
   return OP_STEP(fd, 2, 8, "SLA %s", db_reg8(fd, (void*)tgt));
 }
 
 op_result cb_sra(fundude* fd, uint8_t* tgt) {
-  fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero(*tgt >> 1),
-      .N = false,
-      .H = false,
-      .C = *tgt & 1,
-  };
-  *tgt >>= 1;
+  *tgt = flag_shift(fd, *tgt >> 1, *tgt & 1);
   return OP_STEP(fd, 2, 8, "SRA %s", db_reg8(fd, (void*)tgt));
 }
 
