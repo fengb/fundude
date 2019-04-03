@@ -32,6 +32,19 @@ char* cb_sra(fundude* fd, uint8_t* tgt) {
   return "SRA";
 }
 
+char* cb_swap(fundude* fd, uint8_t* tgt) {
+  int hb = *tgt >> 4;
+  int lb = *tgt & 0x0F;
+  *tgt = flag_shift(fd, lb << 4 | hb, false);
+  return "SWAP";
+}
+
+char* cb_srl(fundude* fd, uint8_t* tgt) {
+  uint8_t msb = *tgt & 0x80;
+  *tgt = flag_shift(fd, msb & *tgt >> 1, *tgt & 1);
+  return "SRA";
+}
+
 uint8_t* cb_tgt(fundude* fd, uint8_t op) {
   switch (op & 7) {
     case 0: return &fd->reg.B._;
@@ -55,6 +68,8 @@ char* cb_run(fundude* fd, uint8_t op, uint8_t* tgt) {
     case 0x18: return cb_rr(fd, tgt);
     case 0x20: return cb_sla(fd, tgt);
     case 0x28: return cb_sra(fd, tgt);
+    case 0x30: return cb_swap(fd, tgt);
+    case 0x38: return cb_srl(fd, tgt);
   }
 
   return "???";
