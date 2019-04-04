@@ -1,7 +1,8 @@
 import React from "react";
 import Display from "./Display";
-import { EMPTY } from "./data";
+import CartList from "./CartList";
 import FundudeWasm from "./core";
+import { EMPTY } from "./data";
 
 export default function() {
   const [fd, setFd] = React.useState<FundudeWasm>();
@@ -9,5 +10,10 @@ export default function() {
     FundudeWasm.boot(EMPTY).then(setFd);
   }, []);
 
-  return <div>{fd && <Display fundude={fd} />}</div>;
+  return (
+    <div>
+      <CartList />
+      {fd && <Display fundude={fd} />}
+    </div>
+  );
 }
