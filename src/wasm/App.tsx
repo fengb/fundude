@@ -1,5 +1,5 @@
 import React from "react";
-import Display from "./display";
+import Display from "./Display";
 import { EMPTY } from "./data";
 import FundudeWasm from "./core";
 
