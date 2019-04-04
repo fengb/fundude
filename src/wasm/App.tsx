@@ -4,7 +4,7 @@ import CartList from "./CartList";
 import FundudeWasm from "./core";
 import { EMPTY } from "./data";
 
-export default function() {
+export default function App() {
   const [fd, setFd] = React.useState<FundudeWasm>();
   React.useEffect(() => {
     FundudeWasm.boot(EMPTY).then(setFd);

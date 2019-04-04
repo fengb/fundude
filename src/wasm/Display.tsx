@@ -10,7 +10,7 @@ const PALETTE: Record<number, Uint8Array> = {
   3: Uint8Array.of(15, 56, 15, 255)
 };
 
-export default function({ fundude }: { fundude: FundudeWasm }) {
+export default function Display({ fundude }: { fundude: FundudeWasm }) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   React.useEffect(() => {
     if (!ref.current) {
