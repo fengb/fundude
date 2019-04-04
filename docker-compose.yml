@@ -1,13 +1,7 @@
 version: '3'
 services:
-  fundude:
-    build: .
-    command: ["sh", "-c", "npm install && npm run dev"]
-    ports:
-      - "${PORT:-1234}:1234"
+  build:
+    image: trzeci/emscripten
+    command: ["make"]
     volumes:
       - ".:/src"
-      - "modules:/src/node_modules"
-
-volumes:
-  modules:
