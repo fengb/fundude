@@ -19,8 +19,13 @@ export default class FundudeWasm {
   readonly height: number;
   readonly display: Uint8Array;
 
-  constructor(ms: number) {
-    this.pointer = Module.ccall("init", "number", ["number"], [ms * 1000]);
+  constructor(ms: number, cart: Uint8Array) {
+    this.pointer = Module.ccall(
+      "init",
+      "number",
+      ["number", "array"],
+      [ms * 1000, cart]
+    );
 
     this.width = Module.ccall("display_width", "number", [], []);
     this.height = Module.ccall("display_height", "number", [], []);

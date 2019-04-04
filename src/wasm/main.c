@@ -7,8 +7,8 @@ uint8_t NINTENDO[] = {
 };
 
 EMSCRIPTEN_KEEPALIVE
-fundude* init(uint32_t µs_ref) {
-  fundude* fd = fd_init(µs_ref);
+fundude* init(uint32_t us_ref, uint8_t cart[]) {
+  fundude* fd = fd_init(us_ref, cart);
   memcpy(fd->display, NINTENDO, sizeof(fd->display));
   return fd;
 }

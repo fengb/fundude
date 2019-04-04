@@ -2,6 +2,7 @@
 #define __FUNDUDE_H
 
 #include <stdint.h>
+#include "cart.h"
 #include "memory.h"
 #include "registers.h"
 
@@ -14,7 +15,7 @@ typedef enum {
   SYS_NORM,
   SYS_HALT,
   SYS_STOP,
-  SYS_FATAL, // Not a GB mode, this code is bad and we should feel bad
+  SYS_FATAL,  // Not a GB mode, this code is bad and we should feel bad
 } sys_mode;
 
 typedef struct {
@@ -25,9 +26,11 @@ typedef struct {
 
   sys_mode mode;
   uint64_t cycles;
+  uint8_t* cart;
 } fundude;
 
-fundude* fd_init(uint32_t us_ref);
+fundude* fd_init(uint32_t us_ref, uint8_t cart[]);
+void fd_reset(fundude* fd, uint32_t us_ref, uint8_t cart[]);
 uint64_t to_cycles(uint32_t us);
 uint32_t to_us(uint64_t clock);
 
