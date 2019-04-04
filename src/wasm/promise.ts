@@ -7,3 +7,7 @@ export function deferred<T>() {
   });
   return Object.assign(promise, { resolve: resolve!, reject: reject! });
 }
+
+export function nextAnimationFrame() {
+  return new Promise(requestAnimationFrame);
+}

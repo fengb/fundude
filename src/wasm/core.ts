@@ -1,6 +1,6 @@
 //@ts-ignore
 import fundude from "../../build/fundude";
-import { deferred } from "./promise";
+import { deferred, nextAnimationFrame } from "./promise";
 
 const READY = deferred<void>();
 
@@ -8,9 +8,17 @@ const Module = fundude({
   onRuntimeInitialized: READY.resolve
 });
 
+export type Palette = Record<number, Uint8Array>;
+
 export default class FundudeWasm {
   static ready() {
     return READY;
+  }
+
+  static boot(cart: Uint8Array) {
+    return FundudeWasm.ready()
+      .then(nextAnimationFrame)
+      .then(ms => new FundudeWasm(ms, cart));
   }
 
   private pointer: number;
@@ -33,6 +41,15 @@ export default class FundudeWasm {
       this.pointer,
       this.pointer + this.width * this.height
     );
+  }
+
+  imageData(palette: Palette) {
+    const imageData = new ImageData(this.width, this.height);
+    for (let i = 0; i < this.display.length; i++) {
+      const colorIndex = this.display[i];
+      imageData.data.set(palette[colorIndex], 4 * i);
+    }
+    return imageData;
   }
 
   µs() {

@@ -9,8 +9,14 @@
     "build": "parcel build src/wasm/index.html --public-url ./"
   },
   "devDependencies": {
+    "@types/react": "^16.8.12",
+    "@types/react-dom": "^16.8.3",
     "parcel-bundler": "^1.12.3",
     "typescript": "^3.3.4000",
     "watch": "^1.0.2"
+  },
+  "dependencies": {
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6"
   }
 }
