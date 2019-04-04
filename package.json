@@ -6,12 +6,9 @@
   "license": "MIT",
   "scripts": {
     "dev": "parcel src/wasm/index.html",
-    "build": "npm run build:wasm && npm run build:parcel",
-    "build:parcel": "parcel build src/wasm/index.html",
-    "build:wasm": "make"
+    "build": "parcel build src/wasm/index.html --public-url ./"
   },
   "devDependencies": {
-    "npm-run-all": "^4.1.5",
     "parcel-bundler": "^1.12.3",
     "typescript": "^3.3.4000",
     "watch": "^1.0.2"
