@@ -1,6 +1,7 @@
 #include "op.h"
 #include <assert.h>
 #include "debug.h"
+#include "fundude.h"
 #include "op_cb.h"
 #include "op_do.h"
 
@@ -646,9 +647,18 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
 }
 
 void op_run(fundude* fd, uint32_t us) {
+  if (fd->mode == SYS_FATAL) {
+    return;
+  }
+
   uint64_t cycles = to_cycles(us);
   while (fd->cycles < cycles) {
     op_result res = op_tick(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
+    if (res.jump <= 0 || res.length <= 0 || res.duration <= 0) {
+      fd->mode = SYS_FATAL;
+      return;
+    }
+
     fd->reg.PC._ = res.jump;
     fd->cycles += res.duration;
   }

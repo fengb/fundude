@@ -14,6 +14,7 @@ typedef enum {
   SYS_NORM,
   SYS_HALT,
   SYS_STOP,
+  SYS_FATAL, // Not a GB mode, this code is bad and we should feel bad
 } sys_mode;
 
 typedef struct {
