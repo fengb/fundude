@@ -8,7 +8,7 @@ int main() {
 
   uint8_t op[] = {0x0, 0x10, 0x20};
 
-  for (int h = 0; h <= 0xC; h++) {
+  for (int h = 0; h <= 0xD; h++) {
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
       op_result r = op_tick(&fd, op);

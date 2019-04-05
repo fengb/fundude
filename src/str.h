@@ -3,7 +3,7 @@
 
 // This lets us allocate on the stack
 typedef struct {
-  char _[64];
+  char _[16];
 } str;
 
 #endif

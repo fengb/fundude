@@ -123,6 +123,12 @@ op_result op_ret______(fundude* fd) {
   return OP_JUMP(val, 1, 8, "RET");
 }
 
+op_result op_rti______(fundude* fd) {
+  uint8_t val = do_pop(fd);
+  // TODO: enable interrupts
+  return OP_JUMP(val, 1, 8, "RETI");
+}
+
 op_result op_ret_if___(fundude* fd, cond c) {
   if (!cond_check(fd, c)) {
     return OP_STEP(fd, 1, 8, "RET %s", db_cond(c));
@@ -313,6 +319,11 @@ op_result op_sbc_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   return OP_STEP(fd, 1, 8, "SBC %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
+op_result op_sbc_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+  do_sub_rr(fd, tgt, fd->reg.FLAGS.C + val);
+  return OP_STEP(fd, 1, 8, "SBC %s,d8", db_reg8(fd, tgt));
+}
+
 op_result op_and_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_and_rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4, "AND %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
@@ -414,6 +425,8 @@ op_result op_cal_if_1F(fundude* fd, cond c, uint16_t val) {
   do_push(fd, fd->reg.PC._ + 3);
   return OP_JUMP(val, 3, 12, "CALL %s,a16", db_cond(c));
 }
+
+static op_result OP_ILLEGAL = {0, 0, 0, "ILLEGAL"};
 
 op_result op_tick(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
@@ -638,11 +651,25 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0xCE: return op_adc_rr_08(fd, &fd->reg.A, op[1]);
     case 0xCF: return op_rst_08___(fd, 0x08);
 
-    // --
+    case 0xD0: return op_ret_if___(fd, COND_NC);
+    case 0xD1: return op_pop_ww___(fd, &fd->reg.DE);
+    case 0xD2: return op_jp__if_1F(fd, COND_NC, w2(op));
+    case 0xD3: return OP_ILLEGAL;
+    case 0xD4: return op_cal_if_1F(fd, COND_NC, w2(op));
+    case 0xD5: return op_psh_ww___(fd, &fd->reg.DE);
     case 0xD6: return op_sub_rr_08(fd, &fd->reg.A, op[1]);
+    case 0xD7: return op_rst_08___(fd, 0x10);
+    case 0xD8: return op_ret_if___(fd, COND_C);
+    case 0xD9: return op_rti______(fd);
+    case 0xDA: return op_jp__if_1F(fd, COND_C, w2(op));
+    case 0xDB: return OP_ILLEGAL;
+    case 0xDC: return op_cal_if_1F(fd, COND_C, w2(op));
+    case 0xDD: return OP_ILLEGAL;
+    case 0xDE: return op_sbc_rr_08(fd, &fd->reg.A, op[1]);
+    case 0xDF: return op_rst_08___(fd, 0x18);
   }
 
-  return OP_STEP(fd, 0, 0, "");
+  return OP_ILLEGAL;
 }
 
 void op_run(fundude* fd, uint32_t us) {
