@@ -24,7 +24,7 @@ int fd_disassemble(fundude* fd, char* out) {
     return 1;
   }
 
-  op_result res = op_tick(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
+  op_result res = op_tick(fd, &fd->mem.cart[fd->reg.PC._]);
 
   sprintf(out, "0x%04X %s", fd->reg.PC._, res.op_name._);
   fd->reg.PC._ += res.length;

@@ -5,7 +5,6 @@ typedef struct {
   union {
     uint8_t RAW[0x10000];
     struct {
-      uint8_t _cart[0x8000];
       uint8_t vram[0x2000];
       uint8_t switchable_ram[0x2000];
       uint8_t ram[0x2000];
