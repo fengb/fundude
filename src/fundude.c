@@ -1,5 +1,6 @@
 #include "fundude.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "op.h"
 
@@ -25,11 +26,11 @@ int fd_disassemble(fundude* fd, char* out) {
 
   op_result res = op_tick(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
 
+  sprintf(out, "0x%04X %s", fd->reg.PC._, res.op_name._);
   fd->reg.PC._ += res.length;
-  strncpy(out, res.op_name._, sizeof(res.op_name._));
 
   if (res.jump <= 0 || res.length <= 0 || res.duration <= 0 ||
-      fd->reg.PC._ > fd->mem.cart_length) {
+      fd->reg.PC._ >= fd->mem.cart_length) {
     fd->mode = SYS_FATAL;
   }
   return fd->mode == SYS_FATAL;

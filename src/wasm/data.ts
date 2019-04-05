@@ -1,7 +1,7 @@
 function asBitArray(hexString: string): Uint8Array {
   const bytes = hexString
     .replace(/\s+/g, "")
-    .match(/.{1,2}/)!
+    .match(/.{1,2}/g)!
     .map(s => parseInt(s, 16));
 
   return new Uint8Array(bytes);

@@ -3,6 +3,8 @@
 
 int main() {
   fundude fd;
+  fd.mem.cart = fd.mem._cart;
+  fd.mem.cart_length = 0;
 
   for (int h = 0; h <= 0xC; h++) {
     for (int l = 0; l <= 0xF; l++) {

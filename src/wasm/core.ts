@@ -57,15 +57,15 @@ export default class FundudeWasm {
   }
 
   *disassemble() {
-    const str = Module._malloc(100) as Uint8Array;
+    const outPtr = Module._malloc(100) as Uint8Array;
     try {
-      let isActive;
+      let errCode;
       do {
-        isActive = Module.ccall("fd_disassemble", "boolean", ["array"], [str]);
-        yield str;
-      } while (isActive);
+        errCode = Module.ccall("disassemble", "number", ["number", "number"], [this.pointer, outPtr]);
+        yield Module.UTF8ToString(outPtr) as String;
+      } while (!errCode);
     } finally {
-      Module._free(str);
+      Module._free(outPtr);
     }
   }
 }

@@ -5,7 +5,7 @@
 int main() {
   plan(9);
 
-  eqhex(0x0, offsetof(fd_memory, cartridge));
+  eqhex(0x0, offsetof(fd_memory, _cart));
   eqhex(0x8000, offsetof(fd_memory, vram));
   eqhex(0xA000, offsetof(fd_memory, switchable_ram));
   eqhex(0xC000, offsetof(fd_memory, ram));
