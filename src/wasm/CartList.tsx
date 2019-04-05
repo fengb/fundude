@@ -22,6 +22,9 @@ export default function CartList({
 
   return (
     <div>
+      {Object.keys(extra).map(name => (
+        <div key={name}>{name}</div>
+      ))}
       {Object.keys(cache.data).map(name => (
         <div key={name}>{name}</div>
       ))}

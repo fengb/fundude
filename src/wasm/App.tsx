@@ -11,8 +11,8 @@ export default function App() {
   }, []);
 
   return (
-    <div>
-      <CartList />
+    <div style={{ width: "100vw", height: "100vh", display: "flex" }}>
+      <CartList extra={{ "-empty-": EMPTY }} />
       {fd && <Display fundude={fd} />}
     </div>
   );
