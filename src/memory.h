@@ -18,6 +18,7 @@ typedef struct {
     };
   };
 
+  size_t cart_length;
   uint8_t* cart;
 } fd_memory;
 

@@ -8,6 +8,7 @@
     "dev": "parcel src/wasm/index.html",
     "build": "parcel build src/wasm/index.html --public-url ./"
   },
+  "browserslist": ["since 2017-06"],
   "devDependencies": {
     "@types/react": "^16.8.12",
     "@types/react-dom": "^16.8.3",

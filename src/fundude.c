@@ -1,19 +1,38 @@
 #include "fundude.h"
 #include <stdlib.h>
 #include <string.h>
+#include "op.h"
 
-fundude* fd_init(uint32_t us_ref, uint8_t cart[]) {
+fundude* fd_init(uint32_t us_ref, size_t cart_length, uint8_t cart[]) {
   fundude* fd = malloc(sizeof(fundude));
-  fd_reset(fd, us_ref, cart);
+  fd_reset(fd, us_ref, cart_length, cart);
   return fd;
 }
 
-void fd_reset(fundude* fd, uint32_t us_ref, uint8_t cart[]) {
+void fd_reset(fundude* fd, uint32_t us_ref, size_t cart_length, uint8_t cart[]) {
   memset(fd->display, 0, sizeof(fd->display));
-  if (cart != NULL) {
-    fd->cart = cart;
+  if (cart_length && cart != NULL) {
+    fd->mem.cart_length = cart_length;
+    fd->mem.cart = cart;
   }
   fd->cycles = to_cycles(us_ref);
+}
+
+int fd_disassemble(fundude* fd, char* out) {
+  if (fd->mode == SYS_FATAL) {
+    return 1;
+  }
+
+  op_result res = op_tick(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
+
+  fd->reg.PC._ += res.length;
+  strncpy(out, res.op_name._, sizeof(res.op_name._));
+
+  if (res.jump <= 0 || res.length <= 0 || res.duration <= 0 ||
+      fd->reg.PC._ > fd->mem.cart_length) {
+    fd->mode = SYS_FATAL;
+  }
+  return fd->mode == SYS_FATAL;
 }
 
 uint64_t to_cycles(uint32_t us) {

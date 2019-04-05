@@ -7,15 +7,15 @@ uint8_t NINTENDO[] = {
 };
 
 EMSCRIPTEN_KEEPALIVE
-fundude* init(uint32_t us_ref, uint8_t cart[]) {
-  fundude* fd = fd_init(us_ref, cart);
+fundude* init(uint32_t us_ref, size_t cart_length, uint8_t cart[]) {
+  fundude* fd = fd_init(us_ref, cart_length, cart);
   memcpy(fd->display, NINTENDO, sizeof(fd->display));
   return fd;
 }
 
 EMSCRIPTEN_KEEPALIVE
-int main() {
-  return 0;
+int disassemble(fundude* fd, char* out) {
+  return fd_disassemble(fd, out);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -31,4 +31,9 @@ int display_height() {
 EMSCRIPTEN_KEEPALIVE
 int fd_us(fundude *fd) {
   return to_us(fd->cycles);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int main() {
+  return 0;
 }

@@ -31,8 +31,8 @@ export default class FundudeWasm {
     this.pointer = Module.ccall(
       "init",
       "number",
-      ["number", "array"],
-      [ms * 1000, cart]
+      ["number", "number", "array"],
+      [ms * 1000, cart.length, cart]
     );
 
     this.width = Module.ccall("display_width", "number", [], []);
@@ -54,6 +54,19 @@ export default class FundudeWasm {
 
   µs() {
     return Module.ccall("fd_us", "number", ["number"], [this.pointer]);
+  }
+
+  *disassemble() {
+    const str = Module._malloc(100) as Uint8Array;
+    try {
+      let isActive;
+      do {
+        isActive = Module.ccall("fd_disassemble", "boolean", ["array"], [str]);
+        yield str;
+      } while (isActive);
+    } finally {
+      Module._free(str);
+    }
   }
 }
 

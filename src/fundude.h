@@ -2,9 +2,11 @@
 #define __FUNDUDE_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include "cart.h"
 #include "memory.h"
 #include "registers.h"
+#include "str.h"
 
 #define WIDTH 160
 #define HEIGHT 144
@@ -26,11 +28,13 @@ typedef struct {
 
   sys_mode mode;
   uint64_t cycles;
-  uint8_t* cart;
 } fundude;
 
-fundude* fd_init(uint32_t us_ref, uint8_t cart[]);
-void fd_reset(fundude* fd, uint32_t us_ref, uint8_t cart[]);
+fundude* fd_init(uint32_t us_ref, size_t cart_length, uint8_t cart[]);
+void fd_reset(fundude* fd, uint32_t us_ref, size_t cart_length, uint8_t cart[]);
+
+int fd_disassemble(fundude* fd, char* out);
+
 uint64_t to_cycles(uint32_t us);
 uint32_t to_us(uint64_t clock);
 

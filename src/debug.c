@@ -22,6 +22,16 @@ char* db_cond(cond c) {
   }
 }
 
+char* db_sys_mode(sys_mode m) {
+  switch (m) {
+    case SYS_NORM: return "NORM";
+    case SYS_HALT: return "HALT";
+    case SYS_STOP: return "STOP";
+    case SYS_FATAL: return "FATAL";
+    default: return "?";
+  }
+}
+
 char* db_reg8(fundude* fd, reg8* reg) {
   switch ((void*)reg - (void*)&fd->reg) {
     case offsetof(fd_registers, A): return "A";

@@ -642,7 +642,6 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0xD6: return op_sub_rr_08(fd, &fd->reg.A, op[1]);
   }
 
-  assert(false);  // Op not implemented
   return OP_STEP(fd, 0, 0, "");
 }
 
