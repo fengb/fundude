@@ -1,5 +1,5 @@
 import React from "react";
-import FundudeWasm from "./core";
+import FundudeWasm from "./wasm";
 
 const PADDING = 1;
 

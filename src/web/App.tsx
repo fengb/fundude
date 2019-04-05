@@ -1,7 +1,7 @@
 import React from "react";
 import Display from "./Display";
 import CartList from "./CartList";
-import FundudeWasm from "./core";
+import FundudeWasm from "./wasm";
 import { EMPTY } from "./data";
 import Disassembler from "./Disassembler";
 

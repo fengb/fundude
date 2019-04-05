@@ -1,5 +1,5 @@
 import React from "react";
-import FundudeWasm from "./core";
+import FundudeWasm from "./wasm";
 
 export default function Disassembler({ cart }: { cart: Uint8Array }) {
   const [assembly, setAssembly] = React.useState(["loading..."]);

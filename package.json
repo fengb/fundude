@@ -5,8 +5,8 @@
   "author": "Benjamin Feng <contact@fengb.me>",
   "license": "MIT",
   "scripts": {
-    "dev": "parcel src/wasm/index.html",
-    "build": "parcel build src/wasm/index.html --public-url ./"
+    "dev": "parcel src/web/index.html",
+    "build": "parcel build src/web/index.html --public-url ./"
   },
   "browserslist": ["since 2017-06"],
   "devDependencies": {

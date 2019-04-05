@@ -12,8 +12,8 @@ TEST_MAIN_FILES := $(wildcard $(TEST_MAIN_DIR)/test_*.c)
 TEST_TARGETS := $(patsubst $(TEST_MAIN_DIR)/%.c,%,$(TEST_MAIN_FILES))
 
 $(OUT_DIR)/fundude.js: LINK_FLAGS = -s SINGLE_FILE=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s "EXTRA_EXPORTED_RUNTIME_METHODS=['ccall','UTF8ToString']"
-$(OUT_DIR)/fundude.js: $(OBJ_FILES) $(SRC_DIR)/wasm/main.c
-	emcc -o "$@" $(LINK_FLAGS) $^ $(SRC_DIR)/wasm/main.c
+$(OUT_DIR)/fundude.js: $(OBJ_FILES) $(SRC_DIR)/web/wasm.c
+	emcc -o "$@" $(LINK_FLAGS) $^
 
 $(OUT_DIR)/%.bc: $(SRC_DIR)/%.c
 	@mkdir -p $(OUT_DIR)
