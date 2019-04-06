@@ -37,7 +37,7 @@ op_result op_nop(fundude* fd) {
 }
 
 op_result op_sys(fundude* fd, sys_mode mode, int length) {
-  return OP_STEP(fd, length, 4, "SYS %d", mode);
+  return OP_STEP(fd, length, 4, db_sys_mode(mode));
 }
 
 op_result op_scf(fundude* fd) {
@@ -95,7 +95,7 @@ op_result op_daa_rr___(fundude* fd, reg8* dst) {
 }
 
 op_result op_jr__08___(fundude* fd, uint8_t offset) {
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR %d", offset);
+  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR $%02X", offset);
 }
 
 op_result op_jr__if_08(fundude* fd, cond c, uint8_t offset) {
@@ -103,11 +103,11 @@ op_result op_jr__if_08(fundude* fd, cond c, uint8_t offset) {
   if (!cond_check(fd, c)) {
     offset = length;
   }
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR %s %d", db_cond(c), offset);
+  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR %s $%02X", db_cond(c), offset);
 }
 
 op_result op_jp__1F___(fundude* fd, uint16_t target) {
-  return OP_JUMP(target, 3, 12, "JP %d", target);
+  return OP_JUMP(target, 3, 12, "JP $%04X", target);
 }
 
 op_result op_jp__if_1F(fundude* fd, cond c, uint16_t target) {
@@ -115,7 +115,7 @@ op_result op_jp__if_1F(fundude* fd, cond c, uint16_t target) {
   if (!cond_check(fd, c)) {
     target = fd->reg.PC._ + 3;
   }
-  return OP_JUMP(target, 3, 12, "JP %s %d", db_cond(c), target);
+  return OP_JUMP(target, 3, 12, "JP %s $%02X", db_cond(c), target);
 }
 
 op_result op_ret______(fundude* fd) {
@@ -164,7 +164,7 @@ op_result op_rra_rr___(fundude* fd, reg8* tgt) {
 
 op_result op_ld__rr_08(fundude* fd, reg8* tgt, uint8_t d8) {
   tgt->_ = d8;
-  return OP_STEP(fd, 2, 8, "LD %s,d8", db_reg8(fd, tgt));
+  return OP_STEP(fd, 2, 8, "LD %s,$%02X", db_reg8(fd, tgt), d8);
 }
 
 op_result op_ld__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
@@ -179,7 +179,7 @@ op_result op_ld__rr_WW(fundude* fd, reg8* tgt, reg16* src) {
 
 op_result op_ld__ww_16(fundude* fd, reg16* tgt, uint16_t d16) {
   tgt->_ = d16;
-  return OP_STEP(fd, 3, 12, "LD %s,d16", db_reg16(fd, tgt));
+  return OP_STEP(fd, 3, 12, "LD %s,$%04X", db_reg16(fd, tgt), d16);
 }
 
 op_result op_ld__WW_rr(fundude* fd, reg16* tgt, reg8* src) {
@@ -189,12 +189,12 @@ op_result op_ld__WW_rr(fundude* fd, reg16* tgt, reg8* src) {
 
 op_result op_ld__1F_ww(fundude* fd, uint16_t a16, reg16* src) {
   fdm_set(&fd->mem, a16, src->_);
-  return OP_STEP(fd, 3, 20, "LD d16,%s", db_reg16(fd, src));
+  return OP_STEP(fd, 3, 20, "LD ($%04X),%s", a16, db_reg16(fd, src));
 }
 
 op_result op_ld__WW_08(fundude* fd, reg16* tgt, uint8_t val) {
   fdm_set(&fd->mem, tgt->_, val);
-  return OP_STEP(fd, 2, 12, "LD (%s),d8", db_reg16(fd, tgt));
+  return OP_STEP(fd, 2, 12, "LD (%s),$%02X", db_reg16(fd, tgt), val);
 }
 
 op_result op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
@@ -265,7 +265,7 @@ op_result op_add_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
 
 op_result op_add_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
   do_add_rr(fd, tgt, val);
-  return OP_STEP(fd, 2, 8, "ADD %s,d8", db_reg8(fd, tgt));
+  return OP_STEP(fd, 2, 8, "ADD %s,$%02X", db_reg8(fd, tgt), val);
 }
 
 op_result op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
@@ -291,7 +291,7 @@ op_result op_adc_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
 
 op_result op_adc_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
   do_add_rr(fd, tgt, fd->reg.FLAGS.C + val);
-  return OP_STEP(fd, 1, 4, "ADC %s,d8", db_reg8(fd, tgt));
+  return OP_STEP(fd, 1, 4, "ADC %s,$%02X", db_reg8(fd, tgt), val);
 }
 
 op_result op_sub_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
@@ -306,7 +306,7 @@ op_result op_sub_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
 
 op_result op_sub_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
   do_sub_rr(fd, tgt, val);
-  return OP_STEP(fd, 2, 8, "SUB %s,d8", db_reg8(fd, tgt));
+  return OP_STEP(fd, 2, 8, "SUB %s,$%02X", db_reg8(fd, tgt), val);
 }
 
 op_result op_sbc_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
@@ -321,7 +321,7 @@ op_result op_sbc_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
 
 op_result op_sbc_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
   do_sub_rr(fd, tgt, fd->reg.FLAGS.C + val);
-  return OP_STEP(fd, 1, 8, "SBC %s,d8", db_reg8(fd, tgt));
+  return OP_STEP(fd, 1, 8, "SBC %s,$%02X", db_reg8(fd, tgt), val);
 }
 
 op_result op_and_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
@@ -415,15 +415,15 @@ op_result op_psh_ww___(fundude* fd, reg16* tgt) {
 
 op_result op_cal_1F___(fundude* fd, uint16_t val) {
   do_push(fd, fd->reg.PC._ + 3);
-  return OP_JUMP(val, 3, 12, "CALL a16");
+  return OP_JUMP(val, 3, 12, "CALL $%04X", val);
 }
 
 op_result op_cal_if_1F(fundude* fd, cond c, uint16_t val) {
   if (!cond_check(fd, c)) {
-    return OP_STEP(fd, 3, 12, "CALL %s,a16", db_cond(c));
+    return OP_STEP(fd, 3, 12, "CALL %s,$%04X", db_cond(c), val);
   }
   do_push(fd, fd->reg.PC._ + 3);
-  return OP_JUMP(val, 3, 12, "CALL %s,a16", db_cond(c));
+  return OP_JUMP(val, 3, 12, "CALL %s,$%04X", db_cond(c), val);
 }
 
 static op_result OP_ILLEGAL = {0, 0, 0, "ILLEGAL"};

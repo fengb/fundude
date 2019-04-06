@@ -8,17 +8,26 @@ int main() {
 
   uint8_t op[] = {0x0, 0x10, 0x20};
 
-  for (int h = 0; h <= 0xD; h++) {
+  for (int h = 0; h <= 0xF; h++) {
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
       op_result r = op_tick(&fd, op);
-      printf("%-11s|", r.op_name._);
+      if (r.length) {
+        printf("%-13s|", r.op_name._);
+      } else {
+        printf("%-13s|", "");
+      }
     }
     printf("\n");
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
       op_result r = op_tick(&fd, op);
-      printf("%2d %3d     |", r.length, r.duration);
+
+      if (r.length) {
+        printf("%2d %3d       |", r.length, r.duration);
+      } else {
+        printf("%-13s|", "");
+      }
     }
     printf("\n\n");
   }

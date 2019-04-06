@@ -21,19 +21,21 @@ void fd_reset(fundude* fd, uint32_t us_ref, size_t cart_length, uint8_t cart[]) 
 
 int fd_disassemble(fundude* fd, char* out) {
   if (fd->mode == SYS_FATAL) {
-    return 1;
+    return -99999;
   }
 
-  op_result res = op_tick(fd, &fd->mem.cart[fd->reg.PC._]);
+  int addr = fd->reg.PC._;
 
-  sprintf(out, "0x%04X %s", fd->reg.PC._, res.op_name._);
+  op_result res = op_tick(fd, &fd->mem.cart[addr]);
+
+  strncpy(out, res.op_name._, sizeof(res.op_name));
   fd->reg.PC._ += res.length;
 
   if (res.jump <= 0 || res.length <= 0 || res.duration <= 0 ||
       fd->reg.PC._ >= fd->mem.cart_length) {
     fd->mode = SYS_FATAL;
   }
-  return fd->mode == SYS_FATAL;
+  return addr;
 }
 
 uint64_t to_cycles(uint32_t us) {
