@@ -11,3 +11,12 @@ export function deferred<T>() {
 export function nextAnimationFrame() {
   return new Promise(requestAnimationFrame);
 }
+
+export function readAsArray(file: File) {
+  const reader = new FileReader();
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    reader.onload = evt => resolve((evt as any).target.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}

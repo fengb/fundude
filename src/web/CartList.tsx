@@ -1,20 +1,24 @@
-import React, { useCallback } from "react";
+import React from "react";
 import { useDropzone } from "react-dropzone";
 import { useMemoryCache } from "./hooks/cache";
+import { Context } from "./DI";
+import { readAsArray } from "./promise";
 
 export default function CartList({
   extra
 }: {
   extra: Record<string, Uint8Array>;
 }) {
+  const { cart } = React.useContext(Context);
   const cache = useMemoryCache<string>("cartlist");
   const filePickerRef = React.useRef<HTMLInputElement>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = React.useCallback((acceptedFiles: File[]) => {
     const update = {} as Record<string, string>;
-    acceptedFiles.forEach(f => {
-      update[f.name] = f.name;
-    });
+    for (const file of acceptedFiles) {
+      update[file.name] = file.name;
+      readAsArray(file).then(buf => cart.set(new Uint8Array(buf)));
+    }
     cache.setItems(update);
   }, []);
 
