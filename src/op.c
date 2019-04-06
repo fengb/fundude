@@ -60,6 +60,11 @@ op_result op_ccf(fundude* fd) {
   return OP_STEP(fd, 1, 4, "CCF");
 }
 
+op_result op_int______(fundude* fd, bool set) {
+  // TODO: enable/disable interrupt
+  return OP_STEP(fd, 1, 4, set ? "EI" : "DI");
+}
+
 op_result op_daa_rr___(fundude* fd, reg8* dst) {
   uint8_t lb = dst->_ & 0xF;
   uint8_t hb = (dst->_ >> 4) & 0xF;
@@ -118,6 +123,11 @@ op_result op_jp__if_1F(fundude* fd, cond c, uint16_t target) {
   return OP_JUMP(target, 3, 12, "JP %s $%02X", db_cond(c), target);
 }
 
+op_result op_jp__WW___(fundude* fd, reg16* tgt) {
+  uint16_t target = fdm_get(&fd->mem, tgt->_);
+  return OP_JUMP(target, 1, 4, "JP (%s)", db_reg16(fd, tgt));
+}
+
 op_result op_ret______(fundude* fd) {
   uint8_t val = do_pop(fd);
   return OP_JUMP(val, 1, 8, "RET");
@@ -172,6 +182,16 @@ op_result op_ld__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   return OP_STEP(fd, 1, 4, "LD %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
 }
 
+op_result op_ld__rr_RR(fundude* fd, reg8* tgt, reg8* src) {
+  tgt->_ = fdm_get(&fd->mem, 0xFF00 + src->_);
+  return OP_STEP(fd, 1, 8, "LD %s,(%s)", db_reg8(fd, tgt), db_reg8(fd, src));
+}
+
+op_result op_ld__RR_rr(fundude* fd, reg8* tgt, reg8* src) {
+  fdm_set(&fd->mem, 0xFF00 + tgt->_, src->_);
+  return OP_STEP(fd, 1, 8, "LD (%s),%s", db_reg8(fd, tgt), db_reg8(fd, src));
+}
+
 op_result op_ld__rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   tgt->_ = fdm_get(&fd->mem, src->_);
   return OP_STEP(fd, 1, 8, "LD %s,(%s)", db_reg8(fd, tgt), db_reg16(fd, src));
@@ -197,6 +217,26 @@ op_result op_ld__WW_08(fundude* fd, reg16* tgt, uint8_t val) {
   return OP_STEP(fd, 2, 12, "LD (%s),$%02X", db_reg16(fd, tgt), val);
 }
 
+op_result op_ld__1F_rr(fundude* fd, uint16_t tgt, reg8* src) {
+  fdm_set(&fd->mem, tgt, src->_);
+  return OP_STEP(fd, 3, 16, "LD ($%04X),%s", tgt, db_reg8(fd, src));
+}
+
+op_result op_ld__rr_1F(fundude* fd, reg8* tgt, uint16_t val) {
+  tgt->_ = fdm_get(&fd->mem, val);
+  return OP_STEP(fd, 3, 16, "LD %s,($%04X)", db_reg8(fd, tgt), val);
+}
+
+op_result op_ld__ww_ww(fundude* fd, reg16* tgt, reg16* src) {
+  tgt->_ = src->_;
+  return OP_STEP(fd, 3, 16, "LD %s,%s", db_reg16(fd, tgt), db_reg16(fd, src));
+}
+
+op_result op_ld__ww_ww_r8(fundude* fd, reg16* tgt, reg16* src, uint8_t val) {
+  tgt->_ = src->_ + val;
+  return OP_STEP(fd, 3, 16, "LD %s,%s+$%02X", db_reg16(fd, tgt), db_reg16(fd, src), val);
+}
+
 op_result op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_++, src->_);
   return OP_STEP(fd, 1, 8, "LD (%s+),%s", db_reg16(fd, tgt), db_reg8(fd, src));
@@ -215,6 +255,16 @@ op_result op_ldd_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
 op_result op_ldd_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   fdm_set(&fd->mem, tgt->_, src->_--);
   return OP_STEP(fd, 1, 8, "LD %s,(%s-)", db_reg8(fd, tgt), db_reg16(fd, src));
+}
+
+op_result op_ldh_0A_rr(fundude* fd, uint8_t tgt, reg8* src) {
+  fdm_set(&fd->mem, 0xFF00 + tgt, src->_);
+  return OP_STEP(fd, 2, 12, "LDH ($FF00+%02X),%s", tgt, db_reg8(fd, src));
+}
+
+op_result op_ldh_rr_0A(fundude* fd, reg8* tgt, uint8_t src) {
+  tgt->_ = fdm_get(&fd->mem, 0xFF00 + src);
+  return OP_STEP(fd, 2, 12, "LDH %s,($FF00+%02X)", db_reg8(fd, tgt), src);
 }
 
 op_result op_inc_ww___(fundude* fd, reg16* tgt) {
@@ -279,6 +329,17 @@ op_result op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
   return OP_STEP(fd, 1, 8, "ADD %s,%s", db_reg16(fd, tgt), db_reg16(fd, src));
 }
 
+op_result op_add_ww_08(fundude* fd, reg16* tgt, int8_t val) {
+  fd->reg.FLAGS = (fd_flags){
+      .Z = false,
+      .N = false,
+      .H = will_carry_from(11, tgt->_, val),
+      .C = will_carry_from(15, tgt->_, val),
+  };
+  tgt->_ += val;
+  return OP_STEP(fd, 2, 16, "ADD %s,$%02X", db_reg16(fd, tgt), val);
+}
+
 op_result op_adc_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_add_rr(fd, tgt, fd->reg.FLAGS.C + src->_);
   return OP_STEP(fd, 1, 4, "ADC %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
@@ -334,6 +395,11 @@ op_result op_and_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   return OP_STEP(fd, 1, 8, "AND %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
+op_result op_and_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+  do_and_rr(fd, tgt, val);
+  return OP_STEP(fd, 2, 8, "AND %s,$%02X", db_reg8(fd, tgt), val);
+}
+
 op_result op_or__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_or__rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4, "OR %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
@@ -342,6 +408,11 @@ op_result op_or__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
 op_result op_or__rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_or__rr(fd, tgt, fdm_get(&fd->mem, src->_));
   return OP_STEP(fd, 1, 8, "OR %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
+}
+
+op_result op_or__rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+  do_or__rr(fd, tgt, val);
+  return OP_STEP(fd, 2, 8, "OR %s,$%02X", db_reg8(fd, tgt), val);
 }
 
 op_result op_xor_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
@@ -354,6 +425,11 @@ op_result op_xor_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   return OP_STEP(fd, 1, 8, "XOR %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
 }
 
+op_result op_xor_rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+  do_xor_rr(fd, tgt, val);
+  return OP_STEP(fd, 2, 8, "XOR %s,$%02X", db_reg8(fd, tgt), val);
+}
+
 op_result op_cp__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_cp__rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4, "CP %s,%s", db_reg8(fd, tgt), db_reg8(fd, src));
@@ -361,7 +437,12 @@ op_result op_cp__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
 
 op_result op_cp__rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_cp__rr(fd, tgt, fdm_get(&fd->mem, src->_));
-  return OP_STEP(fd, 1, 8, "CMP %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
+  return OP_STEP(fd, 1, 8, "CP %s,%s", db_reg8(fd, tgt), db_reg16(fd, src));
+}
+
+op_result op_cp__rr_08(fundude* fd, reg8* tgt, uint8_t val) {
+  do_cp__rr(fd, tgt, val);
+  return OP_STEP(fd, 2, 8, "CP %s,$%02X", db_reg8(fd, tgt), val);
 }
 
 op_result op_inc_rr___(fundude* fd, reg8* tgt) {
@@ -667,6 +748,40 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0xDD: return OP_ILLEGAL;
     case 0xDE: return op_sbc_rr_08(fd, &fd->reg.A, op[1]);
     case 0xDF: return op_rst_08___(fd, 0x18);
+
+    case 0xE0: return op_ldh_0A_rr(fd, op[1], &fd->reg.A);
+    case 0xE1: return op_pop_ww___(fd, &fd->reg.HL);
+    case 0xE2: return op_ld__RR_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0xE3: return OP_ILLEGAL;
+    case 0xE4: return OP_ILLEGAL;
+    case 0xE5: return op_psh_ww___(fd, &fd->reg.HL);
+    case 0xE6: return op_and_rr_08(fd, &fd->reg.A, op[1]);
+    case 0xE7: return op_rst_08___(fd, 0x20);
+    case 0xE8: return op_add_ww_08(fd, &fd->reg.SP, op[1]);
+    case 0xE9: return op_jp__WW___(fd, &fd->reg.HL);
+    case 0xEA: return op_ld__1F_rr(fd, w2(op), &fd->reg.A);
+    case 0xEB: return OP_ILLEGAL;
+    case 0xEC: return OP_ILLEGAL;
+    case 0xED: return OP_ILLEGAL;
+    case 0xEE: return op_xor_rr_08(fd, &fd->reg.A, op[1]);
+    case 0xEF: return op_rst_08___(fd, 0x28);
+
+    case 0xF0: return op_ldh_rr_0A(fd, &fd->reg.A, op[1]);
+    case 0xF1: return op_pop_ww___(fd, &fd->reg.AF);
+    case 0xF2: return op_ld__rr_RR(fd, &fd->reg.A, &fd->reg.C);
+    case 0xF3: return op_int______(fd, false);
+    case 0xF4: return OP_ILLEGAL;
+    case 0xF5: return op_psh_ww___(fd, &fd->reg.AF);
+    case 0xF6: return op_or__rr_08(fd, &fd->reg.A, op[1]);
+    case 0xF7: return op_rst_08___(fd, 0x30);
+    case 0xF8: return op_ld__ww_ww_r8(fd, &fd->reg.HL, &fd->reg.SP,op[1]);
+    case 0xF9: return op_ld__ww_ww(fd, &fd->reg.SP, &fd->reg.HL);
+    case 0xFA: return op_ld__rr_1F(fd, &fd->reg.A, w2(op));
+    case 0xFB: return op_int______(fd, true);
+    case 0xFC: return OP_ILLEGAL;
+    case 0xFD: return OP_ILLEGAL;
+    case 0xFE: return op_cp__rr_08(fd, &fd->reg.A, op[1]);
+    case 0xFF: return op_rst_08___(fd, 0x38);
   }
 
   return OP_ILLEGAL;
