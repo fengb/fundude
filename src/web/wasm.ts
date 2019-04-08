@@ -36,7 +36,7 @@ export default class FundudeWasm {
 
   constructor(ms: number, cart: Uint8Array) {
     this.cartPtr = Module._malloc(cart.length);
-    this.cart = Module.HEAP8.subarray(this.cartPtr, this.cartPtr + cart.length);
+    this.cart = Module.HEAPU8.subarray(this.cartPtr, this.cartPtr + cart.length);
     this.cart.set(cart);
 
     this.pointer = Module.ccall(
@@ -50,7 +50,7 @@ export default class FundudeWasm {
 
     this.width = Module.ccall("display_width", "number", [], []);
     this.height = Module.ccall("display_height", "number", [], []);
-    this.display = Module.HEAP8.subarray(
+    this.display = Module.HEAPU8.subarray(
       this.pointer,
       this.pointer + this.width * this.height
     );

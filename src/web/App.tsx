@@ -3,7 +3,7 @@ import * as DI from "./DI";
 import Display from "./Display";
 import CartList from "./CartList";
 import FundudeWasm from "./wasm";
-import { EMPTY } from "./data";
+import { EMPTY, BOOTLOADER } from "./data";
 import Disassembler from "./Disassembler";
 
 export function App() {
@@ -15,7 +15,7 @@ export function App() {
 
   return (
     <div style={{ width: "100vw", height: "100vh", display: "flex" }}>
-      <CartList extra={{ "-empty-": EMPTY }} />
+      <CartList extra={{ "-empty-": EMPTY, bootloader: BOOTLOADER }} />
       {fd && <Display fundude={fd} />}
       <Disassembler cart={cart.value} />
     </div>

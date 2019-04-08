@@ -1,5 +1,5 @@
 import React from "react";
-import { EMPTY } from "./data";
+import { EMPTY, BOOTLOADER } from "./data";
 
 interface StoreItem<T> {
   value: T;
@@ -20,7 +20,7 @@ const INITIAL: Store = {
 export const Context = React.createContext(INITIAL);
 
 export function Container({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = React.useState(EMPTY);
+  const [cart, setCart] = React.useState(BOOTLOADER);
   const store: Store = {
     cart: { value: cart, set: setCart }
   };
