@@ -6,7 +6,7 @@
 #include "op_do.h"
 
 static uint16_t w2(uint8_t op[]) {
-  return (op[1] << 8) + op[2];
+  return (op[2] << 8) + op[1];
 }
 
 static bool cond_check(fundude* fd, cond c) {
