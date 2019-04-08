@@ -273,15 +273,15 @@ op_result op_inc_ww___(fundude* fd, reg16* tgt) {
 }
 
 op_result op_inc_WW___(fundude* fd, reg16* tgt) {
-  uint8_t* mem = fdm_ptr(&fd->mem, tgt->_);
+  uint8_t val = fdm_get(&fd->mem, tgt->_);
 
   fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero((*mem) + 1),
+      .Z = is_uint8_zero(val + 1),
       .N = false,
-      .H = will_carry_from(3, *mem, 1),
+      .H = will_carry_from(3, val, 1),
       .C = fd->reg.FLAGS.C,
   };
-  (*mem)++;
+  fdm_set(&fd->mem, tgt->_, val + 1);
   return OP_STEP(fd, 1, 12, "INC (%s)", db_reg16(fd, tgt));
 }
 
@@ -291,15 +291,15 @@ op_result op_dec_ww___(fundude* fd, reg16* tgt) {
 }
 
 op_result op_dec_WW___(fundude* fd, reg16* tgt) {
-  uint8_t* mem = fdm_ptr(&fd->mem, tgt->_);
+  uint8_t val = fdm_get(&fd->mem, tgt->_);
 
   fd->reg.FLAGS = (fd_flags){
-      .Z = is_uint8_zero((*mem) - 1),
+      .Z = is_uint8_zero(val - 1),
       .N = true,
-      .H = will_borrow_from(4, *mem, 1),
+      .H = will_borrow_from(4, val, 1),
       .C = fd->reg.FLAGS.C,
   };
-  (*mem)--;
+  fdm_set(&fd->mem, tgt->_, val - 1);
   return OP_STEP(fd, 1, 12, "DEC (%s)", db_reg16(fd, tgt));
 }
 

@@ -25,6 +25,7 @@ int fd_disassemble(fundude* fd, char* out) {
     return -99999;
   }
 
+  fd->reg.HL._ = BEYOND_CART;
   int addr = fd->reg.PC._;
 
   op_result res = op_tick(fd, &fd->mem.cart[addr]);

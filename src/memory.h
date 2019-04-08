@@ -22,6 +22,8 @@ typedef struct {
   uint8_t* cart;
 } fd_memory;
 
+#define BEYOND_CART 0x8000
+
 uint8_t* fdm_ptr(fd_memory* m, uint16_t addr);
 uint8_t fdm_get(fd_memory* m, uint16_t addr);
 void fdm_set(fd_memory* m, uint16_t addr, uint8_t val);

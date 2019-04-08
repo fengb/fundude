@@ -8,6 +8,7 @@ int main() {
 
   for (int h = 0; h <= 0xC; h++) {
     for (int l = 0; l <= 0xF; l++) {
+      fd.reg.HL._ = BEYOND_CART;
       uint8_t op = (h << 4) | l;
       op_result r = op_cb(&fd, op);
       printf("%-11s|", r.op_name._);

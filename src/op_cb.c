@@ -146,9 +146,12 @@ op_result op_cb(fundude* fd, uint8_t op) {
   if (tgt) {
     char* op_name = cb_tick(fd, op, tgt);
     return OP_STEP(fd, 2, 8, "%s %s", op_name, db_reg8(fd, (void*)tgt));
-  } else {
+  } else if (fd->reg.HL._ >= BEYOND_CART) {
+    // TODO: remove the magic pointer so we don't have this weirdo ERR state
     tgt = fdm_ptr(&fd->mem, fd->reg.HL._);
     char* op_name = cb_tick(fd, op, tgt);
     return OP_STEP(fd, 2, 16, "%s (HL)", op_name);
+  } else {
+    return OP_STEP(fd, 2, 16, "ERR (HL)");
   }
 }
