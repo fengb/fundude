@@ -33,8 +33,7 @@ int fd_disassemble(fundude* fd, char* out) {
   strncpy(out, res.op_name._, sizeof(res.op_name));
   fd->reg.PC._ += res.length;
 
-  if (res.jump <= 0 || res.length <= 0 || res.duration <= 0 ||
-      fd->reg.PC._ >= fd->mem.cart_length) {
+  if (fd->reg.PC._ >= fd->mem.cart_length) {
     fd->mode = SYS_FATAL;
   }
   return addr;

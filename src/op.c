@@ -517,7 +517,7 @@ op_result op_cal_if_AF(fundude* fd, cond c, uint16_t val) {
   return OP_JUMP(val, 3, 12, "CALL %s,$%04X", db_cond(c), val);
 }
 
-static op_result OP_ILLEGAL = {0, 0, 0, "ILLEGAL"};
+static op_result OP_ILLEGAL = {0, 1, 4, "ILLEGAL"};
 
 op_result op_tick(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
