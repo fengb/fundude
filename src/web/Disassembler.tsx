@@ -20,17 +20,19 @@ export default function Disassembler({ cart }: { cart: Uint8Array }) {
 
   return (
     <div>
-      <h3>{cart.length}</h3>
-      {assembly ? (
-        assembly.map(instr => (
-          <div key={instr.addr}>
-            <span>${formatAddr(instr.addr)}</span>
-            <span> {instr.text}</span>
-          </div>
-        ))
-      ) : (
-        <span>loading...</span>
-      )}
+      <h3>Cart size: {cart.length}</h3>
+      <div style={{ fontFamily: "monospace" }}>
+        {assembly ? (
+          assembly.map(instr => (
+            <div key={instr.addr}>
+              <span style={{color: "#aaa"}}>${formatAddr(instr.addr)}</span>
+              <strong> {instr.text}</strong>
+            </div>
+          ))
+        ) : (
+          <span>loading...</span>
+        )}
+      </div>
     </div>
   );
 }
