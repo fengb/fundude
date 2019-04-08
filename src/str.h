@@ -3,7 +3,8 @@
 
 // This lets us allocate on the stack
 typedef struct {
-  char _[16];
+  // TODO: investigate why char[17]-char[31] crashes
+  char _[32];
 } str;
 
 #endif
