@@ -13,6 +13,7 @@ export default function Disassembler({ cart }: { cart: Uint8Array }) {
 
   React.useEffect(() => {
     FundudeWasm.boot(cart).then(fd => {
+      Object.assign(window, { fd });
       setAssembly(Array.from(fd.disassemble()));
     });
   }, [cart]);

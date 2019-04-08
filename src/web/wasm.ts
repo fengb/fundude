@@ -1,5 +1,6 @@
 //@ts-ignore
 import fundude from "../../build/fundude";
+
 import { deferred, nextAnimationFrame } from "./promise";
 
 const READY = deferred<void>();
@@ -26,18 +27,26 @@ export default class FundudeWasm {
   }
 
   private pointer: number;
+  private cartPtr: number;
+  private cart: Uint8Array;
 
   readonly width: number;
   readonly height: number;
   readonly display: Uint8Array;
 
   constructor(ms: number, cart: Uint8Array) {
+    this.cartPtr = Module._malloc(cart.length);
+    this.cart = Module.HEAP8.subarray(this.cartPtr, this.cartPtr + cart.length);
+    this.cart.set(cart);
+
     this.pointer = Module.ccall(
       "init",
       "number",
-      ["number", "number", "array"],
-      [ms * 1000, cart.length, cart]
+      ["number", "number", "number"],
+      [ms * 1000, cart.length, this.cartPtr]
     );
+
+    console.log(this.cart);
 
     this.width = Module.ccall("display_width", "number", [], []);
     this.height = Module.ccall("display_height", "number", [], []);
@@ -61,11 +70,16 @@ export default class FundudeWasm {
   }
 
   *disassemble(): IterableIterator<GBInstruction> {
-    const outPtr = Module._malloc(100) as Uint8Array;
+    const outPtr = Module._malloc(100);
     try {
       let addr = 0;
       while (true) {
-        addr = Module.ccall( "disassemble", "number", ["number", "number"], [this.pointer, outPtr]);
+        addr = Module.ccall(
+          "disassemble",
+          "number",
+          ["number", "number"],
+          [this.pointer, outPtr]
+        );
         if (addr < 0) {
           return;
         }
