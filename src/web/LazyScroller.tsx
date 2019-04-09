@@ -1,30 +1,37 @@
 import React from "react";
 import useScroll from "react-use/lib/useScroll";
+import { style } from "typestyle";
 
-const STYLES: React.CSSProperties = {
-  maxHeight: "100vh",
-  overflowY: "auto"
+const CSS = {
+  root: style({
+    maxHeight: "100vh",
+    overflowY: "auto"
+  }),
+  scroller: style({
+    position: "relative"
+  }),
+  child: style({
+    position: "absolute",
+    left: 0,
+    right: 0
+  })
 };
 
 export default function LazyScroller(props: {
   childWidth: number;
   childHeight: number;
   children: React.ReactElement[];
-  className?: string;
-  style?: React.CSSProperties;
 }) {
   const [viewportHeight, setViewPortHeight] = React.useState<number>();
   const ref = React.useRef<HTMLDivElement>(null);
   const scroll = useScroll(ref);
-  function updateDimensions() {
+  React.useEffect(() => {
     if (ref.current) {
       setViewPortHeight(ref.current.clientHeight);
     }
-  }
-  React.useEffect(updateDimensions, [ref.current]);
+  }, [ref.current]);
 
   const scrollerStyle: React.CSSProperties = {
-    position: "relative",
     width: props.childWidth,
     height: props.childHeight * props.children.length
   };
@@ -45,29 +52,28 @@ export default function LazyScroller(props: {
   }
 
   const THRESHOLD = viewportHeight || 0;
-  const children = props.children.map((child, i) => {
-    if (Math.abs(viewportOffset(i)) > THRESHOLD) {
-      return null;
-    }
-    return (
-      <div
-        key={child.key || i}
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          height: props.childHeight,
-          top: props.childHeight * i
-        }}
-      >
-        {child}
-      </div>
-    );
-  });
 
   return (
-    <div ref={ref} className={props.className} style={STYLES}>
-      <div style={scrollerStyle}>{children}</div>
+    <div ref={ref} className={CSS.root}>
+      <div className={CSS.scroller} style={scrollerStyle}>
+        {props.children.map((child, i) => {
+          if (Math.abs(viewportOffset(i)) > THRESHOLD) {
+            return null;
+          }
+          return (
+            <div
+              key={child.key || i}
+              className={CSS.child}
+              style={{
+                height: props.childHeight,
+                top: props.childHeight * i
+              }}
+            >
+              {child}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

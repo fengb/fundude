@@ -1,5 +1,6 @@
 import React from "react";
 import { keyBy, map } from "lodash";
+import { style } from "typestyle";
 import FundudeWasm, { GBInstruction } from "./wasm";
 import LazyScroller from "./LazyScroller";
 
@@ -17,6 +18,19 @@ function formatInstr(addr: number) {
     .toUpperCase();
 }
 
+const CSS = {
+  root: style({
+    fontFamily: "monospace",
+    height: "100%"
+  }),
+  addr: style({
+    color: "#aaa"
+  }),
+  instr: style({
+    color: "#aaa"
+  })
+};
+
 export default function Disassembler({ cart }: { cart: Uint8Array }) {
   const [assembly, setAssembly] = React.useState<Record<number, GBInstruction>>();
 
@@ -29,23 +43,20 @@ export default function Disassembler({ cart }: { cart: Uint8Array }) {
   }, [cart]);
 
   return (
-    <div>
-      <h3>Cart size: {cart.length}</h3>
-      <div style={{ fontFamily: "monospace" }}>
-        {assembly ? (
-          <LazyScroller childWidth={200} childHeight={15}>
-            {map(cart, (instr, addr) => (
-              <div key={addr}>
-                <span style={{ color: "#aaa" }}>${formatAddr(addr)} </span>
-                <span style={{ color: "#aaa" }}>{formatInstr(instr)} </span>
-                <strong>{assembly[addr] && assembly[addr].text}</strong>
-              </div>
-            ))}
-          </LazyScroller>
-        ) : (
-          <span>loading...</span>
-        )}
-      </div>
+    <div className={CSS.root}>
+      {assembly ? (
+        <LazyScroller childWidth={200} childHeight={15}>
+          {map(cart, (instr, addr) => (
+            <div key={addr}>
+              <span className={CSS.addr}>${formatAddr(addr)} </span>
+              <span className={CSS.instr}>{formatInstr(instr)} </span>
+              <strong>{assembly[addr] && assembly[addr].text}</strong>
+            </div>
+          ))}
+        </LazyScroller>
+      ) : (
+        <span>loading...</span>
+      )}
     </div>
   );
 }
