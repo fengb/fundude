@@ -1,9 +1,10 @@
 import React from "react";
+import useScroll from "react-use/lib/useScroll";
 
 const STYLES: React.CSSProperties = {
   maxHeight: "100vh",
   overflowY: "auto"
-}
+};
 
 export default function LazyScroller(props: {
   childWidth: number;
@@ -13,12 +14,11 @@ export default function LazyScroller(props: {
   style?: React.CSSProperties;
 }) {
   const [viewportHeight, setViewPortHeight] = React.useState<number>();
-  const [scrollTop, setScrollTop] = React.useState<number>();
   const ref = React.useRef<HTMLDivElement>(null);
+  const scroll = useScroll(ref);
   function updateDimensions() {
     if (ref.current) {
       setViewPortHeight(ref.current.clientHeight);
-      setScrollTop(ref.current.scrollTop);
     }
   }
   React.useEffect(updateDimensions, [ref.current]);
@@ -30,15 +30,15 @@ export default function LazyScroller(props: {
   };
 
   function viewportOffset(i: number) {
-    if (viewportHeight == null || scrollTop == null) {
+    if (viewportHeight == null || scroll.y == null) {
       return 0;
     }
     const childTop = props.childHeight * i;
     const childBottom = childTop + props.childHeight;
-    if (childTop < scrollTop) {
-      return childTop - scrollTop;
-    } else if (childBottom > scrollTop + viewportHeight) {
-      return childBottom - scrollTop - viewportHeight;
+    if (childTop < scroll.y) {
+      return childTop - scroll.y;
+    } else if (childBottom > scroll.y + viewportHeight) {
+      return childBottom - scroll.y - viewportHeight;
     } else {
       return 0;
     }
