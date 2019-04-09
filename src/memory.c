@@ -5,7 +5,7 @@
 
 uint8_t* fdm_ptr(fd_memory* mem, uint16_t addr) {
   if (addr < BEYOND_CART) {
-    return &mem->cart[addr];
+    return mem->cart + addr;
   } else if (0xE000 <= addr && addr < 0xFE00) {
     // Echo of 8kB Internal RAM
     return &mem->ram[addr - 0xE000];
