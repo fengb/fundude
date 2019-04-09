@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
+#include "io.h"
 
 typedef struct {
   union {
@@ -11,7 +12,7 @@ typedef struct {
       uint8_t _ram_echo[0x1E00];
       uint8_t oam[0x00A0];
       uint8_t _empty1[0x0060];
-      uint8_t io_ports[0x004C];
+      fd_io io_ports;
       uint8_t _empty2[0x0034];
       uint8_t high_ram[0x007F];
       uint8_t interrupt_enable;
