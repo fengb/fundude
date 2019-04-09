@@ -8,8 +8,11 @@
     "dev": "parcel src/web/index.html",
     "build": "parcel build src/web/index.html --public-url ./"
   },
-  "browserslist": ["since 2017-06"],
+  "browserslist": [
+    "since 2017-06"
+  ],
   "devDependencies": {
+    "@types/lodash": "^4.14.123",
     "@types/react": "^16.8.12",
     "@types/react-dom": "^16.8.3",
     "parcel-bundler": "^1.12.3",
@@ -17,6 +20,7 @@
     "watch": "^1.0.2"
   },
   "dependencies": {
+    "lodash": "^4.17.11",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-dropzone": "^10.1.0"
