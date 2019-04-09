@@ -46,8 +46,6 @@ export default class FundudeWasm {
       [ms * 1000, cart.length, this.cartPtr]
     );
 
-    console.log(this.cart);
-
     this.width = Module.ccall("display_width", "number", [], []);
     this.height = Module.ccall("display_height", "number", [], []);
     this.display = Module.HEAPU8.subarray(

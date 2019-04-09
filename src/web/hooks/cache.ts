@@ -3,9 +3,7 @@ import { useState } from "react";
 export interface CacheHook<V> {
   data: Readonly<Record<string | symbol, V>>;
   setItem: (key: string, value: V) => any;
-  setItems: (items: Record<string, V>) => any;
   removeItem: (key: string) => any;
-  removeItems: (keys: string[]) => any;
   clear: () => any;
 }
 
@@ -30,18 +28,8 @@ export function useMemoryCache<V>(namespace: string | symbol): CacheHook<V> {
       data[key] = value;
       setCacheBust([data]);
     },
-    setItems(items: Record<string, V>) {
-      Object.assign(data, items);
-      setCacheBust([data]);
-    },
     removeItem(key: string) {
       delete data[key];
-      setCacheBust([data]);
-    },
-    removeItems(keys: string[]) {
-      for (const key of keys) {
-        delete data[key];
-      }
       setCacheBust([data]);
     },
     clear() {
