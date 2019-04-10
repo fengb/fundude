@@ -12,7 +12,7 @@ fundude* fd_init(uint32_t us_ref, size_t cart_length, uint8_t cart[]) {
 
 void fd_reset(fundude* fd, uint32_t us_ref, size_t cart_length, uint8_t cart[]) {
   memset(fd->display, 0, sizeof(fd->display));
-  memset(&fd->reg, 0, sizeof(fd->reg));
+  fd->reg.PC._ = 0;
   if (cart_length && cart != NULL) {
     fd->mem.cart_length = cart_length;
     fd->mem.cart = cart;

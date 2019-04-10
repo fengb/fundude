@@ -19,6 +19,11 @@ int disassemble(fundude* fd, char* out) {
 }
 
 EMSCRIPTEN_KEEPALIVE
+fd_registers* registers_ptr(fundude* fd) {
+  return &fd->reg;
+}
+
+EMSCRIPTEN_KEEPALIVE
 int display_width() {
   return WIDTH;
 }

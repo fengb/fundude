@@ -15,6 +15,19 @@ export interface GBInstruction {
   text: string;
 }
 
+type PtrArray = Uint8Array & { ptr: number };
+
+function PtrArray(ptr: number, length: number): PtrArray {
+  const array = Module.HEAPU8.subarray(ptr, ptr + length);
+  return Object.assign(array, { ptr });
+}
+
+PtrArray.from = function(array: Uint8Array) {
+  const ptrArray = PtrArray(Module._malloc(array.length), array.length);
+  ptrArray.set(array);
+  return ptrArray;
+};
+
 export default class FundudeWasm {
   static ready() {
     return READY;
@@ -27,31 +40,36 @@ export default class FundudeWasm {
   }
 
   private pointer: number;
-  private cartPtr: number;
-  private cart: Uint8Array;
+  private cart: PtrArray;
 
   readonly width: number;
   readonly height: number;
   readonly display: Uint8Array;
+  readonly registers: Uint8Array;
 
   constructor(ms: number, cart: Uint8Array) {
-    this.cartPtr = Module._malloc(cart.length);
-    this.cart = Module.HEAPU8.subarray(this.cartPtr, this.cartPtr + cart.length);
-    this.cart.set(cart);
+    this.cart = PtrArray.from(cart);
 
     this.pointer = Module.ccall(
       "init",
       "number",
       ["number", "number", "number"],
-      [ms * 1000, cart.length, this.cartPtr]
+      [ms * 1000, cart.length, this.cart.ptr]
     );
 
     this.width = Module.ccall("display_width", "number", [], []);
     this.height = Module.ccall("display_height", "number", [], []);
-    this.display = Module.HEAPU8.subarray(
-      this.pointer,
-      this.pointer + this.width * this.height
+    this.display = PtrArray(this.pointer, this.width * this.height);
+
+    this.registers = PtrArray(
+      Module.ccall("registers_ptr", "number", ["number"], [this.pointer]),
+      12
     );
+  }
+
+  destroy() {
+    Module._free(this.cart.ptr);
+    Module._free(this.pointer);
   }
 
   imageData(palette: Palette) {
