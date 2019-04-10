@@ -107,7 +107,8 @@ export default class FundudeWasm extends EventTarget {
     );
   }
 
-  *disassemble(): IterableIterator<GBInstruction> {
+  static *disassemble(cart: Uint8Array): IterableIterator<GBInstruction> {
+    const fd = new FundudeWasm(cart);
     const outPtr = Module._malloc(100);
     try {
       let addr = 0;
@@ -116,7 +117,7 @@ export default class FundudeWasm extends EventTarget {
           "disassemble",
           "number",
           ["number", "number"],
-          [this.pointer, outPtr]
+          [fd.pointer, outPtr]
         );
         if (addr < 0) {
           return;
@@ -128,6 +129,7 @@ export default class FundudeWasm extends EventTarget {
       }
     } finally {
       Module._free(outPtr);
+      fd.destroy();
     }
   }
 }

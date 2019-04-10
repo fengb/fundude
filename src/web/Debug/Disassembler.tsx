@@ -35,9 +35,8 @@ export default function Disassembler({ cart }: { cart: Uint8Array }) {
   const [assembly, setAssembly] = React.useState<Record<number, GBInstruction>>();
 
   React.useEffect(() => {
-    FundudeWasm.boot(cart).then(fd => {
-      Object.assign(window, { fd });
-      const assembly = Array.from(fd.disassemble());
+    FundudeWasm.ready().then(() => {
+      const assembly = Array.from(FundudeWasm.disassemble(cart))
       setAssembly(keyBy(assembly, "addr"));
     });
   }, [cart]);
