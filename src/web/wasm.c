@@ -14,6 +14,16 @@ fundude* init(size_t cart_length, uint8_t cart[]) {
 }
 
 EMSCRIPTEN_KEEPALIVE
+int step(fundude* fd) {
+  return fd_step(fd);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int step_frame(fundude* fd) {
+  return fd_step_frame(fd);
+}
+
+EMSCRIPTEN_KEEPALIVE
 int disassemble(fundude* fd, char* out) {
   return fd_disassemble(fd, out);
 }

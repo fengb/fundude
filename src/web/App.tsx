@@ -20,7 +20,10 @@ export function App() {
   const { cart } = React.useContext(DI.Context);
   const [fd, setFd] = React.useState<FundudeWasm>();
   React.useEffect(() => {
-    FundudeWasm.boot(cart.value).then(setFd);
+    FundudeWasm.boot(cart.value).then(fd => {
+      setFd(fd);
+      Object.assign(window, { fd });
+    });
   }, []);
 
   return (
@@ -29,6 +32,7 @@ export function App() {
       {fd && (
         <div>
           <Display fundude={fd} />
+          <button onClick={() => fd.step()}>Step</button>
           <Registers fd={fd} />
         </div>
       )}
