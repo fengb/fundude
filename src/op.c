@@ -5,16 +5,11 @@
 #include "op_cb.h"
 #include "op_do.h"
 
-static uint8_t with_uint8(uint8_t op[]) {
+static uint8_t with8(uint8_t op[]) {
   return op[1];
 }
 
-static int8_t with_int8(uint8_t op[]) {
-  int val = with_uint8(op);
-  return val >= 128 ? (int)val - 256 : val;
-}
-
-static uint16_t with_uint16(uint8_t op[]) {
+static uint16_t with16(uint8_t op[]) {
   return (op[2] << 8) + op[1];
 }
 
@@ -25,6 +20,10 @@ static bool cond_check(fundude* fd, cond c) {
     case COND_NC: return !fd->reg.FLAGS.C;
     case COND_C: return fd->reg.FLAGS.C;
   }
+}
+
+int signed_offset(uint8_t val) {
+  return (val < 128) ? val : (int)val - 256;
 }
 
 /* op_ functions are a lot more scannable if the names line up, hence the
@@ -109,16 +108,18 @@ op_result op_daa_rr___(fundude* fd, reg8* dst) {
   return OP_STEP(fd, 1, 4, "DAA %s", db_reg8(fd, dst));
 }
 
-op_result op_jr__R8___(fundude* fd, int8_t offset) {
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR $%02X", (uint8_t)offset);
+op_result op_jr__R8___(fundude* fd, uint8_t val) {
+  int offset = signed_offset(val);
+  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR $%02X", val);
 }
 
-op_result op_jr__if_R8(fundude* fd, cond c, int8_t offset) {
+op_result op_jr__if_R8(fundude* fd, cond c, uint8_t val) {
   uint16_t length = 3;
   if (!cond_check(fd, c)) {
-    offset = length;
+    val = length;
   }
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR %s $%02X", db_cond(c), (uint8_t)offset);
+  int offset = signed_offset(val);
+  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR %s $%02X", db_cond(c), val);
 }
 
 op_result op_jp__AF___(fundude* fd, uint16_t target) {
@@ -242,9 +243,11 @@ op_result op_ld__ww_ww(fundude* fd, reg16* tgt, reg16* src) {
   return OP_STEP(fd, 3, 16, "LD %s,%s", db_reg16(fd, tgt), db_reg16(fd, src));
 }
 
-op_result op_ld__ww_ww_R8(fundude* fd, reg16* tgt, reg16* src, int8_t val) {
-  tgt->_ = src->_ + val;
-  return OP_STEP(fd, 3, 16, "LD %s,%s+$%02X", db_reg16(fd, tgt), db_reg16(fd, src), (uint8_t)val);
+op_result op_ld__ww_ww_R8(fundude* fd, reg16* tgt, reg16* src, uint8_t val) {
+  int offset = signed_offset(val);
+  tgt->_ = src->_ + offset;
+  return OP_STEP(fd, 3, 16, "LD %s,%s+$%02X", db_reg16(fd, tgt),
+                 db_reg16(fd, src), val);
 }
 
 op_result op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
@@ -339,15 +342,16 @@ op_result op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
   return OP_STEP(fd, 1, 8, "ADD %s,%s", db_reg16(fd, tgt), db_reg16(fd, src));
 }
 
-op_result op_add_ww_R8(fundude* fd, reg16* tgt, int8_t val) {
+op_result op_add_ww_R8(fundude* fd, reg16* tgt, uint8_t val) {
+  int offset = signed_offset(val);
   fd->reg.FLAGS = (fd_flags){
       .Z = false,
       .N = false,
-      .H = will_carry_from(11, tgt->_, val),
-      .C = will_carry_from(15, tgt->_, val),
+      .H = will_carry_from(11, tgt->_, offset),
+      .C = will_carry_from(15, tgt->_, offset),
   };
-  tgt->_ += val;
-  return OP_STEP(fd, 2, 16, "ADD %s,$%02X", db_reg16(fd, tgt), (uint8_t)val);
+  tgt->_ += offset;
+  return OP_STEP(fd, 2, 16, "ADD %s,$%02X", db_reg16(fd, tgt), val);
 }
 
 op_result op_adc_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
@@ -522,71 +526,71 @@ static op_result OP_ILLEGAL = {0, 1, 4, "ILLEGAL"};
 op_result op_tick(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop(fd);
-    case 0x01: return op_ld__ww_df(fd, &fd->reg.BC, with_uint16(op));
+    case 0x01: return op_ld__ww_df(fd, &fd->reg.BC, with16(op));
     case 0x02: return op_ld__WW_rr(fd, &fd->reg.BC, &fd->reg.A);
     case 0x03: return op_inc_ww___(fd, &fd->reg.BC);
     case 0x04: return op_inc_rr___(fd, &fd->reg.B);
     case 0x05: return op_dec_rr___(fd, &fd->reg.B);
-    case 0x06: return op_ld__rr_d8(fd, &fd->reg.B, with_uint8(op));
+    case 0x06: return op_ld__rr_d8(fd, &fd->reg.B, with8(op));
     case 0x07: return op_rlc_rr___(fd, &fd->reg.A);
-    case 0x08: return op_ld__AF_ww(fd, with_uint16(op), &fd->reg.SP);
+    case 0x08: return op_ld__AF_ww(fd, with16(op), &fd->reg.SP);
     case 0x09: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.BC);
     case 0x0A: return op_ld__rr_WW(fd, &fd->reg.A, &fd->reg.BC);
     case 0x0B: return op_dec_ww___(fd, &fd->reg.BC);
     case 0x0C: return op_inc_rr___(fd, &fd->reg.C);
     case 0x0D: return op_dec_rr___(fd, &fd->reg.C);
-    case 0x0E: return op_ld__rr_d8(fd, &fd->reg.C, with_uint8(op));
+    case 0x0E: return op_ld__rr_d8(fd, &fd->reg.C, with8(op));
     case 0x0F: return op_rrc_rr___(fd, &fd->reg.A);
 
     case 0x10: return op_sys(fd, SYS_STOP, 2);
-    case 0x11: return op_ld__ww_df(fd, &fd->reg.DE, with_uint16(op));
+    case 0x11: return op_ld__ww_df(fd, &fd->reg.DE, with16(op));
     case 0x12: return op_ld__WW_rr(fd, &fd->reg.DE, &fd->reg.A);
     case 0x13: return op_inc_ww___(fd, &fd->reg.DE);
     case 0x14: return op_inc_rr___(fd, &fd->reg.D);
     case 0x15: return op_dec_rr___(fd, &fd->reg.D);
-    case 0x16: return op_ld__rr_d8(fd, &fd->reg.D, with_uint8(op));
+    case 0x16: return op_ld__rr_d8(fd, &fd->reg.D, with8(op));
     case 0x17: return op_rla_rr___(fd, &fd->reg.A);
-    case 0x18: return op_jr__R8___(fd, with_int8(op));
+    case 0x18: return op_jr__R8___(fd, with8(op));
     case 0x19: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.DE);
     case 0x1A: return op_ld__rr_WW(fd, &fd->reg.A, &fd->reg.DE);
     case 0x1B: return op_dec_ww___(fd, &fd->reg.DE);
     case 0x1C: return op_inc_rr___(fd, &fd->reg.E);
     case 0x1D: return op_dec_rr___(fd, &fd->reg.E);
-    case 0x1E: return op_ld__rr_d8(fd, &fd->reg.E, with_uint8(op));
+    case 0x1E: return op_ld__rr_d8(fd, &fd->reg.E, with8(op));
     case 0x1F: return op_rra_rr___(fd, &fd->reg.A);
 
-    case 0x20: return op_jr__if_R8(fd, COND_NZ, with_int8(op));
-    case 0x21: return op_ld__ww_df(fd, &fd->reg.HL, with_uint16(op));
+    case 0x20: return op_jr__if_R8(fd, COND_NZ, with8(op));
+    case 0x21: return op_ld__ww_df(fd, &fd->reg.HL, with16(op));
     case 0x22: return op_ldi_WW_rr(fd, &fd->reg.HL, &fd->reg.A);
     case 0x23: return op_inc_ww___(fd, &fd->reg.HL);
     case 0x24: return op_inc_rr___(fd, &fd->reg.H);
     case 0x25: return op_dec_rr___(fd, &fd->reg.H);
-    case 0x26: return op_ld__rr_d8(fd, &fd->reg.H, with_uint8(op));
+    case 0x26: return op_ld__rr_d8(fd, &fd->reg.H, with8(op));
     case 0x27: return op_daa_rr___(fd, &fd->reg.A);
-    case 0x28: return op_jr__if_R8(fd, COND_Z, with_int8(op));
+    case 0x28: return op_jr__if_R8(fd, COND_Z, with8(op));
     case 0x29: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.HL);
     case 0x2A: return op_ldi_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
     case 0x2B: return op_dec_ww___(fd, &fd->reg.HL);
     case 0x2C: return op_inc_rr___(fd, &fd->reg.L);
     case 0x2D: return op_dec_rr___(fd, &fd->reg.L);
-    case 0x2E: return op_ld__rr_d8(fd, &fd->reg.L, with_uint8(op));
+    case 0x2E: return op_ld__rr_d8(fd, &fd->reg.L, with8(op));
     case 0x2F: return op_cpl_rr___(fd, &fd->reg.A);
 
-    case 0x30: return op_jr__if_R8(fd, COND_NC, with_int8(op));
-    case 0x31: return op_ld__ww_df(fd, &fd->reg.SP, with_uint16(op));
+    case 0x30: return op_jr__if_R8(fd, COND_NC, with8(op));
+    case 0x31: return op_ld__ww_df(fd, &fd->reg.SP, with16(op));
     case 0x32: return op_ldd_WW_rr(fd, &fd->reg.HL, &fd->reg.A);
     case 0x33: return op_inc_ww___(fd, &fd->reg.SP);
     case 0x34: return op_inc_WW___(fd, &fd->reg.HL);
     case 0x35: return op_dec_WW___(fd, &fd->reg.HL);
-    case 0x36: return op_ld__WW_d8(fd, &fd->reg.HL, with_uint8(op));
+    case 0x36: return op_ld__WW_d8(fd, &fd->reg.HL, with8(op));
     case 0x37: return op_scf(fd);
-    case 0x38: return op_jr__if_R8(fd, COND_C, with_int8(op));
+    case 0x38: return op_jr__if_R8(fd, COND_C, with8(op));
     case 0x39: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.SP);
     case 0x3A: return op_ldd_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
     case 0x3B: return op_dec_ww___(fd, &fd->reg.SP);
     case 0x3C: return op_inc_rr___(fd, &fd->reg.A);
     case 0x3D: return op_dec_rr___(fd, &fd->reg.A);
-    case 0x3E: return op_ld__rr_d8(fd, &fd->reg.A, with_uint8(op));
+    case 0x3E: return op_ld__rr_d8(fd, &fd->reg.A, with8(op));
     case 0x3F: return op_ccf(fd);
 
     case 0x40: return op_ld__rr_rr(fd, &fd->reg.B, &fd->reg.B);
@@ -727,70 +731,70 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
 
     case 0xC0: return op_ret_if___(fd, COND_NZ);
     case 0xC1: return op_pop_ww___(fd, &fd->reg.BC);
-    case 0xC2: return op_jp__if_AF(fd, COND_NZ, with_uint16(op));
-    case 0xC3: return op_jp__AF___(fd, with_uint16(op));
-    case 0xC4: return op_cal_if_AF(fd, COND_NZ, with_uint16(op));
+    case 0xC2: return op_jp__if_AF(fd, COND_NZ, with16(op));
+    case 0xC3: return op_jp__AF___(fd, with16(op));
+    case 0xC4: return op_cal_if_AF(fd, COND_NZ, with16(op));
     case 0xC5: return op_psh_ww___(fd, &fd->reg.BC);
-    case 0xC6: return op_add_rr_d8(fd, &fd->reg.A, with_uint8(op));
+    case 0xC6: return op_add_rr_d8(fd, &fd->reg.A, with8(op));
     case 0xC7: return op_rst_d8___(fd, 0x00);
     case 0xC8: return op_ret_if___(fd, COND_Z);
     case 0xC9: return op_ret______(fd);
-    case 0xCA: return op_jp__if_AF(fd, COND_Z, with_uint16(op));
+    case 0xCA: return op_jp__if_AF(fd, COND_Z, with16(op));
     case 0xCB: return op_cb(fd, op[1]);
-    case 0xCC: return op_cal_if_AF(fd, COND_Z, with_uint16(op));
-    case 0xCD: return op_cal_AF___(fd, with_uint16(op));
-    case 0xCE: return op_adc_rr_d8(fd, &fd->reg.A, with_uint8(op));
+    case 0xCC: return op_cal_if_AF(fd, COND_Z, with16(op));
+    case 0xCD: return op_cal_AF___(fd, with16(op));
+    case 0xCE: return op_adc_rr_d8(fd, &fd->reg.A, with8(op));
     case 0xCF: return op_rst_d8___(fd, 0x08);
 
     case 0xD0: return op_ret_if___(fd, COND_NC);
     case 0xD1: return op_pop_ww___(fd, &fd->reg.DE);
-    case 0xD2: return op_jp__if_AF(fd, COND_NC, with_uint16(op));
+    case 0xD2: return op_jp__if_AF(fd, COND_NC, with16(op));
     case 0xD3: return OP_ILLEGAL;
-    case 0xD4: return op_cal_if_AF(fd, COND_NC, with_uint16(op));
+    case 0xD4: return op_cal_if_AF(fd, COND_NC, with16(op));
     case 0xD5: return op_psh_ww___(fd, &fd->reg.DE);
-    case 0xD6: return op_sub_rr_d8(fd, &fd->reg.A, with_uint8(op));
+    case 0xD6: return op_sub_rr_d8(fd, &fd->reg.A, with8(op));
     case 0xD7: return op_rst_d8___(fd, 0x10);
     case 0xD8: return op_ret_if___(fd, COND_C);
     case 0xD9: return op_rti______(fd);
-    case 0xDA: return op_jp__if_AF(fd, COND_C, with_uint16(op));
+    case 0xDA: return op_jp__if_AF(fd, COND_C, with16(op));
     case 0xDB: return OP_ILLEGAL;
-    case 0xDC: return op_cal_if_AF(fd, COND_C, with_uint16(op));
+    case 0xDC: return op_cal_if_AF(fd, COND_C, with16(op));
     case 0xDD: return OP_ILLEGAL;
-    case 0xDE: return op_sbc_rr_d8(fd, &fd->reg.A, with_uint8(op));
+    case 0xDE: return op_sbc_rr_d8(fd, &fd->reg.A, with8(op));
     case 0xDF: return op_rst_d8___(fd, 0x18);
 
-    case 0xE0: return op_ldh_A8_rr(fd, with_uint8(op), &fd->reg.A);
+    case 0xE0: return op_ldh_A8_rr(fd, with8(op), &fd->reg.A);
     case 0xE1: return op_pop_ww___(fd, &fd->reg.HL);
     case 0xE2: return op_ld__RR_rr(fd, &fd->reg.A, &fd->reg.C);
     case 0xE3: return OP_ILLEGAL;
     case 0xE4: return OP_ILLEGAL;
     case 0xE5: return op_psh_ww___(fd, &fd->reg.HL);
-    case 0xE6: return op_and_rr_d8(fd, &fd->reg.A, with_uint8(op));
+    case 0xE6: return op_and_rr_d8(fd, &fd->reg.A, with8(op));
     case 0xE7: return op_rst_d8___(fd, 0x20);
-    case 0xE8: return op_add_ww_R8(fd, &fd->reg.SP, with_int8(op));
+    case 0xE8: return op_add_ww_R8(fd, &fd->reg.SP, with8(op));
     case 0xE9: return op_jp__WW___(fd, &fd->reg.HL);
-    case 0xEA: return op_ld__AF_rr(fd, with_uint16(op), &fd->reg.A);
+    case 0xEA: return op_ld__AF_rr(fd, with16(op), &fd->reg.A);
     case 0xEB: return OP_ILLEGAL;
     case 0xEC: return OP_ILLEGAL;
     case 0xED: return OP_ILLEGAL;
-    case 0xEE: return op_xor_rr_d8(fd, &fd->reg.A, with_uint8(op));
+    case 0xEE: return op_xor_rr_d8(fd, &fd->reg.A, with8(op));
     case 0xEF: return op_rst_d8___(fd, 0x28);
 
-    case 0xF0: return op_ldh_rr_A8(fd, &fd->reg.A, with_uint8(op));
+    case 0xF0: return op_ldh_rr_A8(fd, &fd->reg.A, with8(op));
     case 0xF1: return op_pop_ww___(fd, &fd->reg.AF);
     case 0xF2: return op_ld__rr_RR(fd, &fd->reg.A, &fd->reg.C);
     case 0xF3: return op_int______(fd, false);
     case 0xF4: return OP_ILLEGAL;
     case 0xF5: return op_psh_ww___(fd, &fd->reg.AF);
-    case 0xF6: return op_or__rr_d8(fd, &fd->reg.A, with_uint8(op));
+    case 0xF6: return op_or__rr_d8(fd, &fd->reg.A, with8(op));
     case 0xF7: return op_rst_d8___(fd, 0x30);
-    case 0xF8: return op_ld__ww_ww_R8(fd, &fd->reg.HL, &fd->reg.SP, with_int8(op));
+    case 0xF8: return op_ld__ww_ww_R8(fd, &fd->reg.HL, &fd->reg.SP, with8(op));
     case 0xF9: return op_ld__ww_ww(fd, &fd->reg.SP, &fd->reg.HL);
-    case 0xFA: return op_ld__rr_AF(fd, &fd->reg.A, with_uint16(op));
+    case 0xFA: return op_ld__rr_AF(fd, &fd->reg.A, with16(op));
     case 0xFB: return op_int______(fd, true);
     case 0xFC: return OP_ILLEGAL;
     case 0xFD: return OP_ILLEGAL;
-    case 0xFE: return op_cp__rr_d8(fd, &fd->reg.A, with_uint8(op));
+    case 0xFE: return op_cp__rr_d8(fd, &fd->reg.A, with8(op));
     case 0xFF: return op_rst_d8___(fd, 0x38);
   }
 
