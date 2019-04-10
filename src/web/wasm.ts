@@ -28,15 +28,13 @@ PtrArray.from = function(array: Uint8Array) {
   return ptrArray;
 };
 
-export default class FundudeWasm {
+export default class FundudeWasm extends EventTarget {
   static ready() {
     return READY;
   }
 
   static boot(cart: Uint8Array) {
-    return FundudeWasm.ready()
-      .then(nextAnimationFrame)
-      .then(ms => new FundudeWasm(ms, cart));
+    return FundudeWasm.ready().then(ms => new FundudeWasm(cart));
   }
 
   private pointer: number;
@@ -47,14 +45,17 @@ export default class FundudeWasm {
   readonly display: Uint8Array;
   readonly registers: Uint8Array;
 
-  constructor(ms: number, cart: Uint8Array) {
+  programCounter: number;
+
+  constructor(cart: Uint8Array) {
+    super();
     this.cart = PtrArray.from(cart);
 
     this.pointer = Module.ccall(
       "init",
       "number",
-      ["number", "number", "number"],
-      [ms * 1000, cart.length, this.cart.ptr]
+      ["number", "number"],
+      [cart.length, this.cart.ptr]
     );
 
     this.width = Module.ccall("display_width", "number", [], []);
@@ -65,6 +66,7 @@ export default class FundudeWasm {
       Module.ccall("registers_ptr", "number", ["number"], [this.pointer]),
       12
     );
+    this.programCounter = 0;
   }
 
   destroy() {
@@ -81,8 +83,28 @@ export default class FundudeWasm {
     return imageData;
   }
 
-  µs() {
-    return Module.ccall("fd_us", "number", ["number"], [this.pointer]);
+  step() {
+    this.programCounter = Module.ccall(
+      "step",
+      "number",
+      ["number"],
+      [this.pointer]
+    );
+    this.dispatchEvent(
+      new CustomEvent("programCounter", { detail: this.programCounter })
+    );
+  }
+
+  stepFrame() {
+    this.programCounter = Module.ccall(
+      "stepFrame",
+      "number",
+      ["number"],
+      [this.pointer]
+    );
+    this.dispatchEvent(
+      new CustomEvent("programCounter", { detail: this.programCounter })
+    );
   }
 
   *disassemble(): IterableIterator<GBInstruction> {
