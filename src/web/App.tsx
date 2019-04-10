@@ -5,7 +5,8 @@ import Display from "./Display";
 import CartList from "./CartList";
 import FundudeWasm from "./wasm";
 import { EMPTY, BOOTLOADER } from "./data";
-import Disassembler from "./Disassembler";
+import Disassembler from "./Debug/Disassembler";
+import Registers from "./Debug/Registers";
 
 const CSS = {
   root: style({
@@ -25,7 +26,12 @@ export function App() {
   return (
     <div className={CSS.root}>
       <CartList extra={{ "-empty-": EMPTY, bootloader: BOOTLOADER }} />
-      {fd && <Display fundude={fd} />}
+      {fd && (
+        <div>
+          <Display fundude={fd} />
+          <Registers fd={fd} />
+        </div>
+      )}
       <Disassembler cart={cart.value} />
     </div>
   );
