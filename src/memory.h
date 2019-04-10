@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
+#include "display.h"
 #include "io.h"
 
 typedef struct {
@@ -10,7 +11,7 @@ typedef struct {
       uint8_t switchable_ram[0x2000];
       uint8_t ram[0x2000];
       uint8_t _ram_echo[0x1E00];
-      uint8_t oam[0x00A0];
+      sprite_attr oam[40];
       uint8_t _empty1[0x0060];
       fd_io io_ports;
       uint8_t _empty2[0x0034];
