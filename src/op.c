@@ -11,7 +11,7 @@ static uint8_t with_uint8(uint8_t op[]) {
 
 static int8_t with_int8(uint8_t op[]) {
   int val = with_uint8(op);
-  return val >= 128 ? val -= 128 : val;
+  return val >= 128 ? (int)val - 256 : val;
 }
 
 static uint16_t with_uint16(uint8_t op[]) {
@@ -110,15 +110,15 @@ op_result op_daa_rr___(fundude* fd, reg8* dst) {
 }
 
 op_result op_jr__R8___(fundude* fd, int8_t offset) {
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR $%02X", offset);
+  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR $%02X", (uint8_t)offset);
 }
 
-op_result op_jr__if_R8(fundude* fd, cond c, uint8_t offset) {
+op_result op_jr__if_R8(fundude* fd, cond c, int8_t offset) {
   uint16_t length = 3;
   if (!cond_check(fd, c)) {
     offset = length;
   }
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR %s $%02X", db_cond(c), offset);
+  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR %s $%02X", db_cond(c), (uint8_t)offset);
 }
 
 op_result op_jp__AF___(fundude* fd, uint16_t target) {
@@ -244,7 +244,7 @@ op_result op_ld__ww_ww(fundude* fd, reg16* tgt, reg16* src) {
 
 op_result op_ld__ww_ww_R8(fundude* fd, reg16* tgt, reg16* src, int8_t val) {
   tgt->_ = src->_ + val;
-  return OP_STEP(fd, 3, 16, "LD %s,%s+$%02X", db_reg16(fd, tgt), db_reg16(fd, src), val);
+  return OP_STEP(fd, 3, 16, "LD %s,%s+$%02X", db_reg16(fd, tgt), db_reg16(fd, src), (uint8_t)val);
 }
 
 op_result op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
@@ -347,7 +347,7 @@ op_result op_add_ww_R8(fundude* fd, reg16* tgt, int8_t val) {
       .C = will_carry_from(15, tgt->_, val),
   };
   tgt->_ += val;
-  return OP_STEP(fd, 2, 16, "ADD %s,$%02X", db_reg16(fd, tgt), val);
+  return OP_STEP(fd, 2, 16, "ADD %s,$%02X", db_reg16(fd, tgt), (uint8_t)val);
 }
 
 op_result op_adc_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
@@ -555,7 +555,7 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0x1E: return op_ld__rr_d8(fd, &fd->reg.E, with_uint8(op));
     case 0x1F: return op_rra_rr___(fd, &fd->reg.A);
 
-    case 0x20: return op_jr__if_R8(fd, !fd->reg.FLAGS.Z, with_int8(op));
+    case 0x20: return op_jr__if_R8(fd, COND_NZ, with_int8(op));
     case 0x21: return op_ld__ww_df(fd, &fd->reg.HL, with_uint16(op));
     case 0x22: return op_ldi_WW_rr(fd, &fd->reg.HL, &fd->reg.A);
     case 0x23: return op_inc_ww___(fd, &fd->reg.HL);
@@ -563,7 +563,7 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0x25: return op_dec_rr___(fd, &fd->reg.H);
     case 0x26: return op_ld__rr_d8(fd, &fd->reg.H, with_uint8(op));
     case 0x27: return op_daa_rr___(fd, &fd->reg.A);
-    case 0x28: return op_jr__if_R8(fd, fd->reg.FLAGS.Z, with_int8(op));
+    case 0x28: return op_jr__if_R8(fd, COND_Z, with_int8(op));
     case 0x29: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.HL);
     case 0x2A: return op_ldi_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
     case 0x2B: return op_dec_ww___(fd, &fd->reg.HL);
@@ -572,7 +572,7 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0x2E: return op_ld__rr_d8(fd, &fd->reg.L, with_uint8(op));
     case 0x2F: return op_cpl_rr___(fd, &fd->reg.A);
 
-    case 0x30: return op_jr__if_R8(fd, !fd->reg.FLAGS.C, with_int8(op));
+    case 0x30: return op_jr__if_R8(fd, COND_NC, with_int8(op));
     case 0x31: return op_ld__ww_df(fd, &fd->reg.SP, with_uint16(op));
     case 0x32: return op_ldd_WW_rr(fd, &fd->reg.HL, &fd->reg.A);
     case 0x33: return op_inc_ww___(fd, &fd->reg.SP);
@@ -580,7 +580,7 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0x35: return op_dec_WW___(fd, &fd->reg.HL);
     case 0x36: return op_ld__WW_d8(fd, &fd->reg.HL, with_uint8(op));
     case 0x37: return op_scf(fd);
-    case 0x38: return op_jr__if_R8(fd, fd->reg.FLAGS.C, with_int8(op));
+    case 0x38: return op_jr__if_R8(fd, COND_C, with_int8(op));
     case 0x39: return op_add_ww_ww(fd, &fd->reg.HL, &fd->reg.SP);
     case 0x3A: return op_ldd_rr_WW(fd, &fd->reg.A, &fd->reg.HL);
     case 0x3B: return op_dec_ww___(fd, &fd->reg.SP);
