@@ -6,20 +6,21 @@
 
 #define CYCLES_PER_FRAME 16742
 
-fundude* fd_init(size_t cart_length, uint8_t cart[]) {
+fundude* fd_alloc() {
   fundude* fd = malloc(sizeof(fundude));
-  fd_reset(fd, cart_length, cart);
   return fd;
 }
 
-void fd_reset(fundude* fd, size_t cart_length, uint8_t cart[]) {
+void fd_init(fundude* fd, size_t cart_length, uint8_t cart[]) {
+  fd_reset(fd);
+  fd->mem.cart_length = cart_length;
+  fd->mem.cart = cart;
+}
+
+void fd_reset(fundude* fd) {
   memset(fd->display, 0, sizeof(fd->display));
   fd->reg.PC._ = 0;
   fd->mode = SYS_NORM;
-  if (cart_length && cart != NULL) {
-    fd->mem.cart_length = cart_length;
-    fd->mem.cart = cart;
-  }
 }
 
 int fd_disassemble(fundude* fd, char* out) {

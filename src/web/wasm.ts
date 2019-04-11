@@ -37,8 +37,8 @@ export default class FundudeWasm extends EventTarget {
     return FundudeWasm.ready().then(ms => new FundudeWasm(cart));
   }
 
-  private pointer: number;
-  private cart: PtrArray;
+  private readonly pointer: number;
+  private cart?: PtrArray;
 
   readonly width: number;
   readonly height: number;
@@ -49,14 +49,9 @@ export default class FundudeWasm extends EventTarget {
 
   constructor(cart: Uint8Array) {
     super();
-    this.cart = PtrArray.from(cart);
 
-    this.pointer = Module.ccall(
-      "init",
-      "number",
-      ["number", "number"],
-      [cart.length, this.cart.ptr]
-    );
+    this.pointer = Module.ccall("alloc", "number", [], []);
+    this.init(cart);
 
     this.width = Module.ccall("display_width", "number", [], []);
     this.height = Module.ccall("display_height", "number", [], []);
@@ -69,8 +64,24 @@ export default class FundudeWasm extends EventTarget {
     this.programCounter = 0;
   }
 
-  destroy() {
-    Module._free(this.cart.ptr);
+  init(cart: Uint8Array) {
+    if (this.cart) {
+      Module._free(this.cart.ptr);
+    }
+
+    this.cart = PtrArray.from(cart);
+    Module.ccall(
+      "init",
+      "number",
+      ["number", "number", "number"],
+      [this.pointer, cart.length, this.cart.ptr]
+    );
+  }
+
+  dealloc() {
+    if (this.cart) {
+      Module._free(this.cart.ptr);
+    }
     Module._free(this.pointer);
   }
 
@@ -129,7 +140,7 @@ export default class FundudeWasm extends EventTarget {
       }
     } finally {
       Module._free(outPtr);
-      fd.destroy();
+      fd.dealloc();
     }
   }
 }

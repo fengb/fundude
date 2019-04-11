@@ -29,8 +29,9 @@ typedef struct {
   sys_mode mode;
 } fundude;
 
-fundude* fd_init(size_t cart_length, uint8_t cart[]);
-void fd_reset(fundude* fd, size_t cart_length, uint8_t cart[]);
+fundude* fd_alloc(void);
+void fd_init(fundude* fd, size_t cart_length, uint8_t cart[]);
+void fd_reset(fundude* fd);
 
 int fd_disassemble(fundude* fd, char* out);
 

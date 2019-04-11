@@ -7,10 +7,15 @@ uint8_t NINTENDO[] = {
 };
 
 EMSCRIPTEN_KEEPALIVE
-fundude* init(size_t cart_length, uint8_t cart[]) {
-  fundude* fd = fd_init(cart_length, cart);
-  memcpy(fd->display, NINTENDO, sizeof(fd->display));
+fundude* alloc() {
+  fundude* fd = fd_alloc();
   return fd;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void init(fundude* fd, size_t cart_length, uint8_t cart[]) {
+  fd_init(fd, cart_length, cart);
+  memcpy(fd->display, NINTENDO, sizeof(fd->display));
 }
 
 EMSCRIPTEN_KEEPALIVE
