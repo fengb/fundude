@@ -32,30 +32,28 @@ const CSS = {
 };
 
 export default function Disassembler({ cart }: { cart: Uint8Array }) {
-  const [assembly, setAssembly] = React.useState<Record<number, GBInstruction>>();
+  const [assembly, setAssembly] = React.useState(
+    {} as Record<number, GBInstruction>
+  );
 
   React.useEffect(() => {
     FundudeWasm.ready().then(() => {
-      const assembly = Array.from(FundudeWasm.disassemble(cart))
+      const assembly = Array.from(FundudeWasm.disassemble(cart));
       setAssembly(keyBy(assembly, "addr"));
     });
   }, [cart]);
 
   return (
     <div className={CSS.root}>
-      {assembly ? (
-        <LazyScroller childWidth={200} childHeight={15}>
-          {map(cart, (instr, addr) => (
-            <div key={addr}>
-              <span className={CSS.addr}>${formatAddr(addr)} </span>
-              <span className={CSS.instr}>{formatInstr(instr)} </span>
-              <strong>{assembly[addr] && assembly[addr].text}</strong>
-            </div>
-          ))}
-        </LazyScroller>
-      ) : (
-        <span>loading...</span>
-      )}
+      <LazyScroller childWidth={200} childHeight={15} totalChildren={cart.length}>
+        {addr => (
+          <div>
+            <span className={CSS.addr}>${formatAddr(addr)} </span>
+            <span className={CSS.instr}>{formatInstr(cart[addr])} </span>
+            <strong>{assembly[addr] && assembly[addr].text}</strong>
+          </div>
+        )}
+      </LazyScroller>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import useScroll from "react-use/lib/useScroll";
 import { style } from "typestyle";
+import { range } from "lodash";
 
 const CSS = {
   root: style({
@@ -20,9 +21,10 @@ const CSS = {
 export default function LazyScroller(props: {
   childWidth: number;
   childHeight: number;
-  children: React.ReactElement[];
+  totalChildren: number;
+  children: (i: number) => React.ReactNode;
 }) {
-  const [viewportHeight, setViewPortHeight] = React.useState<number>();
+  const [viewportHeight, setViewPortHeight] = React.useState(0);
   const ref = React.useRef<HTMLDivElement>(null);
   const scroll = useScroll(ref);
   React.useEffect(() => {
@@ -33,46 +35,33 @@ export default function LazyScroller(props: {
 
   const scrollerStyle: React.CSSProperties = {
     width: props.childWidth,
-    height: props.childHeight * props.children.length
+    height: props.childHeight * props.totalChildren
   };
 
-  function viewportOffset(i: number) {
-    if (viewportHeight == null || scroll.y == null) {
-      return 0;
-    }
-    const childTop = props.childHeight * i;
-    const childBottom = childTop + props.childHeight;
-    if (childTop < scroll.y) {
-      return childTop - scroll.y;
-    } else if (childBottom > scroll.y + viewportHeight) {
-      return childBottom - scroll.y - viewportHeight;
-    } else {
-      return 0;
-    }
+  function displayableItems(threshold = viewportHeight) {
+    const head = (scroll.y - threshold) / props.childHeight;
+    const tail = (scroll.y + viewportHeight + threshold) / props.childHeight;
+    return range(
+      Math.max(Math.floor(head), 0),
+      Math.min(Math.floor(tail), props.totalChildren)
+    );
   }
-
-  const THRESHOLD = viewportHeight || 0;
 
   return (
     <div ref={ref} className={CSS.root}>
       <div className={CSS.scroller} style={scrollerStyle}>
-        {props.children.map((child, i) => {
-          if (Math.abs(viewportOffset(i)) > THRESHOLD) {
-            return null;
-          }
-          return (
-            <div
-              key={child.key || i}
-              className={CSS.child}
-              style={{
-                height: props.childHeight,
-                top: props.childHeight * i
-              }}
-            >
-              {child}
-            </div>
-          );
-        })}
+        {displayableItems().map(item => (
+          <div
+            key={item}
+            className={CSS.child}
+            style={{
+              height: props.childHeight,
+              top: props.childHeight * item
+            }}
+          >
+            {props.children(item)}
+          </div>
+        ))}
       </div>
     </div>
   );
