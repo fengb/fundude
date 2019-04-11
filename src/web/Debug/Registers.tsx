@@ -1,6 +1,5 @@
 import React from "react";
 import { style } from "typestyle";
-import useEvent from "react-use/lib/useEvent";
 import FundudeWasm from "../wasm";
 
 const CSS = {
@@ -23,9 +22,6 @@ function hexup(array: Uint8Array, left: number) {
 }
 
 export default function Registers({ fd }: { fd: FundudeWasm }) {
-  const [refresh, setRefresh] = React.useState();
-  useEvent("programCounter", setRefresh, fd);
-
   return (
     <dl className={CSS.root}>
       <div className={CSS.child}>

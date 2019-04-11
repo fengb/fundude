@@ -1,4 +1,5 @@
 import React from "react";
+import useEvent from "react-use/lib/useEvent";
 import FundudeWasm from "../wasm";
 
 interface Item {
@@ -18,6 +19,9 @@ export function Provider(props: {
 }) {
   const [fd, setFd] = React.useState<FundudeWasm>();
   const [cart, setCart] = React.useState(props.bootCart);
+  const [refresh, setRefresh] = React.useState();
+  useEvent("programCounter", setRefresh, fd);
+
   React.useEffect(() => {
     FundudeWasm.boot(props.bootCart).then(fd => {
       Object.assign(window, { fd });

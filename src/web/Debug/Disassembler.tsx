@@ -1,5 +1,5 @@
 import React from "react";
-import { keyBy, map } from "lodash";
+import { keyBy } from "lodash";
 import { style } from "typestyle";
 import FundudeWasm, { GBInstruction } from "../wasm";
 import LazyScroller from "../LazyScroller";
@@ -31,25 +31,34 @@ const CSS = {
   })
 };
 
-export default function Disassembler({ cart }: { cart: Uint8Array }) {
+export default function Disassembler(props: {
+  cart: Uint8Array;
+  programCounter: number;
+}) {
   const [assembly, setAssembly] = React.useState(
+    //
     {} as Record<number, GBInstruction>
   );
 
   React.useEffect(() => {
     FundudeWasm.ready().then(() => {
-      const assembly = Array.from(FundudeWasm.disassemble(cart));
+      const assembly = Array.from(FundudeWasm.disassemble(props.cart));
       setAssembly(keyBy(assembly, "addr"));
     });
-  }, [cart]);
+  }, [props.cart]);
 
   return (
     <div className={CSS.root}>
-      <LazyScroller childWidth={200} childHeight={15} totalChildren={cart.length} focus={50}>
+      <LazyScroller
+        childWidth={200}
+        childHeight={15}
+        totalChildren={props.cart.length}
+        focus={props.programCounter}
+      >
         {addr => (
           <div>
             <span className={CSS.addr}>${formatAddr(addr)} </span>
-            <span className={CSS.instr}>{formatInstr(cart[addr])} </span>
+            <span className={CSS.instr}>{formatInstr(props.cart[addr])} </span>
             <strong>{assembly[addr] && assembly[addr].text}</strong>
           </div>
         )}

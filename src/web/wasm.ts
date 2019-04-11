@@ -45,7 +45,7 @@ export default class FundudeWasm extends EventTarget {
   readonly display: Uint8Array;
   readonly registers: Uint8Array;
 
-  programCounter: number;
+  programCounter: number = 0;
 
   constructor(cart: Uint8Array) {
     super();
@@ -61,7 +61,6 @@ export default class FundudeWasm extends EventTarget {
       Module.ccall("registers_ptr", "number", ["number"], [this.pointer]),
       12
     );
-    this.programCounter = 0;
   }
 
   init(cart: Uint8Array) {
@@ -75,6 +74,11 @@ export default class FundudeWasm extends EventTarget {
       "number",
       ["number", "number", "number"],
       [this.pointer, cart.length, this.cart.ptr]
+    );
+
+    this.programCounter = 0;
+    this.dispatchEvent(
+      new CustomEvent("programCounter", { detail: this.programCounter })
     );
   }
 

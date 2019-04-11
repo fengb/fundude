@@ -29,7 +29,7 @@ export function App() {
           <Registers fd={fd.fd} />
         </div>
       )}
-      {fd && <Disassembler cart={fd.cart} />}
+      {fd && <Disassembler cart={fd.cart} programCounter={fd.programCounter} />}
     </div>
   );
 }
