@@ -4,6 +4,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef enum {
+  COND_NZ,
+  COND_Z,
+  COND_NC,
+  COND_C,
+} cond;
+
 typedef struct {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   uint8_t _padding : 4;

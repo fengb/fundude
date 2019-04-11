@@ -6,7 +6,6 @@
 #include "cart.h"
 #include "memory.h"
 #include "registers.h"
-#include "str.h"
 
 #define WIDTH 160
 #define HEIGHT 144
