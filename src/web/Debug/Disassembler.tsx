@@ -45,7 +45,7 @@ export default function Disassembler({ cart }: { cart: Uint8Array }) {
 
   return (
     <div className={CSS.root}>
-      <LazyScroller childWidth={200} childHeight={15} totalChildren={cart.length}>
+      <LazyScroller childWidth={200} childHeight={15} totalChildren={cart.length} focus={50}>
         {addr => (
           <div>
             <span className={CSS.addr}>${formatAddr(addr)} </span>

@@ -22,16 +22,24 @@ export default function LazyScroller(props: {
   childWidth: number;
   childHeight: number;
   totalChildren: number;
+  focus?: number;
   children: (i: number) => React.ReactNode;
 }) {
   const [viewportHeight, setViewPortHeight] = React.useState(0);
   const ref = React.useRef<HTMLDivElement>(null);
   const scroll = useScroll(ref);
+
   React.useEffect(() => {
     if (ref.current) {
       setViewPortHeight(ref.current.clientHeight);
     }
   }, [ref.current]);
+  React.useEffect(() => {
+    if (!ref.current || !props.focus) {
+      return;
+    }
+    ref.current.scrollTop = props.focus * props.childHeight;
+  }, [props.focus]);
 
   const scrollerStyle: React.CSSProperties = {
     width: props.childWidth,
@@ -62,6 +70,16 @@ export default function LazyScroller(props: {
             {props.children(item)}
           </div>
         ))}
+        {props.focus && (
+          <div
+            className={CSS.child}
+            style={{
+              height: props.childHeight,
+              top: props.childHeight * props.focus,
+              boxShadow: "inset 0 0 0 1px black"
+            }}
+          />
+        )}
       </div>
     </div>
   );
