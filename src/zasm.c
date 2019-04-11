@@ -14,18 +14,12 @@ zasm zasm2(const char* name, zasm_arg arg1, zasm_arg arg2) {
   return (zasm){name, arg1, arg2};
 }
 
-zasm zasm_sys_mode(sys_mode m) {
-  switch (m) {
-    case SYS_NORM: return zasm0("NORM");
-    case SYS_HALT: return zasm0("HALT");
-    case SYS_STOP: return zasm0("STOP");
-    case SYS_FATAL: return zasm0("FATAL");
-    default: return zasm0("MODE?");
-  }
-}
-
 zasm_arg zasma_cond(cond c) {
   return (zasm_arg){ZASM_COND, ZASM_PLAIN, c};
+}
+
+zasm_arg zasma_sys_mode(sys_mode m) {
+  return (zasm_arg){ZASM_SYS_MODE, ZASM_PLAIN, m};
 }
 
 zasm_arg zasma_reg8(zasm_format f, fundude* fd, reg8* reg) {
@@ -56,6 +50,14 @@ static char* zasma_raw(zasm_arg arg) {
         case COND_NC: return "NC";
         case COND_C: return "C";
         default: return "N?";
+      }
+    case ZASM_SYS_MODE:
+      switch (arg.type) {
+        case SYS_NORM: return "NORM";
+        case SYS_HALT: return "HALT";
+        case SYS_STOP: return "STOP";
+        case SYS_FATAL: return "FATAL";
+        default: return "MODE?";
       }
     case ZASM_REG8:
       switch (arg.val) {

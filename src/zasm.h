@@ -8,6 +8,7 @@
 typedef enum {
   ZASM_NONE,
   ZASM_COND,
+  ZASM_SYS_MODE,
   ZASM_REG8,
   ZASM_REG16,
   ZASM_HEX8,
@@ -35,9 +36,9 @@ typedef struct {
 zasm zasm0(const char* m);
 zasm zasm1(const char* m, zasm_arg arg);
 zasm zasm2(const char* m, zasm_arg arg1, zasm_arg arg2);
-zasm zasm_sys_mode(sys_mode m);
 
 zasm_arg zasma_cond(cond c);
+zasm_arg zasma_sys_mode(sys_mode m);
 zasm_arg zasma_reg8(zasm_format f, fundude* fd, reg8* reg);
 zasm_arg zasma_reg16(zasm_format f, fundude* fd, reg16* reg);
 zasm_arg zasma_hex8(zasm_format f, uint8_t val);

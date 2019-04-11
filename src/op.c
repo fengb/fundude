@@ -52,7 +52,8 @@ op_result op_nop(fundude* fd) {
 }
 
 op_result op_sys(fundude* fd, sys_mode mode, int length) {
-  return OP_STEP(fd, length, 4, zasm_sys_mode(mode));
+  fd->mode = mode;
+  return OP_STEP(fd, length, 4, zasm1("MODE", zasma_sys_mode(mode)));
 }
 
 op_result op_scf(fundude* fd) {
