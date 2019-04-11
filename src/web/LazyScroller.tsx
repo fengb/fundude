@@ -1,7 +1,7 @@
 import React from "react";
 import useScroll from "react-use/lib/useScroll";
 import { style } from "typestyle";
-import { range } from "lodash";
+import { range, clamp } from "lodash";
 
 const CSS = {
   root: style({
@@ -38,7 +38,12 @@ export default function LazyScroller(props: {
     if (!ref.current || !props.focus) {
       return;
     }
-    ref.current.scrollTop = props.focus * props.childHeight;
+
+    ref.current.scrollTop = clamp(
+      ref.current.scrollTop,
+      (props.focus + 1) * props.childHeight - viewportHeight,
+      props.focus * props.childHeight
+    );
   }, [props.focus]);
 
   const scrollerStyle: React.CSSProperties = {
