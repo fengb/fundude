@@ -17,6 +17,7 @@ typedef enum {
 typedef enum {
   ZASM_PLAIN,
   ZASM_PAREN,
+  ZASM_HIMEM,
 } zasm_format;
 
 typedef struct {

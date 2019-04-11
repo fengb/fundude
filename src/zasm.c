@@ -94,6 +94,7 @@ static char* zasma_str(zasm_arg arg) {
   switch (arg.format) {
     case ZASM_PLAIN: snprintf(buf, sizeof(buf), " %s", raw); return buf;
     case ZASM_PAREN: snprintf(buf, sizeof(buf), " (%s)", raw); return buf;
+    case ZASM_HIMEM: snprintf(buf, sizeof(buf), " ($FF00+%s)", raw); return buf;
   }
   return " ???";
 }

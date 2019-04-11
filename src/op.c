@@ -210,13 +210,13 @@ op_result op_ld__rr_RR(fundude* fd, reg8* tgt, reg8* src) {
   tgt->_ = fdm_get(&fd->mem, 0xFF00 + src->_);
   return OP_STEP(fd, 1, 8,
                  zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt),
-                       zasma_reg8(ZASM_PAREN, fd, src)));
+                       zasma_reg8(ZASM_HIMEM, fd, src)));
 }
 
 op_result op_ld__RR_rr(fundude* fd, reg8* tgt, reg8* src) {
   fdm_set(&fd->mem, 0xFF00 + tgt->_, src->_);
   return OP_STEP(fd, 1, 8,
-                 zasm2("LD", zasma_reg8(ZASM_PAREN, fd, tgt),
+                 zasm2("LD", zasma_reg8(ZASM_HIMEM, fd, tgt),
                        zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
@@ -276,9 +276,9 @@ op_result op_ld__ww_ww(fundude* fd, reg16* tgt, reg16* src) {
                        zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-op_result op_ld__ww_ww_R8(fundude* fd, reg16* tgt, reg16* src, uint8_t val) {
+op_result op_ldh_ww_R8(fundude* fd, reg16* src, uint8_t val) {
   int offset = signed_offset(val);
-  tgt->_ = src->_ + offset;
+  fd->reg.HL._ = src->_ + offset;
   return OP_STEP(fd, 3, 16,
                  zasm2("LDHL", zasma_reg16(ZASM_PLAIN, fd, src),
                        zasma_hex8(ZASM_PAREN, val)));
@@ -315,14 +315,14 @@ op_result op_ldd_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
 op_result op_ldh_A8_rr(fundude* fd, uint8_t tgt, reg8* src) {
   fdm_set(&fd->mem, 0xFF00 + tgt, src->_);
   return OP_STEP(fd, 2, 12,
-                 zasm2("LDH", zasma_hex8(ZASM_PAREN, tgt),
+                 zasm2("LDH", zasma_hex8(ZASM_HIMEM, tgt),
                        zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_ldh_rr_A8(fundude* fd, reg8* tgt, uint8_t src) {
   tgt->_ = fdm_get(&fd->mem, 0xFF00 + src);
   return OP_STEP(fd, 2, 12,
-                 zasm2("LDH", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                 zasm2("LDH", zasma_reg8(ZASM_HIMEM, fd, tgt),
                        zasma_hex8(ZASM_PAREN, src)));
 }
 
@@ -629,7 +629,8 @@ op_result op_cb(fundude* fd, uint8_t op) {
   } else if (fd->reg.HL._ >= BEYOND_CART) {
     // TODO: remove the magic pointer so we don't have this weirdo ERR state
     char* op_name = cb_tick(fd, op, fdm_ptr(&fd->mem, fd->reg.HL._));
-    return OP_STEP(fd, 2, 16, zasm0("%s (HL)"));  // TODO: op_name
+    return OP_STEP(fd, 2, 16,
+                   zasm1(op_name, zasma_reg16(ZASM_PAREN, fd, &fd->reg.HL)));
   } else {
     return OP_STEP(fd, 2, 16, zasm0("ERR (HL)"));
   }
@@ -879,7 +880,7 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
 
     case 0xE0: return op_ldh_A8_rr(fd, with8(op), &fd->reg.A);
     case 0xE1: return op_pop_ww___(fd, &fd->reg.HL);
-    case 0xE2: return op_ld__RR_rr(fd, &fd->reg.A, &fd->reg.C);
+    case 0xE2: return op_ld__RR_rr(fd, &fd->reg.C, &fd->reg.A);
     case 0xE3: return OP_ILLEGAL;
     case 0xE4: return OP_ILLEGAL;
     case 0xE5: return op_psh_ww___(fd, &fd->reg.HL);
@@ -902,7 +903,7 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0xF5: return op_psh_ww___(fd, &fd->reg.AF);
     case 0xF6: return op_or__rr_d8(fd, &fd->reg.A, with8(op));
     case 0xF7: return op_rst_d8___(fd, 0x30);
-    case 0xF8: return op_ld__ww_ww_R8(fd, &fd->reg.HL, &fd->reg.SP, with8(op));
+    case 0xF8: return op_ldh_ww_R8(fd, &fd->reg.SP, with8(op));
     case 0xF9: return op_ld__ww_ww(fd, &fd->reg.SP, &fd->reg.HL);
     case 0xFA: return op_ld__rr_AF(fd, &fd->reg.A, with16(op));
     case 0xFB: return op_int______(fd, true);
