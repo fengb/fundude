@@ -109,17 +109,19 @@ op_result op_daa_rr___(fundude* fd, reg8* dst) {
 }
 
 op_result op_jr__R8___(fundude* fd, uint8_t val) {
-  int offset = signed_offset(val);
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR $%02X", val);
+  static const int INST_LENGTH = 2;
+  int offset = signed_offset(val) + INST_LENGTH;
+  return OP_JUMP(fd->reg.PC._ + offset, INST_LENGTH, 8, "JR $%02X", val);
 }
 
 op_result op_jr__if_R8(fundude* fd, cond c, uint8_t val) {
+  static const int INST_LENGTH = 2;
   uint16_t length = 3;
   if (!cond_check(fd, c)) {
     val = length;
   }
-  int offset = signed_offset(val);
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, "JR %s $%02X", db_cond(c), val);
+  int offset = signed_offset(val) + INST_LENGTH;
+  return OP_JUMP(fd->reg.PC._ + offset, INST_LENGTH, 8, "JR %s $%02X", db_cond(c), val);
 }
 
 op_result op_jp__AF___(fundude* fd, uint16_t target) {
