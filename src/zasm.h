@@ -20,8 +20,8 @@ typedef enum {
 } zasm_format;
 
 typedef struct {
-  zasm_type type : 8;      // force alignment
-  zasm_format format : 8;  // force alignment
+  zasm_type type : 8;
+  zasm_format format : 8;
   uint16_t val;
 } zasm_arg;
 
@@ -42,7 +42,7 @@ zasm_arg zasma_reg16(zasm_format f, fundude* fd, reg16* reg);
 zasm_arg zasma_hex8(zasm_format f, uint8_t val);
 zasm_arg zasma_hex16(zasm_format f, uint16_t val);
 
-// TODO: don't pass pointer
-int zasm_snprintf(char* str, size_t size, zasm* zasm);
+// TODO: don't pass pointer to zasm
+int zasm_snprintf(char* out, size_t size, zasm* zasm);
 
 #endif
