@@ -98,9 +98,9 @@ static char* zasma_str(zasm_arg arg) {
   return " ???";
 }
 
-int zasm_snprintf(char* out, size_t size, zasm* z) {
-  strncpy(out, z->name, size);
-  strncat(out, zasma_str(z->arg1), size);
-  strncat(out, zasma_str(z->arg2), size);
+int zasm_snprintf(char* out, size_t size, zasm z) {
+  strncpy(out, z.name, size);
+  strncat(out, zasma_str(z.arg1), size);
+  strncat(out, zasma_str(z.arg2), size);
   return size;
 }

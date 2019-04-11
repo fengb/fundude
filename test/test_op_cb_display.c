@@ -8,12 +8,12 @@ int main() {
   char buf[100];
   uint8_t op[2] = {0xCB, 0};
 
-  for (int h = 0; h <= 0xC; h++) {
+  for (int h = 0; h <= 0xF; h++) {
     for (int l = 0; l <= 0xF; l++) {
       fd.reg.HL._ = BEYOND_CART;
       op[1] = (h << 4) | l;
       op_result r = op_tick(&fd, op);
-      zasm_snprintf(buf, sizeof(buf), &r.zasm);
+      zasm_snprintf(buf, sizeof(buf), r.zasm);
       printf("%-11s|", buf);
     }
     printf("\n");
