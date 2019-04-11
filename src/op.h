@@ -3,13 +3,13 @@
 
 #include <stdbool.h>
 #include "fundude.h"
-#include "gbasm.h"
+#include "zasm.h"
 
 typedef struct {
   uint16_t jump;
   int length;
   int duration;
-  gbasm gb;
+  zasm zasm;
 } op_result;
 
 void op_run(fundude* fd, uint32_t µs);

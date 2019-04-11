@@ -20,11 +20,11 @@ static bool cond_check(fundude* fd, cond c) {
   }
 }
 
-static op_result OP_JUMP(uint16_t jump, int length, int duration, gbasm g) {
+static op_result OP_JUMP(uint16_t jump, int length, int duration, zasm g) {
   return (op_result){jump, (length), (duration), g};
 }
 
-static op_result OP_STEP(fundude* fd, int length, int duration, gbasm g) {
+static op_result OP_STEP(fundude* fd, int length, int duration, zasm g) {
   return OP_JUMP(fd->reg.PC._ + length, length, duration, g);
 }
 
@@ -48,11 +48,11 @@ int signed_offset(uint8_t val) {
 */
 
 op_result op_nop(fundude* fd) {
-  return OP_STEP(fd, 1, 4, gbasm0("NOP"));
+  return OP_STEP(fd, 1, 4, zasm0("NOP"));
 }
 
 op_result op_sys(fundude* fd, sys_mode mode, int length) {
-  return OP_STEP(fd, length, 4, gbasm_sys_mode(mode));
+  return OP_STEP(fd, length, 4, zasm_sys_mode(mode));
 }
 
 op_result op_scf(fundude* fd) {
@@ -62,7 +62,7 @@ op_result op_scf(fundude* fd) {
       .H = false,
       .C = true,
   };
-  return OP_STEP(fd, 1, 4, gbasm0("SCF"));
+  return OP_STEP(fd, 1, 4, zasm0("SCF"));
 }
 
 op_result op_ccf(fundude* fd) {
@@ -72,12 +72,12 @@ op_result op_ccf(fundude* fd) {
       .H = false,
       .C = !fd->reg.FLAGS.C,
   };
-  return OP_STEP(fd, 1, 4, gbasm0("CCF"));
+  return OP_STEP(fd, 1, 4, zasm0("CCF"));
 }
 
 op_result op_int______(fundude* fd, bool set) {
   // TODO: enable/disable interrupt
-  return OP_STEP(fd, 1, 4, gbasm0(set ? "EI" : "DI"));
+  return OP_STEP(fd, 1, 4, zasm0(set ? "EI" : "DI"));
 }
 
 op_result op_daa_rr___(fundude* fd, reg8* dst) {
@@ -111,12 +111,13 @@ op_result op_daa_rr___(fundude* fd, reg8* dst) {
       .H = false,
       .C = carry,
   };
-  return OP_STEP(fd, 1, 4, gbasm1("DAA", gbasma_reg8(fd, dst)));
+  return OP_STEP(fd, 1, 4, zasm1("DAA", zasma_reg8(ZASM_PLAIN, fd, dst)));
 }
 
 op_result op_jr__R8___(fundude* fd, uint8_t val) {
   int offset = signed_offset(val);
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8, gbasm1("JR", gbasma_uint8(val)));
+  return OP_JUMP(fd->reg.PC._ + offset, 2, 8,
+                 zasm1("JR", zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_jr__if_R8(fundude* fd, cond c, uint8_t val) {
@@ -126,11 +127,11 @@ op_result op_jr__if_R8(fundude* fd, cond c, uint8_t val) {
   }
   int offset = signed_offset(val);
   return OP_JUMP(fd->reg.PC._ + offset, 2, 8,
-                 gbasm2("JR", gbasma_cond(c), gbasma_uint8(val)));
+                 zasm2("JR", zasma_cond(c), zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_jp__AF___(fundude* fd, uint16_t target) {
-  return OP_JUMP(target, 3, 12, gbasm1("JP", gbasma_uint16(target)));
+  return OP_JUMP(target, 3, 12, zasm1("JP", zasma_hex16(ZASM_PLAIN, target)));
 }
 
 op_result op_jp__if_AF(fundude* fd, cond c, uint16_t target) {
@@ -139,176 +140,195 @@ op_result op_jp__if_AF(fundude* fd, cond c, uint16_t target) {
     target = fd->reg.PC._ + 3;
   }
   return OP_JUMP(target, 3, 12,
-                 gbasm2("JP", gbasma_cond(c), gbasma_uint16(target)));
+                 zasm2("JP", zasma_cond(c), zasma_hex16(ZASM_PLAIN, target)));
 }
 
 op_result op_jp__WW___(fundude* fd, reg16* tgt) {
   uint16_t target = fdm_get(&fd->mem, tgt->_);
-  return OP_JUMP(target, 1, 4, gbasm1("JP", gbasma_reg16a(fd, tgt)));
+  return OP_JUMP(target, 1, 4, zasm1("JP", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
 
 op_result op_ret______(fundude* fd) {
   uint8_t val = do_pop(fd);
-  return OP_JUMP(val, 1, 8, gbasm0("RET"));
+  return OP_JUMP(val, 1, 8, zasm0("RET"));
 }
 
 op_result op_rti______(fundude* fd) {
   uint8_t val = do_pop(fd);
   // TODO: enable interrupts
-  return OP_JUMP(val, 1, 8, gbasm0("RETI"));
+  return OP_JUMP(val, 1, 8, zasm0("RETI"));
 }
 
 op_result op_ret_if___(fundude* fd, cond c) {
   if (!cond_check(fd, c)) {
-    return OP_STEP(fd, 1, 8, gbasm1("RET", gbasma_cond(c)));
+    return OP_STEP(fd, 1, 8, zasm1("RET", zasma_cond(c)));
   }
   uint8_t val = do_pop(fd);
-  return OP_JUMP(val, 1, 8, gbasm1("RET", gbasma_cond(c)));
+  return OP_JUMP(val, 1, 8, zasm1("RET", zasma_cond(c)));
 }
 
 op_result op_rst_d8___(fundude* fd, uint8_t val) {
   do_push(fd, fd->reg.PC._);
-  return OP_JUMP(val, 1, 32, gbasm1("RST", gbasma_uint8(val)));
+  return OP_JUMP(val, 1, 32, zasm1("RST", zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_rlc_rr___(fundude* fd, reg8* tgt) {
   do_rlc(fd, &tgt->_);
-  return OP_STEP(fd, 1, 4, gbasm1("RLCA", gbasma_reg8(fd, tgt)));
+  return OP_STEP(fd, 1, 4, zasm1("RLCA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_rla_rr___(fundude* fd, reg8* tgt) {
   do_rl(fd, &tgt->_);
-  return OP_STEP(fd, 1, 4, gbasm1("RLA", gbasma_reg8(fd, tgt)));
+  return OP_STEP(fd, 1, 4, zasm1("RLA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_rrc_rr___(fundude* fd, reg8* tgt) {
   do_rrc(fd, &tgt->_);
-  return OP_STEP(fd, 1, 4, gbasm1("RRC", gbasma_reg8(fd, tgt)));
+  return OP_STEP(fd, 1, 4, zasm1("RRC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_rra_rr___(fundude* fd, reg8* tgt) {
   do_rr(fd, &tgt->_);
-  return OP_STEP(fd, 1, 4, gbasm1("RRA", gbasma_reg8(fd, tgt)));
+  return OP_STEP(fd, 1, 4, zasm1("RRA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_ld__rr_d8(fundude* fd, reg8* tgt, uint8_t d8) {
   tgt->_ = d8;
-  return OP_STEP(fd, 2, 8,
-                 gbasm2("LD", gbasma_reg8(fd, tgt), gbasma_uint8(d8)));
+  return OP_STEP(
+      fd, 2, 8,
+      zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, d8)));
 }
 
 op_result op_ld__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   tgt->_ = src->_;
   return OP_STEP(fd, 1, 4,
-                 gbasm2("LD", gbasma_reg8(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_ld__rr_RR(fundude* fd, reg8* tgt, reg8* src) {
   tgt->_ = fdm_get(&fd->mem, 0xFF00 + src->_);
   return OP_STEP(fd, 1, 8,
-                 gbasm2("LD", gbasma_reg8(fd, tgt), gbasma_reg8a(fd, src)));
+                 zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PAREN, fd, src)));
 }
 
 op_result op_ld__RR_rr(fundude* fd, reg8* tgt, reg8* src) {
   fdm_set(&fd->mem, 0xFF00 + tgt->_, src->_);
   return OP_STEP(fd, 1, 8,
-                 gbasm2("LD", gbasma_reg8a(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("LD", zasma_reg8(ZASM_PAREN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_ld__rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   tgt->_ = fdm_get(&fd->mem, src->_);
   return OP_STEP(fd, 1, 8,
-                 gbasm2("LD", gbasma_reg8(fd, tgt), gbasma_reg16a(fd, src)));
+                 zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 op_result op_ld__ww_df(fundude* fd, reg16* tgt, uint16_t val) {
   tgt->_ = val;
   return OP_STEP(fd, 3, 12,
-                 gbasm2("LD", gbasma_reg16(fd, tgt), gbasma_uint16(val)));
+                 zasm2("LD", zasma_reg16(ZASM_PLAIN, fd, tgt),
+                       zasma_hex16(ZASM_PLAIN, val)));
 }
 
 op_result op_ld__WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_, src->_);
   return OP_STEP(fd, 1, 8,
-                 gbasm2("LD", gbasma_reg16a(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("LD", zasma_reg16(ZASM_PAREN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_ld__AF_ww(fundude* fd, uint16_t a16, reg16* src) {
   fdm_set(&fd->mem, a16, src->_);
   return OP_STEP(fd, 3, 20,
-                 gbasm2("LD", gbasma_uint16a(a16), gbasma_reg16(fd, src)));
+                 zasm2("LD", zasma_hex16(ZASM_PAREN, a16),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_ld__WW_d8(fundude* fd, reg16* tgt, uint8_t val) {
   fdm_set(&fd->mem, tgt->_, val);
   return OP_STEP(fd, 2, 12,
-                 gbasm2("LD", gbasma_reg16a(fd, tgt), gbasma_uint8(val)));
+                 zasm2("LD", zasma_reg16(ZASM_PAREN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_ld__AF_rr(fundude* fd, uint16_t tgt, reg8* src) {
   fdm_set(&fd->mem, tgt, src->_);
   return OP_STEP(fd, 3, 16,
-                 gbasm2("LD", gbasma_uint16a(tgt), gbasma_reg8(fd, src)));
+                 zasm2("LD", zasma_hex16(ZASM_PAREN, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_ld__rr_AF(fundude* fd, reg8* tgt, uint16_t val) {
   tgt->_ = fdm_get(&fd->mem, val);
   return OP_STEP(fd, 3, 16,
-                 gbasm2("LD", gbasma_reg8(fd, tgt), gbasma_uint16a(val)));
+                 zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex16(ZASM_PAREN, val)));
 }
 
 op_result op_ld__ww_ww(fundude* fd, reg16* tgt, reg16* src) {
   tgt->_ = src->_;
   return OP_STEP(fd, 3, 16,
-                 gbasm2("LD", gbasma_reg16(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("LD", zasma_reg16(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 op_result op_ld__ww_ww_R8(fundude* fd, reg16* tgt, reg16* src, uint8_t val) {
   int offset = signed_offset(val);
   tgt->_ = src->_ + offset;
   return OP_STEP(fd, 3, 16,
-                 gbasm2("LDHL", gbasma_reg16(fd, src), gbasma_uint8a(val)));
+                 zasm2("LDHL", zasma_reg16(ZASM_PLAIN, fd, src),
+                       zasma_hex8(ZASM_PAREN, val)));
 }
 
 op_result op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_++, src->_);
   return OP_STEP(fd, 1, 8,
-                 gbasm2("LDI", gbasma_reg16a(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("LDI", zasma_reg16(ZASM_PAREN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_ldi_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   fdm_set(&fd->mem, tgt->_, src->_++);
   return OP_STEP(fd, 1, 8,
-                 gbasm2("LDI", gbasma_reg8(fd, tgt), gbasma_reg16a(fd, src)));
+                 zasm2("LDI", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 op_result op_ldd_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
   fdm_set(&fd->mem, tgt->_--, src->_);
   return OP_STEP(fd, 1, 8,
-                 gbasm2("LDD", gbasma_reg16a(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("LDD", zasma_reg16(ZASM_PAREN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_ldd_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   fdm_set(&fd->mem, tgt->_, src->_--);
   return OP_STEP(fd, 1, 8,
-                 gbasm2("LDD", gbasma_reg8(fd, tgt), gbasma_reg16a(fd, src)));
+                 zasm2("LDD", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 op_result op_ldh_A8_rr(fundude* fd, uint8_t tgt, reg8* src) {
   fdm_set(&fd->mem, 0xFF00 + tgt, src->_);
   return OP_STEP(fd, 2, 12,
-                 gbasm2("LDH", gbasma_uint8a(tgt), gbasma_reg8(fd, src)));
+                 zasm2("LDH", zasma_hex8(ZASM_PAREN, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_ldh_rr_A8(fundude* fd, reg8* tgt, uint8_t src) {
   tgt->_ = fdm_get(&fd->mem, 0xFF00 + src);
   return OP_STEP(fd, 2, 12,
-                 gbasm2("LDH", gbasma_reg8(fd, tgt), gbasma_uint8a(src)));
+                 zasm2("LDH", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PAREN, src)));
 }
 
 op_result op_inc_ww___(fundude* fd, reg16* tgt) {
   tgt->_++;
-  return OP_STEP(fd, 1, 8, gbasm1("INC", gbasma_reg16(fd, tgt)));
+  return OP_STEP(fd, 1, 8, zasm1("INC", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_inc_WW___(fundude* fd, reg16* tgt) {
@@ -321,12 +341,12 @@ op_result op_inc_WW___(fundude* fd, reg16* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   fdm_set(&fd->mem, tgt->_, val + 1);
-  return OP_STEP(fd, 1, 12, gbasm1("INC", gbasma_reg16a(fd, tgt)));
+  return OP_STEP(fd, 1, 12, zasm1("INC", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
 
 op_result op_dec_ww___(fundude* fd, reg16* tgt) {
   tgt->_--;
-  return OP_STEP(fd, 1, 8, gbasm1("DEC", gbasma_reg16(fd, tgt)));
+  return OP_STEP(fd, 1, 8, zasm1("DEC", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_dec_WW___(fundude* fd, reg16* tgt) {
@@ -339,25 +359,28 @@ op_result op_dec_WW___(fundude* fd, reg16* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   fdm_set(&fd->mem, tgt->_, val - 1);
-  return OP_STEP(fd, 1, 12, gbasm1("DEC", gbasma_reg16a(fd, tgt)));
+  return OP_STEP(fd, 1, 12, zasm1("DEC", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
 
 op_result op_add_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_add_rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4,
-                 gbasm2("ADD", gbasma_reg8(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("ADD", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_add_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_add_rr(fd, tgt, fdm_get(&fd->mem, src->_));
   return OP_STEP(fd, 1, 8,
-                 gbasm2("ADD", gbasma_reg8(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("ADD", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_add_rr_d8(fundude* fd, reg8* tgt, uint8_t val) {
   do_add_rr(fd, tgt, val);
   return OP_STEP(fd, 2, 8,
-                 gbasm2("ADD", gbasma_reg8(fd, tgt), gbasma_uint8(val)));
+                 zasm2("ADD", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
@@ -369,7 +392,8 @@ op_result op_add_ww_ww(fundude* fd, reg16* tgt, reg16* src) {
   };
   tgt->_ += src->_;
   return OP_STEP(fd, 1, 8,
-                 gbasm2("ADD", gbasma_reg16(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("ADD", zasma_reg16(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_add_ww_R8(fundude* fd, reg16* tgt, uint8_t val) {
@@ -382,133 +406,155 @@ op_result op_add_ww_R8(fundude* fd, reg16* tgt, uint8_t val) {
   };
   tgt->_ += offset;
   return OP_STEP(fd, 2, 16,
-                 gbasm2("ADD", gbasma_reg16(fd, tgt), gbasma_uint8(val)));
+                 zasm2("ADD", zasma_reg16(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_adc_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_add_rr(fd, tgt, fd->reg.FLAGS.C + src->_);
   return OP_STEP(fd, 1, 4,
-                 gbasm2("ADC", gbasma_reg8(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("ADC", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_adc_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_add_rr(fd, tgt, fd->reg.FLAGS.C + fdm_get(&fd->mem, src->_));
   return OP_STEP(fd, 1, 8,
-                 gbasm2("ADC", gbasma_reg8(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("ADC", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_adc_rr_d8(fundude* fd, reg8* tgt, uint8_t val) {
   do_add_rr(fd, tgt, fd->reg.FLAGS.C + val);
   return OP_STEP(fd, 1, 4,
-                 gbasm2("ADC", gbasma_reg8(fd, tgt), gbasma_uint8(val)));
+                 zasm2("ADC", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_sub_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_sub_rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4,
-                 gbasm2("SUB", gbasma_reg8(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("SUB", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_sub_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_sub_rr(fd, tgt, fdm_get(&fd->mem, src->_));
   return OP_STEP(fd, 1, 8,
-                 gbasm2("SUB", gbasma_reg8(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("SUB", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_sub_rr_d8(fundude* fd, reg8* tgt, uint8_t val) {
   do_sub_rr(fd, tgt, val);
   return OP_STEP(fd, 2, 8,
-                 gbasm2("SUB", gbasma_reg8(fd, tgt), gbasma_uint8(val)));
+                 zasm2("SUB", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_sbc_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_sub_rr(fd, tgt, fd->reg.FLAGS.C + src->_);
   return OP_STEP(fd, 1, 4,
-                 gbasm2("SBC", gbasma_reg8(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("SBC", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_sbc_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_sub_rr(fd, tgt, fd->reg.FLAGS.C + fdm_get(&fd->mem, src->_));
   return OP_STEP(fd, 1, 8,
-                 gbasm2("SBC", gbasma_reg8(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("SBC", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_sbc_rr_d8(fundude* fd, reg8* tgt, uint8_t val) {
   do_sub_rr(fd, tgt, fd->reg.FLAGS.C + val);
   return OP_STEP(fd, 1, 8,
-                 gbasm2("SBC", gbasma_reg8(fd, tgt), gbasma_uint8(val)));
+                 zasm2("SBC", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_and_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_and_rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4,
-                 gbasm2("AND", gbasma_reg8(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("AND", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_and_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_and_rr(fd, tgt, fdm_get(&fd->mem, src->_));
   return OP_STEP(fd, 1, 8,
-                 gbasm2("AND", gbasma_reg8(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("AND", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_and_rr_d8(fundude* fd, reg8* tgt, uint8_t val) {
   do_and_rr(fd, tgt, val);
   return OP_STEP(fd, 2, 8,
-                 gbasm2("AND", gbasma_reg8(fd, tgt), gbasma_uint8(val)));
+                 zasm2("AND", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_or__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_or__rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4,
-                 gbasm2("OR", gbasma_reg8(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("OR", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_or__rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_or__rr(fd, tgt, fdm_get(&fd->mem, src->_));
   return OP_STEP(fd, 1, 8,
-                 gbasm2("OR", gbasma_reg8(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("OR", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_or__rr_d8(fundude* fd, reg8* tgt, uint8_t val) {
   do_or__rr(fd, tgt, val);
   return OP_STEP(fd, 2, 8,
-                 gbasm2("OR", gbasma_reg8(fd, tgt), gbasma_uint8(val)));
+                 zasm2("OR", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_xor_rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_xor_rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4,
-                 gbasm2("XOR", gbasma_reg8(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("XOR", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_xor_rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_xor_rr(fd, tgt, fdm_get(&fd->mem, src->_));
   return OP_STEP(fd, 1, 8,
-                 gbasm2("XOR", gbasma_reg8(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("XOR", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_xor_rr_d8(fundude* fd, reg8* tgt, uint8_t val) {
   do_xor_rr(fd, tgt, val);
   return OP_STEP(fd, 2, 8,
-                 gbasm2("XOR", gbasma_reg8(fd, tgt), gbasma_uint8(val)));
+                 zasm2("XOR", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_cp__rr_rr(fundude* fd, reg8* tgt, reg8* src) {
   do_cp__rr(fd, tgt, src->_);
   return OP_STEP(fd, 1, 4,
-                 gbasm2("CP", gbasma_reg8(fd, tgt), gbasma_reg8(fd, src)));
+                 zasm2("CP", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_cp__rr_WW(fundude* fd, reg8* tgt, reg16* src) {
   do_cp__rr(fd, tgt, fdm_get(&fd->mem, src->_));
   return OP_STEP(fd, 1, 8,
-                 gbasm2("CP", gbasma_reg8(fd, tgt), gbasma_reg16(fd, src)));
+                 zasm2("CP", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
 op_result op_cp__rr_d8(fundude* fd, reg8* tgt, uint8_t val) {
   do_cp__rr(fd, tgt, val);
   return OP_STEP(fd, 2, 8,
-                 gbasm2("CP", gbasma_reg8(fd, tgt), gbasma_uint8(val)));
+                 zasm2("CP", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_inc_rr___(fundude* fd, reg8* tgt) {
@@ -519,7 +565,7 @@ op_result op_inc_rr___(fundude* fd, reg8* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   tgt->_++;
-  return OP_STEP(fd, 1, 4, gbasm1("INC", gbasma_reg8(fd, tgt)));
+  return OP_STEP(fd, 1, 4, zasm1("INC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_dec_rr___(fundude* fd, reg8* tgt) {
@@ -530,7 +576,7 @@ op_result op_dec_rr___(fundude* fd, reg8* tgt) {
       .C = fd->reg.FLAGS.C,
   };
   tgt->_--;
-  return OP_STEP(fd, 1, 4, gbasm1("DEC", gbasma_reg8(fd, tgt)));
+  return OP_STEP(fd, 1, 4, zasm1("DEC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_cpl_rr___(fundude* fd, reg8* tgt) {
@@ -540,7 +586,7 @@ op_result op_cpl_rr___(fundude* fd, reg8* tgt) {
       .H = true,
       .C = fd->reg.FLAGS.C,
   };
-  return OP_STEP(fd, 1, 4, gbasm1("CPL", gbasma_reg8(fd, tgt)));
+  return OP_STEP(fd, 1, 4, zasm1("CPL", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_pop_ww___(fundude* fd, reg16* tgt) {
@@ -549,7 +595,7 @@ op_result op_pop_ww___(fundude* fd, reg16* tgt) {
   uint8_t hb = do_pop(fd);
   uint8_t lb = do_pop(fd);
   tgt->_ = (hb << 8) & lb;
-  return OP_STEP(fd, 1, 12, gbasm1("POP", gbasma_reg16(fd, tgt)));
+  return OP_STEP(fd, 1, 12, zasm1("POP", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_psh_ww___(fundude* fd, reg16* tgt) {
@@ -557,35 +603,35 @@ op_result op_psh_ww___(fundude* fd, reg16* tgt) {
   uint8_t lb = tgt->_ & 0xFF;
   do_push(fd, lb);
   do_push(fd, hb);
-  return OP_STEP(fd, 1, 16, gbasm1("PUSH", gbasma_reg16(fd, tgt)));
+  return OP_STEP(fd, 1, 16, zasm1("PUSH", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_cal_AF___(fundude* fd, uint16_t val) {
   do_push(fd, fd->reg.PC._ + 3);
-  return OP_JUMP(val, 3, 12, gbasm1("CALL", gbasma_uint16(val)));
+  return OP_JUMP(val, 3, 12, zasm1("CALL", zasma_hex16(ZASM_PLAIN, val)));
 }
 
 op_result op_cal_if_AF(fundude* fd, cond c, uint16_t val) {
   if (!cond_check(fd, c)) {
     return OP_STEP(fd, 3, 12,
-                   gbasm2("CALL", gbasma_cond(c), gbasma_uint16(val)));
+                   zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
   }
   do_push(fd, fd->reg.PC._ + 3);
   return OP_JUMP(val, 3, 12,
-                 gbasm2("CALL", gbasma_cond(c), gbasma_uint16(val)));
+                 zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
 }
 
 op_result op_cb(fundude* fd, uint8_t op) {
   reg8* tgt = cb_tgt(fd, op);
   if (tgt) {
     char* op_name = cb_tick(fd, op, &tgt->_);
-    return OP_STEP(fd, 2, 8, gbasm1(op_name, gbasma_reg8(fd, tgt)));
+    return OP_STEP(fd, 2, 8, zasm1(op_name, zasma_reg8(ZASM_PLAIN, fd, tgt)));
   } else if (fd->reg.HL._ >= BEYOND_CART) {
     // TODO: remove the magic pointer so we don't have this weirdo ERR state
     char* op_name = cb_tick(fd, op, fdm_ptr(&fd->mem, fd->reg.HL._));
-    return OP_STEP(fd, 2, 16, gbasm0("%s (HL)"));  // TODO: op_name
+    return OP_STEP(fd, 2, 16, zasm0("%s (HL)"));  // TODO: op_name
   } else {
-    return OP_STEP(fd, 2, 16, gbasm0("ERR (HL)"));
+    return OP_STEP(fd, 2, 16, zasm0("ERR (HL)"));
   }
 }
 

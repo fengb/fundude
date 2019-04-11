@@ -14,7 +14,7 @@ int main() {
       op[0] = (h << 4) | l;
       op_result r = op_tick(&fd, op);
       if (r.length) {
-        gbasm_snprintf(buf, sizeof(buf), &r.gb);
+        zasm_snprintf(buf, sizeof(buf), &r.zasm);
         printf("%-13s|", buf);
       } else {
         printf("%-13s|", "");
