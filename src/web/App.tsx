@@ -1,6 +1,6 @@
 import React from "react";
 import { style } from "typestyle";
-import * as DI from "./DI";
+import * as FD from "./Context/FD";
 import Display from "./Display";
 import CartList from "./CartList";
 import FundudeWasm from "./wasm";
@@ -17,34 +17,27 @@ const CSS = {
 };
 
 export function App() {
-  const { cart } = React.useContext(DI.Context);
-  const [fd, setFd] = React.useState<FundudeWasm>();
-  React.useEffect(() => {
-    FundudeWasm.boot(cart.value).then(fd => {
-      setFd(fd);
-      Object.assign(window, { fd });
-    });
-  }, []);
+  const fd = React.useContext(FD.Context);
 
   return (
     <div className={CSS.root}>
       <CartList extra={{ "-empty-": EMPTY, bootloader: BOOTLOADER }} />
       {fd && (
         <div>
-          <Display fundude={fd} />
-          <button onClick={() => fd.step()}>Step</button>
-          <Registers fd={fd} />
+          <Display fundude={fd.fd} />
+          <button onClick={() => fd.fd.step()}>Step</button>
+          <Registers fd={fd.fd} />
         </div>
       )}
-      <Disassembler cart={cart.value} />
+      {fd && <Disassembler cart={fd.cart} />}
     </div>
   );
 }
 
 export default function() {
   return (
-    <DI.Container>
+    <FD.Provider bootCart={EMPTY}>
       <App />
-    </DI.Container>
+    </FD.Provider>
   );
 }
