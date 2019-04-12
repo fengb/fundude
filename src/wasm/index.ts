@@ -1,9 +1,9 @@
 //@ts-ignore
 import fundude from "../../build/fundude";
 
-import { deferred, nextAnimationFrame } from "./promise";
+import { deferred } from "./util";
 
-const READY = deferred<void>();
+const READY = deferred();
 
 const Module = fundude({
   onRuntimeInitialized: READY.resolve

@@ -1,7 +1,7 @@
 import React from "react";
 import { useDropzone } from "react-dropzone";
 import { useMemoryCache } from "./hooks/cache";
-import FD from "./Context/FD";
+import FD from "../wasm/react";
 import { readAsArray } from "./promise";
 
 export default function CartList({
@@ -9,7 +9,7 @@ export default function CartList({
 }: {
   extra: Record<string, Uint8Array>;
 }) {
-  const fd = React.useContext(FD);
+  const fd = React.useContext(FD.Context);
   const cache = useMemoryCache<Uint8Array>("cartlist");
   const filePickerRef = React.useRef<HTMLInputElement>(null);
 

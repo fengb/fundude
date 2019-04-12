@@ -1,6 +1,6 @@
 import React from "react";
 import { style } from "typestyle";
-import FundudeWasm from "../wasm";
+import FundudeWasm from "../../wasm";
 
 const CSS = {
   root: style({

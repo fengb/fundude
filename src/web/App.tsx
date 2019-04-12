@@ -1,6 +1,6 @@
 import React from "react";
 import { style } from "typestyle";
-import * as FD from "./Context/FD";
+import FD from "../wasm/react";
 import Display from "./Display";
 import CartList from "./CartList";
 import { EMPTY, BOOTLOADER } from "./data";

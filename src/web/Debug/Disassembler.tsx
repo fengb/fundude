@@ -1,7 +1,7 @@
 import React from "react";
 import { keyBy } from "lodash";
 import { style } from "typestyle";
-import FundudeWasm, { GBInstruction } from "../wasm";
+import FundudeWasm, { GBInstruction } from "../../wasm";
 import LazyScroller from "../LazyScroller";
 
 function formatAddr(addr: number) {

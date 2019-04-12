@@ -1,6 +1,6 @@
 import React from "react";
 import useEvent from "react-use/lib/useEvent";
-import FundudeWasm from "../wasm";
+import FundudeWasm from ".";
 
 interface Item {
   fd: FundudeWasm;
@@ -11,7 +11,6 @@ interface Item {
 }
 
 export const Context = React.createContext<Item | undefined>(undefined);
-export default Context;
 
 export function Provider(props: {
   bootCart: Uint8Array;
@@ -42,3 +41,5 @@ export function Provider(props: {
   };
   return <Context.Provider value={item}>{props.children}</Context.Provider>;
 }
+
+export default { Context, Provider };
