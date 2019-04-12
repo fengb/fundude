@@ -3,7 +3,7 @@ import { style } from "typestyle";
 import FD from "../wasm/react";
 import Display from "./Display";
 import CartList from "./CartList";
-import { EMPTY, BOOTLOADER } from "./data";
+import { BOOTLOADER } from "./data";
 import Disassembler from "./Debug/Disassembler";
 import Registers from "./Debug/Registers";
 
@@ -20,7 +20,7 @@ export function App() {
 
   return (
     <div className={CSS.root}>
-      <CartList extra={{ "-empty-": EMPTY, bootloader: BOOTLOADER }} />
+      <CartList extra={{ bootloader: BOOTLOADER }} />
       {fd && (
         <div>
           <Display fundude={fd} />
@@ -36,7 +36,7 @@ export function App() {
 
 export default function() {
   return (
-    <FD.Provider bootCart={EMPTY}>
+    <FD.Provider bootCart={BOOTLOADER}>
       <App />
     </FD.Provider>
   );

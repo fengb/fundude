@@ -7,8 +7,6 @@ function asBitArray(hexString: string): Uint8Array {
   return new Uint8Array(bytes);
 }
 
-export const EMPTY = asBitArray("00".repeat(32 * 1024));
-
 export const BOOTLOADER = asBitArray(`
 31 fe ff af 21 ff 9f 32 cb 7c 20 fb 21 26 ff 0e
 11 3e 80 32 e2 0c 3e f3 e2 32 3e 77 77 3e fc e0
