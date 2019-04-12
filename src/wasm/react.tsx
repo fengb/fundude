@@ -1,45 +1,34 @@
 import React from "react";
-import useEvent from "react-use/lib/useEvent";
 import FundudeWasm from ".";
 
 interface Item {
-  fd: FundudeWasm;
-  cart: Uint8Array;
-  programCounter: number;
-
-  setCart: (cart: Uint8Array) => any;
+  fd?: FundudeWasm;
 }
 
-export const Context = React.createContext<Item | undefined>(undefined);
-
-export function Provider(props: {
+interface Props {
   bootCart: Uint8Array;
   children: React.ReactNode;
-}) {
-  const [fd, setFd] = React.useState<FundudeWasm>();
-  const [cart, setCart] = React.useState(props.bootCart);
-  const [refresh, setRefresh] = React.useState();
-  useEvent("programCounter", setRefresh, fd);
+}
 
-  React.useEffect(() => {
+export const Context = React.createContext<Item>({});
+
+export class Provider extends React.Component<Props, Item> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {};
     FundudeWasm.boot(props.bootCart).then(fd => {
-      Object.assign(window, { fd });
-      setFd(fd);
+      this.setState({ fd });
+      fd.addEventListener("programCounter", () => this.forceUpdate());
     });
-    return () => fd && fd.dealloc();
-  }, []);
+  }
 
-  const item: Item | undefined = fd && {
-    fd,
-    cart,
-    programCounter: fd.programCounter,
-
-    setCart(cart) {
-      fd.init(cart);
-      setCart(cart);
-    }
-  };
-  return <Context.Provider value={item}>{props.children}</Context.Provider>;
+  render() {
+    return (
+      <Context.Provider value={{ ...this.state }}>
+        {this.props.children}
+      </Context.Provider>
+    );
+  }
 }
 
 export default { Context, Provider };

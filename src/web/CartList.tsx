@@ -9,7 +9,7 @@ export default function CartList({
 }: {
   extra: Record<string, Uint8Array>;
 }) {
-  const fd = React.useContext(FD.Context);
+  const { fd } = React.useContext(FD.Context);
   const cache = useMemoryCache<Uint8Array>("cartlist");
   const filePickerRef = React.useRef<HTMLInputElement>(null);
 
@@ -17,7 +17,7 @@ export default function CartList({
     const file = acceptedFiles[0];
     const data = new Uint8Array(await readAsArray(file));
     cache.setItem(file.name, data);
-    fd && fd.setCart(data);
+    fd && fd.init(data);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
@@ -26,12 +26,12 @@ export default function CartList({
     <div>
       {Object.keys(extra).map(name => (
         <div key={name}>
-          <button onClick={() => fd && fd.setCart(extra[name])}>{name}</button>
+          <button onClick={() => fd && fd.init(extra[name])}>{name}</button>
         </div>
       ))}
       {Object.keys(cache.data).map(name => (
         <div key={name}>
-          <button onClick={() => fd && fd.setCart(cache.data[name])}>
+          <button onClick={() => fd && fd.init(cache.data[name])}>
             {name}
           </button>
         </div>

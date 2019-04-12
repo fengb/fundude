@@ -16,20 +16,20 @@ const CSS = {
 };
 
 export function App() {
-  const fd = React.useContext(FD.Context);
+  const { fd } = React.useContext(FD.Context);
 
   return (
     <div className={CSS.root}>
       <CartList extra={{ "-empty-": EMPTY, bootloader: BOOTLOADER }} />
       {fd && (
         <div>
-          <Display fundude={fd.fd} />
-          <button onClick={() => fd.fd.step()}>Step</button>
-          <button onClick={() => fd.fd.stepFrame()}>Step Frame</button>
-          <Registers fd={fd.fd} />
+          <Display fundude={fd} />
+          <button onClick={() => fd.step()}>Step</button>
+          <button onClick={() => fd.stepFrame()}>Step Frame</button>
+          <Registers fd={fd} />
         </div>
       )}
-      {fd && <Disassembler fd={fd.fd} />}
+      {fd && <Disassembler fd={fd} />}
     </div>
   );
 }
