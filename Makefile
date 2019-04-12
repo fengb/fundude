@@ -8,6 +8,7 @@ C_INCLUDE_PATH := src
 export C_INCLUDE_PATH
 
 TEST_MAIN_DIR := test
+TEST_OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OUT_DIR)/%-test.o,$(SRC_FILES))
 TEST_MAIN_FILES := $(wildcard $(TEST_MAIN_DIR)/test_*.c)
 TEST_TARGETS := $(patsubst $(TEST_MAIN_DIR)/%.c,%,$(TEST_MAIN_FILES))
 
@@ -19,9 +20,15 @@ $(OUT_DIR)/%.bc: $(SRC_DIR)/%.c
 	@mkdir -p $(OUT_DIR)
 	emcc -c -o $@ $<
 
-$(OUT_DIR)/test_%: $(OBJ_FILES) $(TEST_MAIN_DIR)/test_%.c
+$(OUT_DIR)/%-test.o: $(SRC_DIR)/%.c
 	@mkdir -p $(OUT_DIR)
-	$(CC) -Wno-override-module -o "$@" $^
+	$(CC) -c -o $@ $<
+
+$(OUT_DIR)/test_%: $(TEST_OBJ_FILES) $(TEST_MAIN_DIR)/test_%.c
+	@mkdir -p $(OUT_DIR)
+	$(CC) -o "$@" $^
+
+.PRECIOUS: $(OBJ_FILES) $(TEST_OBJ_FILES)
 
 .PHONY: build test clean
 

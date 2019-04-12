@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include "debug.h"
 #include "op_do.h"
 
 char* cb_rlc(fundude* fd, uint8_t* tgt) {
@@ -45,7 +44,6 @@ char* cb_srl(fundude* fd, uint8_t* tgt) {
   return "SRA";
 }
 
-#ifndef NDEBUG
 #define NAME_GLUE(prefix, var)   \
   switch (var) {                 \
     case 0: return prefix " 0";  \
@@ -58,9 +56,6 @@ char* cb_srl(fundude* fd, uint8_t* tgt) {
     case 7: return prefix " 7";  \
     default: return prefix " ?"; \
   }
-#else
-#define SWITCH_IT(prefix, var) return prefix;
-#endif
 
 char* cb_bit(fundude* fd, uint8_t* tgt, int bit) {
   fd->reg.FLAGS = (fd_flags){
@@ -84,16 +79,16 @@ char* cb_set(fundude* fd, uint8_t* tgt, int bit) {
   NAME_GLUE("SET", bit);
 }
 
-uint8_t* cb_tgt(fundude* fd, uint8_t op) {
+reg8* cb_tgt(fundude* fd, uint8_t op) {
   switch (op & 7) {
-    case 0: return &fd->reg.B._;
-    case 1: return &fd->reg.C._;
-    case 2: return &fd->reg.D._;
-    case 3: return &fd->reg.E._;
-    case 4: return &fd->reg.H._;
-    case 5: return &fd->reg.L._;
+    case 0: return &fd->reg.B;
+    case 1: return &fd->reg.C;
+    case 2: return &fd->reg.D;
+    case 3: return &fd->reg.E;
+    case 4: return &fd->reg.H;
+    case 5: return &fd->reg.L;
     case 6: return NULL;
-    case 7: return &fd->reg.A._;
+    case 7: return &fd->reg.A;
   }
 
   return NULL;
@@ -139,19 +134,4 @@ char* cb_tick(fundude* fd, uint8_t op, uint8_t* tgt) {
   }
 
   return "???";
-}
-
-op_result op_cb(fundude* fd, uint8_t op) {
-  uint8_t* tgt = cb_tgt(fd, op);
-  if (tgt) {
-    char* op_name = cb_tick(fd, op, tgt);
-    return OP_STEP(fd, 2, 8, "%s %s", op_name, db_reg8(fd, (void*)tgt));
-  } else if (fd->reg.HL._ >= BEYOND_CART) {
-    // TODO: remove the magic pointer so we don't have this weirdo ERR state
-    tgt = fdm_ptr(&fd->mem, fd->reg.HL._);
-    char* op_name = cb_tick(fd, op, tgt);
-    return OP_STEP(fd, 2, 16, "%s (HL)", op_name);
-  } else {
-    return OP_STEP(fd, 2, 16, "ERR (HL)");
-  }
 }

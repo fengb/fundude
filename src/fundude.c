@@ -33,7 +33,7 @@ int fd_disassemble(fundude* fd, char* out) {
 
   op_result res = op_tick(fd, &fd->mem.cart[addr]);
 
-  strncpy(out, res.op_name._, sizeof(res.op_name));
+  zasm_snprintf(out, 100, res.zasm);
   fd->reg.PC._ += res.length;
 
   if (fd->reg.PC._ >= fd->mem.cart_length) {
