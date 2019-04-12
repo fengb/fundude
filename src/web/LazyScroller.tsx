@@ -75,7 +75,7 @@ export default function LazyScroller(props: {
             {props.children(item)}
           </div>
         ))}
-        {props.focus && (
+        {props.focus != undefined && (
           <div
             className={CSS.child}
             style={{
