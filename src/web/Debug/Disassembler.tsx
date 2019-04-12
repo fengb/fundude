@@ -23,14 +23,25 @@ const CSS = {
     fontFamily: "monospace",
     height: "100%"
   }),
-  addr: style({
-    color: "#aaa"
+  child: style({
+    display: "flex",
+    cursor: "pointer"
   }),
-  instr: style({
-    color: "#aaa"
+  childSegment: style({
+    margin: "0 4px"
   }),
   breakpoint: style({
-    background: "red"
+    display: "inline-block",
+    width: 10,
+    height: 10,
+    alignSelf: "center",
+
+    $nest: {
+      "&.active": {
+        background: "red",
+        borderRadius: "100%"
+      }
+    }
   })
 };
 
@@ -50,21 +61,28 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
   return (
     <div className={CSS.root}>
       <LazyScroller
-        childWidth={200}
+        childWidth={250}
         childHeight={15}
         totalChildren={props.fd.cart.length}
         focus={props.fd.programCounter}
       >
         {addr => (
           <div
-            className={props.fd.breakpoint === addr ? CSS.breakpoint : ""}
+            className={CSS.child}
             onClick={() => props.fd.setBreakpoint(addr)}
           >
-            <span className={CSS.addr}>${formatAddr(addr)} </span>
-            <span className={CSS.instr}>
-              {formatInstr(props.fd.cart[addr])}{" "}
+            <i
+              className={`${CSS.breakpoint} ${
+                props.fd.breakpoint === addr ? "active" : ""
+              }`}
+            />
+            <span className={CSS.childSegment}>${formatAddr(addr)}</span>
+            <span className={CSS.childSegment}>
+              {formatInstr(props.fd.cart[addr])}
             </span>
-            <strong>{assembly[addr] && assembly[addr].text}</strong>
+            <strong className={CSS.childSegment}>
+              {assembly[addr] && assembly[addr].text}
+            </strong>
           </div>
         )}
       </LazyScroller>
