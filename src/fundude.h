@@ -25,6 +25,8 @@ typedef struct {
   fd_registers reg;
   fd_memory mem;
 
+  int breakpoint;
+
   sys_mode mode;
 } fundude;
 
@@ -36,7 +38,7 @@ int fd_disassemble(fundude* fd, char* out);
 
 int fd_step(fundude* fd);
 int fd_step_frame(fundude* fd);
-int fd_run(fundude* fd, uint32_t duration);
+int fd_step_duration(fundude* fd, uint32_t duration);
 
 uint64_t to_cycles(uint32_t us);
 uint32_t to_us(uint64_t clock);

@@ -3,7 +3,6 @@ import { style } from "typestyle";
 import * as FD from "./Context/FD";
 import Display from "./Display";
 import CartList from "./CartList";
-import FundudeWasm from "./wasm";
 import { EMPTY, BOOTLOADER } from "./data";
 import Disassembler from "./Debug/Disassembler";
 import Registers from "./Debug/Registers";
@@ -26,10 +25,11 @@ export function App() {
         <div>
           <Display fundude={fd.fd} />
           <button onClick={() => fd.fd.step()}>Step</button>
+          <button onClick={() => fd.fd.stepFrame()}>Step Frame</button>
           <Registers fd={fd.fd} />
         </div>
       )}
-      {fd && <Disassembler cart={fd.cart} programCounter={fd.programCounter} />}
+      {fd && <Disassembler fd={fd.fd} />}
     </div>
   );
 }

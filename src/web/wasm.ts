@@ -38,7 +38,7 @@ export default class FundudeWasm extends EventTarget {
   }
 
   private readonly pointer: number;
-  private cart?: PtrArray;
+  cart!: PtrArray;
 
   readonly width: number;
   readonly height: number;
@@ -98,6 +98,20 @@ export default class FundudeWasm extends EventTarget {
     return imageData;
   }
 
+  breakpoint: number = -1;
+  setBreakpoint(bp: number) {
+    this.breakpoint = bp;
+    Module.ccall(
+      "set_breakpoint",
+      "number",
+      ["number", "number"],
+      [this.pointer, bp]
+    );
+    this.dispatchEvent(
+      new CustomEvent("programCounter", { detail: this.programCounter })
+    );
+  }
+
   step() {
     this.programCounter = Module.ccall(
       "step",
@@ -111,8 +125,8 @@ export default class FundudeWasm extends EventTarget {
   }
 
   stepFrame() {
-    this.programCounter = Module.ccall(
-      "stepFrame",
+   this.programCounter = Module.ccall(
+      "step_frame",
       "number",
       ["number"],
       [this.pointer]

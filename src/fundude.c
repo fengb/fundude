@@ -58,16 +58,16 @@ int fd_step(fundude* fd) {
 }
 
 int fd_step_frame(fundude* fd) {
-  return fd_run(fd, CYCLES_PER_FRAME);
+  return fd_step_duration(fd, CYCLES_PER_FRAME);
 }
 
-int fd_run(fundude* fd, uint32_t duration) {
+int fd_step_duration(fundude* fd, uint32_t duration) {
   if (fd->mode == SYS_FATAL) {
     return -9999;
   }
 
-  uint64_t cycles = to_cycles(duration);
-  while (cycles >= 0) {
+  int64_t cycles = to_cycles(duration);
+  do {
     op_result res = op_tick(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
     if (res.jump <= 0 || res.length <= 0 || res.duration <= 0) {
       fd->mode = SYS_FATAL;
@@ -76,7 +76,7 @@ int fd_run(fundude* fd, uint32_t duration) {
 
     fd->reg.PC._ = res.jump;
     cycles -= res.duration;
-  }
+  } while(cycles >= 0 && fd->breakpoint != fd->reg.PC._);
 
   return fd->reg.PC._;
 }

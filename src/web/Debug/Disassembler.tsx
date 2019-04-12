@@ -28,13 +28,13 @@ const CSS = {
   }),
   instr: style({
     color: "#aaa"
+  }),
+  breakpoint: style({
+    background: "red"
   })
 };
 
-export default function Disassembler(props: {
-  cart: Uint8Array;
-  programCounter: number;
-}) {
+export default function Disassembler(props: { fd: FundudeWasm }) {
   const [assembly, setAssembly] = React.useState(
     //
     {} as Record<number, GBInstruction>
@@ -42,23 +42,28 @@ export default function Disassembler(props: {
 
   React.useEffect(() => {
     FundudeWasm.ready().then(() => {
-      const assembly = Array.from(FundudeWasm.disassemble(props.cart));
+      const assembly = Array.from(FundudeWasm.disassemble(props.fd.cart));
       setAssembly(keyBy(assembly, "addr"));
     });
-  }, [props.cart]);
+  }, [props.fd.cart]);
 
   return (
     <div className={CSS.root}>
       <LazyScroller
         childWidth={200}
         childHeight={15}
-        totalChildren={props.cart.length}
-        focus={props.programCounter}
+        totalChildren={props.fd.cart.length}
+        focus={props.fd.programCounter}
       >
         {addr => (
-          <div>
+          <div
+            className={props.fd.breakpoint === addr ? CSS.breakpoint : ""}
+            onClick={() => props.fd.setBreakpoint(addr)}
+          >
             <span className={CSS.addr}>${formatAddr(addr)} </span>
-            <span className={CSS.instr}>{formatInstr(props.cart[addr])} </span>
+            <span className={CSS.instr}>
+              {formatInstr(props.fd.cart[addr])}{" "}
+            </span>
             <strong>{assembly[addr] && assembly[addr].text}</strong>
           </div>
         )}
