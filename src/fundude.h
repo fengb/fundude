@@ -37,8 +37,8 @@ void fd_reset(fundude* fd);
 int fd_disassemble(fundude* fd, char* out);
 
 int fd_step(fundude* fd);
-int fd_step_frame(fundude* fd);
-int fd_step_duration(fundude* fd, uint32_t duration);
+int fd_step_frames(fundude* fd, short frames);
+int fd_step_cycles(fundude* fd, int cycles);
 
 uint64_t to_cycles(uint32_t us);
 uint32_t to_us(uint64_t clock);

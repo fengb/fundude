@@ -57,16 +57,15 @@ int fd_step(fundude* fd) {
   return res.jump;
 }
 
-int fd_step_frame(fundude* fd) {
-  return fd_step_duration(fd, CYCLES_PER_FRAME);
+int fd_step_frames(fundude* fd, short frames) {
+  return fd_step_cycles(fd, CYCLES_PER_FRAME * frames);
 }
 
-int fd_step_duration(fundude* fd, uint32_t duration) {
+int fd_step_cycles(fundude* fd, int cycles) {
   if (fd->mode == SYS_FATAL) {
     return -9999;
   }
 
-  int64_t cycles = to_cycles(duration);
   do {
     op_result res = op_tick(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
     if (res.jump <= 0 || res.length <= 0 || res.duration <= 0) {
@@ -79,11 +78,4 @@ int fd_step_duration(fundude* fd, uint32_t duration) {
   } while(cycles >= 0 && fd->breakpoint != fd->reg.PC._);
 
   return fd->reg.PC._;
-}
-
-uint64_t to_cycles(uint32_t us) {
-  return (uint64_t)us * MHz / 1000000;
-}
-uint32_t to_us(uint64_t clock) {
-  return clock * 1000000 / MHz;
 }

@@ -29,8 +29,8 @@ void set_breakpoint(fundude* fd, int breakpoint) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-int step_frame(fundude* fd) {
-  return fd_step_frame(fd);
+int step_frames(fundude* fd, short frames) {
+  return fd_step_frames(fd, frames);
 }
 
 EMSCRIPTEN_KEEPALIVE

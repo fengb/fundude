@@ -124,13 +124,15 @@ export default class FundudeWasm extends EventTarget {
     );
   }
 
-  stepFrame() {
-   this.programCounter = Module.ccall(
-      "step_frame",
+  stepFrame(frames = 1) {
+    const t = performance.now()
+    this.programCounter = Module.ccall(
+      "step_frames",
       "number",
       ["number"],
-      [this.pointer]
+      [this.pointer, frames]
     );
+    console.log(performance.now() - t)
     this.dispatchEvent(
       new CustomEvent("programCounter", { detail: this.programCounter })
     );

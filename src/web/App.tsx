@@ -26,6 +26,7 @@ export function App() {
           <Display fundude={fd} />
           <button onClick={() => fd.step()}>Step</button>
           <button onClick={() => fd.stepFrame()}>Step Frame</button>
+          <button onClick={() => fd.stepFrame(60)}>Step Second</button>
           <Registers fd={fd} />
         </div>
       )}
