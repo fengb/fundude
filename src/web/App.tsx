@@ -21,16 +21,14 @@ export function App() {
   return (
     <div className={CSS.root}>
       <CartList extra={{ bootloader: BOOTLOADER }} />
-      {fd && (
-        <div>
-          <Display fundude={fd} />
-          <button onClick={() => fd.step()}>Step</button>
-          <button onClick={() => fd.stepFrame()}>Step Frame</button>
-          <button onClick={() => fd.stepFrame(60)}>Step Second</button>
-          <Registers fd={fd} />
-        </div>
-      )}
-      {fd && <Disassembler fd={fd} />}
+      <div>
+        <Display fundude={fd} />
+        <button onClick={() => fd.step()}>Step</button>
+        <button onClick={() => fd.stepFrame()}>Step Frame</button>
+        <button onClick={() => fd.stepFrame(60)}>Step Second</button>
+        <Registers fd={fd} />
+      </div>
+      <Disassembler fd={fd} />
     </div>
   );
 }
