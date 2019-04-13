@@ -17,15 +17,17 @@ export interface GBInstruction {
 
 type PtrArray = Uint8Array & { ptr: number };
 
-function PtrArray(ptr: number, length: number): PtrArray {
-  const array = Module.HEAPU8.subarray(ptr, ptr + length);
-  return Object.assign(array, { ptr });
-}
-
-PtrArray.from = function(array: Uint8Array) {
-  const ptrArray = PtrArray(Module._malloc(array.length), array.length);
-  ptrArray.set(array);
-  return ptrArray;
+const PtrArray = {
+  segment: function(ptr: number, length: number): PtrArray {
+    const array = Module.HEAPU8.subarray(ptr, ptr + length);
+    return Object.assign(array, { ptr });
+  },
+  clone: function(array: Uint8Array) {
+    const ptr = Module._malloc(array.length);
+    const ptrArray = PtrArray.segment(ptr, array.length);
+    ptrArray.set(array);
+    return ptrArray;
+  }
 };
 
 export default class FundudeWasm extends EventTarget {
@@ -50,17 +52,13 @@ export default class FundudeWasm extends EventTarget {
   constructor(cart: Uint8Array) {
     super();
 
-    this.pointer = Module.ccall("alloc", "number", [], []);
+    this.pointer = Module._alloc();
     this.init(cart);
 
-    this.width = Module.ccall("display_width", "number", [], []);
-    this.height = Module.ccall("display_height", "number", [], []);
-    this.display = PtrArray(this.pointer, this.width * this.height);
-
-    this.registers = PtrArray(
-      Module.ccall("registers_ptr", "number", ["number"], [this.pointer]),
-      12
-    );
+    this.width = Module._display_width();
+    this.height = Module._display_height();
+    this.display = PtrArray.segment(this.pointer, this.width * this.height);
+    this.registers = PtrArray.segment(Module._registers_ptr(this.pointer), 12);
   }
 
   init(cart: Uint8Array) {
@@ -68,13 +66,8 @@ export default class FundudeWasm extends EventTarget {
       Module._free(this.cart.ptr);
     }
 
-    this.cart = PtrArray.from(cart);
-    Module.ccall(
-      "init",
-      "number",
-      ["number", "number", "number"],
-      [this.pointer, cart.length, this.cart.ptr]
-    );
+    this.cart = PtrArray.clone(cart);
+    Module._init(this.pointer, cart.length, this.cart.ptr);
 
     this.programCounter = 0;
     this.dispatchEvent(
@@ -101,38 +94,21 @@ export default class FundudeWasm extends EventTarget {
   breakpoint: number = -1;
   setBreakpoint(bp: number) {
     this.breakpoint = bp;
-    Module.ccall(
-      "set_breakpoint",
-      "number",
-      ["number", "number"],
-      [this.pointer, bp]
-    );
+    Module._set_breakpoint(this.pointer, bp);
     this.dispatchEvent(
       new CustomEvent("programCounter", { detail: this.programCounter })
     );
   }
 
   step() {
-    this.programCounter = Module.ccall(
-      "step",
-      "number",
-      ["number"],
-      [this.pointer]
-    );
+    this.programCounter = Module._step(this.pointer);
     this.dispatchEvent(
       new CustomEvent("programCounter", { detail: this.programCounter })
     );
   }
 
   stepFrame(frames = 1) {
-    const t = performance.now()
-    this.programCounter = Module.ccall(
-      "step_frames",
-      "number",
-      ["number"],
-      [this.pointer, frames]
-    );
-    console.log(performance.now() - t)
+    this.programCounter = Module._step_frames(this.pointer, frames);
     this.dispatchEvent(
       new CustomEvent("programCounter", { detail: this.programCounter })
     );
@@ -144,12 +120,7 @@ export default class FundudeWasm extends EventTarget {
     try {
       let addr = 0;
       while (true) {
-        addr = Module.ccall(
-          "disassemble",
-          "number",
-          ["number", "number"],
-          [fd.pointer, outPtr]
-        );
+        addr = Module._disassemble(fd.pointer, outPtr);
         if (addr < 0) {
           return;
         }
@@ -164,5 +135,3 @@ export default class FundudeWasm extends EventTarget {
     }
   }
 }
-
-Object.assign(window, { FundudeWasm, Module });
