@@ -44,6 +44,11 @@ fd_registers* registers_ptr(fundude* fd) {
 }
 
 EMSCRIPTEN_KEEPALIVE
+fd_memory* memory_ptr(fundude* fd) {
+  return &fd->mem;
+}
+
+EMSCRIPTEN_KEEPALIVE
 int display_width() {
   return WIDTH;
 }

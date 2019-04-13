@@ -18,6 +18,7 @@ export class Provider extends React.Component<Props, Partial<Item>> {
     super(props);
     this.state = {};
     FundudeWasm.boot(props.bootCart).then(fd => {
+      Object.assign(window, { fd });
       this.setState({ fd });
       fd.addEventListener("programCounter", () => this.forceUpdate());
     });

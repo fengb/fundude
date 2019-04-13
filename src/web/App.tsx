@@ -6,6 +6,7 @@ import CartList from "./CartList";
 import { BOOTLOADER } from "./data";
 import Disassembler from "./Debug/Disassembler";
 import Registers from "./Debug/Registers";
+import Memory from "./Debug/Memory";
 
 const CSS = {
   root: style({
@@ -29,6 +30,7 @@ export function App() {
         <Registers fd={fd} />
       </div>
       <Disassembler fd={fd} />
+      <Memory fd={fd} />
     </div>
   );
 }
