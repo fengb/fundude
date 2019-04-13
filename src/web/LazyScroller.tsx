@@ -56,7 +56,8 @@ export default function LazyScroller(props: {
     const tail = (scroll.y + viewportHeight + threshold) / props.childHeight;
     return range(
       Math.max(Math.floor(head), 0),
-      Math.min(Math.floor(tail), props.totalChildren)
+      Math.min(Math.floor(tail), props.totalChildren),
+      1
     );
   }
 

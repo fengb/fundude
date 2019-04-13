@@ -43,14 +43,16 @@ function registers(raw: Uint8Array) {
 }
 
 function memory(raw: Uint8Array) {
-  return {
-    raw: Object.assign(raw, { offset: 0x8000 }),
-    vram: Object.assign(raw.subarray(0, 0x2000), { offset: 0x8000 }),
-    ram: Object.assign(raw.subarray(0x4000, 0x6000), { offset: 0xc000 })
-    // oam: Uint8Array;
-    // io_ports: Uint8Array;
-    // high_ram: Uint8Array;
-  };
+  return Object.assign(raw, {
+    displayStart: 0x8000,
+    offsets: {
+      vram: 0,
+      ram: 0x4000
+      // oam
+      // io_ports
+      // high_ram
+    }
+  });
 }
 
 export default class FundudeWasm extends EventTarget {
