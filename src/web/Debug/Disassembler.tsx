@@ -64,7 +64,7 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
         childWidth={250}
         childHeight={15}
         totalChildren={props.fd.cart.length}
-        focus={props.fd.programCounter}
+        focus={props.fd.registers.PC()}
       >
         {addr => (
           <div

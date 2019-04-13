@@ -30,6 +30,18 @@ const PtrArray = {
   }
 };
 
+function registers(raw: Uint8Array) {
+  return {
+    raw,
+    AF: () => raw[0] + (raw[1] << 8),
+    BC: () => raw[2] + (raw[3] << 8),
+    DE: () => raw[4] + (raw[5] << 8),
+    HL: () => raw[6] + (raw[7] << 8),
+    SP: () => raw[8] + (raw[9] << 8),
+    PC: () => raw[10] + (raw[11] << 8)
+  };
+}
+
 export default class FundudeWasm extends EventTarget {
   static ready() {
     return READY;
@@ -45,9 +57,8 @@ export default class FundudeWasm extends EventTarget {
   readonly width: number;
   readonly height: number;
   readonly display: Uint8Array;
-  readonly registers: Uint8Array;
 
-  programCounter: number = 0;
+  readonly registers: ReturnType<typeof registers>;
 
   constructor(cart: Uint8Array) {
     super();
@@ -58,7 +69,10 @@ export default class FundudeWasm extends EventTarget {
     this.width = Module._display_width();
     this.height = Module._display_height();
     this.display = PtrArray.segment(this.pointer, this.width * this.height);
-    this.registers = PtrArray.segment(Module._registers_ptr(this.pointer), 12);
+
+    this.registers = registers(
+      PtrArray.segment(Module._registers_ptr(this.pointer), 12)
+    );
   }
 
   init(cart: Uint8Array) {
@@ -69,10 +83,7 @@ export default class FundudeWasm extends EventTarget {
     this.cart = PtrArray.clone(cart);
     Module._init(this.pointer, cart.length, this.cart.ptr);
 
-    this.programCounter = 0;
-    this.dispatchEvent(
-      new CustomEvent("programCounter", { detail: this.programCounter })
-    );
+    this.dispatchEvent(new CustomEvent("programCounter"));
   }
 
   dealloc() {
@@ -96,21 +107,21 @@ export default class FundudeWasm extends EventTarget {
     this.breakpoint = bp;
     Module._set_breakpoint(this.pointer, bp);
     this.dispatchEvent(
-      new CustomEvent("programCounter", { detail: this.programCounter })
+      new CustomEvent("programCounter", { detail: this.registers.PC() })
     );
   }
 
   step() {
-    this.programCounter = Module._step(this.pointer);
+    Module._step(this.pointer);
     this.dispatchEvent(
-      new CustomEvent("programCounter", { detail: this.programCounter })
+      new CustomEvent("programCounter", { detail: this.registers.PC() })
     );
   }
 
   stepFrame(frames = 1) {
-    this.programCounter = Module._step_frames(this.pointer, frames);
+    Module._step_frames(this.pointer, frames);
     this.dispatchEvent(
-      new CustomEvent("programCounter", { detail: this.programCounter })
+      new CustomEvent("programCounter", { detail: this.registers.PC() })
     );
   }
 

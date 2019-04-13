@@ -13,9 +13,8 @@ const CSS = {
   })
 };
 
-function hexup(array: Uint8Array, left: number) {
-  const right = left + 1;
-  return (array[left] + (array[right] << 8))
+function hexup(n: number) {
+  return n
     .toString(16)
     .toUpperCase()
     .padStart(4, "0");
@@ -26,27 +25,27 @@ export default function Registers({ fd }: { fd: FundudeWasm }) {
     <dl className={CSS.root}>
       <div className={CSS.child}>
         <dt>AF</dt>
-        <dd>{hexup(fd.registers, 0)}</dd>
+        <dd>{hexup(fd.registers.AF())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>BC</dt>
-        <dd>{hexup(fd.registers, 2)}</dd>
+        <dd>{hexup(fd.registers.BC())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>DE</dt>
-        <dd>{hexup(fd.registers, 4)}</dd>
+        <dd>{hexup(fd.registers.DE())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>HL</dt>
-        <dd>{hexup(fd.registers, 6)}</dd>
+        <dd>{hexup(fd.registers.HL())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>SP</dt>
-        <dd>{hexup(fd.registers, 8)}</dd>
+        <dd>{hexup(fd.registers.SP())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>PC</dt>
-        <dd>{hexup(fd.registers, 10)}</dd>
+        <dd>{hexup(fd.registers.PC())}</dd>
       </div>
     </dl>
   );
