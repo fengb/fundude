@@ -118,18 +118,14 @@ op_result op_daa_rr___(fundude* fd, reg8* dst) {
 op_result op_jr__R8___(fundude* fd, uint8_t val) {
   static const int INST_LENGTH = 2;
   int offset = signed_offset(val) + INST_LENGTH;
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8,
+  return OP_JUMP(fd->reg.PC._ + offset, INST_LENGTH, 8,
                  zasm1("JR", zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_jr__if_R8(fundude* fd, cond c, uint8_t val) {
   static const int INST_LENGTH = 2;
-  uint16_t length = 3;
-  if (!cond_check(fd, c)) {
-    val = length;
-  }
-  int offset = signed_offset(val) + INST_LENGTH;
-  return OP_JUMP(fd->reg.PC._ + offset, 2, 8,
+  int offset = cond_check(fd, c) ? signed_offset(val) : 0;
+  return OP_JUMP(fd->reg.PC._ + offset + INST_LENGTH, INST_LENGTH, 8,
                  zasm2("JR", zasma_cond(c), zasma_hex8(ZASM_PLAIN, val)));
 }
 
@@ -138,11 +134,11 @@ op_result op_jp__AF___(fundude* fd, uint16_t target) {
 }
 
 op_result op_jp__if_AF(fundude* fd, cond c, uint16_t target) {
-  uint16_t length = 3;
+  static const int INST_LENGTH;
   if (!cond_check(fd, c)) {
-    target = fd->reg.PC._ + 3;
+    target = fd->reg.PC._ + INST_LENGTH;
   }
-  return OP_JUMP(target, 3, 12,
+  return OP_JUMP(target, INST_LENGTH, 12,
                  zasm2("JP", zasma_cond(c), zasma_hex16(ZASM_PLAIN, target)));
 }
 
