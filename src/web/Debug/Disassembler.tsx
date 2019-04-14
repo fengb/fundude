@@ -3,20 +3,7 @@ import { keyBy } from "lodash";
 import { style } from "typestyle";
 import FundudeWasm, { GBInstruction } from "../../wasm";
 import LazyScroller from "../LazyScroller";
-
-function formatAddr(addr: number) {
-  return addr
-    .toString(16)
-    .padStart(4, "0")
-    .toUpperCase();
-}
-
-function formatInstr(addr: number) {
-  return addr
-    .toString(16)
-    .padStart(2, "0")
-    .toUpperCase();
-}
+import { hex2, hex4 } from "./util";
 
 const CSS = {
   root: style({
@@ -76,9 +63,9 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
                 props.fd.breakpoint === addr ? "active" : ""
               }`}
             />
-            <span className={CSS.childSegment}>${formatAddr(addr)}</span>
+            <span className={CSS.childSegment}>${hex4(addr)}</span>
             <span className={CSS.childSegment}>
-              {formatInstr(props.fd.cart[addr])}
+              {hex2(props.fd.cart[addr])}
             </span>
             <strong className={CSS.childSegment}>
               {assembly[addr] && assembly[addr].text}

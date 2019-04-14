@@ -3,6 +3,7 @@ import { times } from "lodash";
 import { style } from "typestyle";
 import FundudeWasm from "../../wasm";
 import LazyScroller from "../LazyScroller";
+import { hex2, hex4 } from "./util";
 
 const CSS = {
   root: style({
@@ -50,11 +51,7 @@ function MemoryOutput(props: {
       {row => (
         <div className={CSS.row}>
           <strong className={CSS.addr}>
-            $
-            {(props.displayStart + row * WIDTH)
-              .toString(16)
-              .padStart(4, "0")
-              .toUpperCase()}
+            ${hex4(props.displayStart + row * WIDTH)}
           </strong>
           {times(WIDTH, col => {
             const i = row * WIDTH + col;
@@ -65,10 +62,7 @@ function MemoryOutput(props: {
                   props.highlightClasses[i + props.displayStart]
                 }`}
               >
-                {props.mem[i]
-                  .toString(16)
-                  .padStart(2, "0")
-                  .toUpperCase()}
+                {hex2(props.mem[i])}
               </span>
             );
           })}

@@ -1,6 +1,7 @@
 import React from "react";
 import { style } from "typestyle";
 import FundudeWasm from "../../wasm";
+import { hex4 } from "./util";
 
 const CSS = {
   root: style({
@@ -13,39 +14,32 @@ const CSS = {
   })
 };
 
-function hexup(n: number) {
-  return n
-    .toString(16)
-    .toUpperCase()
-    .padStart(4, "0");
-}
-
 export default function Registers({ fd }: { fd: FundudeWasm }) {
   return (
     <dl className={CSS.root}>
       <div className={CSS.child}>
         <dt>AF</dt>
-        <dd>{hexup(fd.registers.AF())}</dd>
+        <dd>{hex4(fd.registers.AF())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>BC</dt>
-        <dd>{hexup(fd.registers.BC())}</dd>
+        <dd>{hex4(fd.registers.BC())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>DE</dt>
-        <dd>{hexup(fd.registers.DE())}</dd>
+        <dd>{hex4(fd.registers.DE())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>HL</dt>
-        <dd>{hexup(fd.registers.HL())}</dd>
+        <dd>{hex4(fd.registers.HL())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>SP</dt>
-        <dd>{hexup(fd.registers.SP())}</dd>
+        <dd>{hex4(fd.registers.SP())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>PC</dt>
-        <dd>{hexup(fd.registers.PC())}</dd>
+        <dd>{hex4(fd.registers.PC())}</dd>
       </div>
     </dl>
   );
