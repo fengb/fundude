@@ -44,7 +44,7 @@ export default function LazyScroller(props: {
     }
   }, [ref.current]);
   React.useEffect(() => {
-    if (!ref.current || !props.focus) {
+    if (ref.current == null || props.focus == null) {
       return;
     }
 
