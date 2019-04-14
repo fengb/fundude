@@ -72,6 +72,9 @@ export default function Memory(props: { fd: FundudeWasm }) {
       <div>
         <button onClick={() => setFocus(mem.offsets.vram)}>VRAM</button>
         <button onClick={() => setFocus(mem.offsets.ram)}>RAM</button>
+        <button onClick={() => setFocus(mem.offsets.oam)}>OAM</button>
+        <button onClick={() => setFocus(mem.offsets.io_ports)}>IO Ports</button>
+        <button onClick={() => setFocus(mem.offsets.himem)}>HIMEM</button>
       </div>
       <div className={CSS.wrapper}>
         <MemoryOutput mem={mem} displayStart={mem.displayStart} focus={focus} />

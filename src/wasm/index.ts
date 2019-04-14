@@ -42,15 +42,17 @@ function registers(raw: Uint8Array) {
   };
 }
 
+const CART_OFFSET = 0x8000
+
 function memory(raw: Uint8Array) {
   return Object.assign(raw, {
-    displayStart: 0x8000,
+    displayStart: CART_OFFSET,
     offsets: {
-      vram: 0,
-      ram: 0x4000
-      // oam
-      // io_ports
-      // high_ram
+      vram: 0x8000 - CART_OFFSET,
+      ram: 0xC000 - CART_OFFSET,
+      oam: 0xFE00 - CART_OFFSET,
+      io_ports: 0xFF00 - CART_OFFSET,
+      himem: 0xFF80 - CART_OFFSET
     }
   });
 }

@@ -5,6 +5,7 @@ import { range, clamp } from "lodash";
 
 const CSS = {
   root: style({
+    height: "100%",
     maxHeight: "100vh",
     overflowY: "auto"
   }),
@@ -15,6 +16,13 @@ const CSS = {
     position: "absolute",
     left: 0,
     right: 0
+  }),
+  focus: style({
+    position: "absolute",
+    left: 0,
+    right: 0,
+    boxShadow: "inset 0 0 0 1px black",
+    pointerEvents: "none"
   })
 };
 
@@ -78,11 +86,10 @@ export default function LazyScroller(props: {
         ))}
         {props.focus != undefined && (
           <div
-            className={CSS.child}
+            className={CSS.focus}
             style={{
               height: props.childHeight,
-              top: props.childHeight * props.focus,
-              boxShadow: "inset 0 0 0 1px black"
+              top: props.childHeight * props.focus
             }}
           />
         )}
