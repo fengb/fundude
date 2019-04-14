@@ -5,6 +5,7 @@ import { range, clamp } from "lodash";
 
 const CSS = {
   root: style({
+    flex: "1",
     height: "100%",
     maxHeight: "100vh",
     overflowY: "auto"

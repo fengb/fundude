@@ -11,11 +11,9 @@ const CSS = {
     height: "100%",
     maxHeight: "100vh"
   }),
-  wrapper: style({
-    fontFamily: "monospace"
-  }),
   row: style({
-    display: "flex"
+    display: "flex",
+    fontFamily: "monospace"
   }),
   addr: style({
     flex: "1 1 auto"
@@ -23,6 +21,13 @@ const CSS = {
   cell: style({
     flex: "1 1 auto",
     textAlign: "center"
+  }),
+
+  hl: style({
+    backgroundColor: "#d0ffff"
+  }),
+  sp: style({
+    backgroundColor: "#ffd0ff"
   })
 };
 
@@ -32,6 +37,7 @@ function MemoryOutput(props: {
   mem: Uint8Array;
   displayStart: number;
   focus: number;
+  highlightClasses: Record<number, string>;
 }) {
   const height = props.mem.length / WIDTH;
   return (
@@ -50,14 +56,22 @@ function MemoryOutput(props: {
               .padStart(4, "0")
               .toUpperCase()}
           </strong>
-          {times(WIDTH, col => (
-            <span key={col} className={CSS.cell}>
-              {props.mem[row * WIDTH + col]
-                .toString(16)
-                .padStart(2, "0")
-                .toUpperCase()}
-            </span>
-          ))}
+          {times(WIDTH, col => {
+            const i = row * WIDTH + col;
+            return (
+              <span
+                key={col}
+                className={`${CSS.cell} ${
+                  props.highlightClasses[i + props.displayStart]
+                }`}
+              >
+                {props.mem[i]
+                  .toString(16)
+                  .padStart(2, "0")
+                  .toUpperCase()}
+              </span>
+            );
+          })}
         </div>
       )}
     </LazyScroller>
@@ -76,9 +90,15 @@ export default function Memory(props: { fd: FundudeWasm }) {
         <button onClick={() => setFocus(mem.offsets.io_ports)}>IO Ports</button>
         <button onClick={() => setFocus(mem.offsets.himem)}>HIMEM</button>
       </div>
-      <div className={CSS.wrapper}>
-        <MemoryOutput mem={mem} displayStart={mem.displayStart} focus={focus} />
-      </div>
+      <MemoryOutput
+        mem={mem}
+        displayStart={mem.displayStart}
+        focus={focus}
+        highlightClasses={{
+          [props.fd.registers.HL()]: CSS.hl,
+          [props.fd.registers.SP()]: CSS.sp
+        }}
+      />
     </div>
   );
 }
