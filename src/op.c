@@ -593,7 +593,7 @@ op_result op_pop_ww___(fundude* fd, reg16* tgt) {
   // but it would be semantically incorrect. Sad panda.
   uint8_t hb = do_pop(fd);
   uint8_t lb = do_pop(fd);
-  tgt->_ = (hb << 8) & lb;
+  tgt->_ = (hb << 8) | lb;
   return OP_STEP(fd, 1, 12, zasm1("POP", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
