@@ -30,6 +30,7 @@ const CSS = {
 export default function LazyScroller(props: {
   childWidth: number;
   childHeight: number;
+  threshold?: number;
   totalChildren: number;
   focus?: number;
   children: (i: number) => React.ReactNode;
@@ -37,6 +38,7 @@ export default function LazyScroller(props: {
   const [viewportHeight, setViewPortHeight] = React.useState(0);
   const ref = React.useRef<HTMLDivElement>(null);
   const scroll = useScroll(ref);
+  const threshold = props.threshold || viewportHeight * 0.5;
 
   React.useEffect(() => {
     if (ref.current) {
@@ -60,31 +62,32 @@ export default function LazyScroller(props: {
     height: props.childHeight * props.totalChildren
   };
 
-  function displayableItems(threshold = viewportHeight) {
-    const head = (scroll.y - threshold) / props.childHeight;
-    const tail = (scroll.y + viewportHeight + threshold) / props.childHeight;
-    return range(
-      Math.max(Math.floor(head), 0),
-      Math.min(Math.floor(tail), props.totalChildren),
-      1
-    );
-  }
+  const start = Math.floor((scroll.y - threshold) / props.childHeight);
+  const toDisplay = Math.ceil(
+    (2 * threshold + viewportHeight) / props.childHeight
+  );
 
   return (
     <div ref={ref} className={CSS.root}>
       <div className={CSS.scroller} style={scrollerStyle}>
-        {displayableItems().map(item => (
-          <div
-            key={item}
-            className={CSS.child}
-            style={{
-              height: props.childHeight,
-              top: props.childHeight * item
-            }}
-          >
-            {props.children(item)}
-          </div>
-        ))}
+        {range(start, start + toDisplay).map(i => {
+          const hasChild = 0 <= i && i < props.totalChildren;
+          const key = (i + toDisplay) % toDisplay;
+          return (
+            hasChild && (
+              <div
+                key={key}
+                className={CSS.child}
+                style={{
+                  height: props.childHeight,
+                  top: hasChild && props.childHeight * i
+                }}
+              >
+                {hasChild && props.children(i)}
+              </div>
+            )
+          );
+        })}
         {props.focus != undefined && (
           <div
             className={CSS.focus}
