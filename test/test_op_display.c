@@ -3,8 +3,10 @@
 
 int main() {
   fundude fd;
-  fd.mem.cart = fd.mem.ram;
-  fd.mem.cart_length = 0;
+  uint8_t cart[0x4000];
+  fd.mem.cart = cart;
+  fd.mem.cart_length = sizeof(cart);
+
   char buf[100];
 
   uint8_t op[] = {0x0, 0x10, 0x20};
