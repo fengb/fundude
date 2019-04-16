@@ -30,7 +30,7 @@ static op_result OP_STEP(fundude* fd, int length, int duration, zasm g) {
 }
 
 static op_result OP_UNKNOWN(fundude* fd) {
-  return OP_STEP(fd, 1, 1, zasm0("---"));
+  return OP_STEP(fd, 1, 4, zasm0("---"));
 }
 
 int signed_offset(uint8_t val) {
@@ -138,7 +138,7 @@ op_result op_jp__AF___(fundude* fd, uint16_t target) {
 }
 
 op_result op_jp__if_AF(fundude* fd, cond c, uint16_t target) {
-  static const int INST_LENGTH;
+  static const int INST_LENGTH = 3;
   if (!cond_check(fd, c)) {
     target = fd->reg.PC._ + INST_LENGTH;
   }

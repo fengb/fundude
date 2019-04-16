@@ -23,11 +23,7 @@ int main() {
       op[0] = (h << 4) | l;
       op_result r = op_tick(&fd, op);
 
-      if (r.length) {
-        printf("%2d %3d       |", r.length, r.duration);
-      } else {
-        printf("%-13s|", "");
-      }
+      printf("%2d %3d       |", r.length, r.duration);
     }
     printf("\n\n");
   }
