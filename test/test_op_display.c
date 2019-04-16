@@ -15,12 +15,8 @@ int main() {
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
       op_result r = op_tick(&fd, op);
-      if (r.jump) {
-        zasm_snprintf(buf, sizeof(buf), r.zasm);
-        printf("%-13s|", buf);
-      } else {
-        printf("%-13s|", "");
-      }
+      zasm_snprintf(buf, sizeof(buf), r.zasm);
+      printf("%-13s|", buf);
     }
     printf("\n");
     for (int l = 0; l <= 0xF; l++) {

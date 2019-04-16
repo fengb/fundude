@@ -1,4 +1,5 @@
 #include "op.h"
+#include <assert.h>
 #include "fundude.h"
 #include "op_cb.h"
 #include "op_do.h"
@@ -26,6 +27,10 @@ static op_result OP_JUMP(uint16_t jump, int length, int duration, zasm g) {
 
 static op_result OP_STEP(fundude* fd, int length, int duration, zasm g) {
   return OP_JUMP(fd->reg.PC._ + length, length, duration, g);
+}
+
+static op_result OP_UNKNOWN(fundude* fd) {
+  return OP_STEP(fd, 1, 1, zasm0("---"));
 }
 
 int signed_offset(uint8_t val) {
@@ -280,7 +285,7 @@ op_result op_ldh_ww_R8(fundude* fd, reg16* src, uint8_t val) {
   fd->reg.HL._ = src->_ + offset;
   return OP_STEP(fd, 3, 16,
                  zasm2("LDHL", zasma_reg16(ZASM_PLAIN, fd, src),
-                       zasma_hex8(ZASM_PAREN, val)));
+                       zasma_hex8(ZASM_PLAIN, val)));
 }
 
 op_result op_ldi_WW_rr(fundude* fd, reg16* tgt, reg8* src) {
@@ -321,8 +326,8 @@ op_result op_ldh_A8_rr(fundude* fd, uint8_t tgt, reg8* src) {
 op_result op_ldh_rr_A8(fundude* fd, reg8* tgt, uint8_t src) {
   tgt->_ = fdm_get(&fd->mem, 0xFF00 + src);
   return OP_STEP(fd, 2, 12,
-                 zasm2("LDH", zasma_reg8(ZASM_HIMEM, fd, tgt),
-                       zasma_hex8(ZASM_PAREN, src)));
+                 zasm2("LDH", zasma_reg8(ZASM_PLAIN, fd, tgt),
+                       zasma_hex8(ZASM_HIMEM, src)));
 }
 
 op_result op_inc_ww___(fundude* fd, reg16* tgt) {
@@ -635,8 +640,6 @@ op_result op_cb(fundude* fd, uint8_t op) {
   }
 }
 
-static op_result OP_ILLEGAL = {0, 1, 4, {"ILLEGAL", 0, 0}};
-
 op_result op_tick(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop(fd);
@@ -863,7 +866,7 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0xD0: return op_ret_if___(fd, COND_NC);
     case 0xD1: return op_pop_ww___(fd, &fd->reg.DE);
     case 0xD2: return op_jp__if_AF(fd, COND_NC, with16(op));
-    case 0xD3: return OP_ILLEGAL;
+    case 0xD3: return OP_UNKNOWN(fd);
     case 0xD4: return op_cal_if_AF(fd, COND_NC, with16(op));
     case 0xD5: return op_psh_ww___(fd, &fd->reg.DE);
     case 0xD6: return op_sub_rr_d8(fd, &fd->reg.A, with8(op));
@@ -871,26 +874,26 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0xD8: return op_ret_if___(fd, COND_C);
     case 0xD9: return op_rti______(fd);
     case 0xDA: return op_jp__if_AF(fd, COND_C, with16(op));
-    case 0xDB: return OP_ILLEGAL;
+    case 0xDB: return OP_UNKNOWN(fd);
     case 0xDC: return op_cal_if_AF(fd, COND_C, with16(op));
-    case 0xDD: return OP_ILLEGAL;
+    case 0xDD: return OP_UNKNOWN(fd);
     case 0xDE: return op_sbc_rr_d8(fd, &fd->reg.A, with8(op));
     case 0xDF: return op_rst_d8___(fd, 0x18);
 
     case 0xE0: return op_ldh_A8_rr(fd, with8(op), &fd->reg.A);
     case 0xE1: return op_pop_ww___(fd, &fd->reg.HL);
     case 0xE2: return op_ld__RR_rr(fd, &fd->reg.C, &fd->reg.A);
-    case 0xE3: return OP_ILLEGAL;
-    case 0xE4: return OP_ILLEGAL;
+    case 0xE3: return OP_UNKNOWN(fd);
+    case 0xE4: return OP_UNKNOWN(fd);
     case 0xE5: return op_psh_ww___(fd, &fd->reg.HL);
     case 0xE6: return op_and_rr_d8(fd, &fd->reg.A, with8(op));
     case 0xE7: return op_rst_d8___(fd, 0x20);
     case 0xE8: return op_add_ww_R8(fd, &fd->reg.SP, with8(op));
     case 0xE9: return op_jp__WW___(fd, &fd->reg.HL);
     case 0xEA: return op_ld__AF_rr(fd, with16(op), &fd->reg.A);
-    case 0xEB: return OP_ILLEGAL;
-    case 0xEC: return OP_ILLEGAL;
-    case 0xED: return OP_ILLEGAL;
+    case 0xEB: return OP_UNKNOWN(fd);
+    case 0xEC: return OP_UNKNOWN(fd);
+    case 0xED: return OP_UNKNOWN(fd);
     case 0xEE: return op_xor_rr_d8(fd, &fd->reg.A, with8(op));
     case 0xEF: return op_rst_d8___(fd, 0x28);
 
@@ -898,7 +901,7 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0xF1: return op_pop_ww___(fd, &fd->reg.AF);
     case 0xF2: return op_ld__rr_RR(fd, &fd->reg.A, &fd->reg.C);
     case 0xF3: return op_int______(fd, false);
-    case 0xF4: return OP_ILLEGAL;
+    case 0xF4: return OP_UNKNOWN(fd);
     case 0xF5: return op_psh_ww___(fd, &fd->reg.AF);
     case 0xF6: return op_or__rr_d8(fd, &fd->reg.A, with8(op));
     case 0xF7: return op_rst_d8___(fd, 0x30);
@@ -906,11 +909,12 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0xF9: return op_ld__ww_ww(fd, &fd->reg.SP, &fd->reg.HL);
     case 0xFA: return op_ld__rr_AF(fd, &fd->reg.A, with16(op));
     case 0xFB: return op_int______(fd, true);
-    case 0xFC: return OP_ILLEGAL;
-    case 0xFD: return OP_ILLEGAL;
+    case 0xFC: return OP_UNKNOWN(fd);
+    case 0xFD: return OP_UNKNOWN(fd);
     case 0xFE: return op_cp__rr_d8(fd, &fd->reg.A, with8(op));
     case 0xFF: return op_rst_d8___(fd, 0x38);
   }
 
-  return OP_ILLEGAL;
+  assert(false); // How did we get here?
+  return OP_UNKNOWN(fd);
 }
