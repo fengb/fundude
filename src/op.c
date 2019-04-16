@@ -176,22 +176,22 @@ op_result op_rst_d8___(fundude* fd, uint8_t val) {
 }
 
 op_result op_rlc_rr___(fundude* fd, reg8* tgt) {
-  do_rlc(fd, &tgt->_);
+  tgt->_ = do_rlc(fd, tgt->_);
   return OP_STEP(fd, 1, 4, zasm1("RLCA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_rla_rr___(fundude* fd, reg8* tgt) {
-  do_rl(fd, &tgt->_);
+  tgt->_ = do_rl(fd, tgt->_);
   return OP_STEP(fd, 1, 4, zasm1("RLA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_rrc_rr___(fundude* fd, reg8* tgt) {
-  do_rrc(fd, &tgt->_);
+  tgt->_ = do_rrc(fd, tgt->_);
   return OP_STEP(fd, 1, 4, zasm1("RRC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 op_result op_rra_rr___(fundude* fd, reg8* tgt) {
-  do_rr(fd, &tgt->_);
+  tgt->_ = do_rr(fd, tgt->_);
   return OP_STEP(fd, 1, 4, zasm1("RRA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
@@ -580,14 +580,13 @@ op_result op_cal_if_AF(fundude* fd, cond c, uint16_t val) {
 op_result op_cb(fundude* fd, uint8_t op) {
   reg8* tgt = cb_tgt(fd, op);
   if (tgt) {
-    char* op_name = cb_tick(fd, op, &tgt->_);
-    return OP_STEP(fd, 2, 8, zasm1(op_name, zasma_reg8(ZASM_PLAIN, fd, tgt)));
-  } else if (fd->reg.HL._ >= BEYOND_CART) {
-    // TODO: remove the magic pointer so we don't have this weirdo ERR state
-    char* op_name = cb_tick(fd, op, fdm_ptr(&fd->mem, fd->reg.HL._));
-    return OP_STEP(fd, 2, 16, zasm1(op_name, zasma_reg16(ZASM_PAREN, fd, &fd->reg.HL)));
+    cb_result res = cb_run(fd, op, tgt->_);
+    tgt->_ = res.val;
+    return OP_STEP(fd, 2, 8, zasm1(res.name, zasma_reg8(ZASM_PLAIN, fd, tgt)));
   } else {
-    return OP_STEP(fd, 2, 16, zasm0("ERR (HL)"));
+    cb_result res = cb_run(fd, op, fdm_get(&fd->mem, fd->reg.HL._));
+    fdm_set(&fd->mem, fd->reg.HL._, res.val);
+    return OP_STEP(fd, 2, 16, zasm1(res.name, zasma_reg16(ZASM_PAREN, fd, &fd->reg.HL)));
   }
 }
 

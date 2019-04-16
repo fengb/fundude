@@ -16,7 +16,7 @@ void do_cp__rr(fundude* fd, reg8* tgt, uint8_t val);
 void do_add_rr(fundude* fd, reg8* tgt, uint8_t val);
 void do_sub_rr(fundude* fd, reg8* tgt, uint8_t val);
 
-void do_rlc(fundude* fd, uint8_t* tgt);
-void do_rrc(fundude* fd, uint8_t* tgt);
-void do_rl(fundude* fd, uint8_t* tgt);
-void do_rr(fundude* fd, uint8_t* tgt);
+uint8_t do_rlc(fundude* fd, uint8_t val);
+uint8_t do_rrc(fundude* fd, uint8_t val);
+uint8_t do_rl(fundude* fd, uint8_t val);
+uint8_t do_rr(fundude* fd, uint8_t val);

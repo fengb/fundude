@@ -75,22 +75,22 @@ void do_sub_rr(fundude* fd, reg8* tgt, uint8_t val) {
   tgt->_ -= val;
 }
 
-void do_rlc(fundude* fd, uint8_t* tgt) {
-  int msb = *tgt >> 7 & 1;
-  *tgt = flag_shift(fd, *tgt << 1 | msb, msb);
+uint8_t do_rlc(fundude* fd, uint8_t val) {
+  int msb = val >> 7 & 1;
+  return flag_shift(fd, val << 1 | msb, msb);
 }
 
-void do_rrc(fundude* fd, uint8_t* tgt) {
-  int lsb = *tgt & 1;
-  *tgt = flag_shift(fd, *tgt >> 1 | (lsb << 7), lsb);
+uint8_t do_rrc(fundude* fd, uint8_t val) {
+  int lsb = val & 1;
+  return flag_shift(fd, val >> 1 | (lsb << 7), lsb);
 }
 
-void do_rl(fundude* fd, uint8_t* tgt) {
-  int msb = *tgt >> 7 & 1;
-  *tgt = flag_shift(fd, *tgt << 1 | fd->reg.FLAGS.C, msb);
+uint8_t do_rl(fundude* fd, uint8_t val) {
+  int msb = val >> 7 & 1;
+  return flag_shift(fd, val << 1 | fd->reg.FLAGS.C, msb);
 }
 
-void do_rr(fundude* fd, uint8_t* tgt) {
-  int lsb = *tgt & 1;
-  *tgt = flag_shift(fd, *tgt >> 1 | (fd->reg.FLAGS.C << 7), lsb);
+uint8_t do_rr(fundude* fd, uint8_t val) {
+  int lsb = val & 1;
+  return flag_shift(fd, val >> 1 | (fd->reg.FLAGS.C << 7), lsb);
 }
