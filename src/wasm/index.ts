@@ -1,6 +1,7 @@
 //@ts-ignore
 import fundude from "../../build/fundude";
 
+import { Signal } from "micro-signals";
 import { deferred } from "./util";
 
 const READY = deferred();
@@ -42,29 +43,31 @@ function registers(raw: Uint8Array) {
   };
 }
 
-const CART_OFFSET = 0x8000
+const CART_OFFSET = 0x8000;
 
 function memory(raw: Uint8Array) {
   return Object.assign(raw, {
     displayStart: CART_OFFSET,
     offsets: {
       vram: 0x8000 - CART_OFFSET,
-      ram: 0xC000 - CART_OFFSET,
-      oam: 0xFE00 - CART_OFFSET,
-      io_ports: 0xFF00 - CART_OFFSET,
-      himem: 0xFF80 - CART_OFFSET
+      ram: 0xc000 - CART_OFFSET,
+      oam: 0xfe00 - CART_OFFSET,
+      io_ports: 0xff00 - CART_OFFSET,
+      himem: 0xff80 - CART_OFFSET
     }
   });
 }
 
-export default class FundudeWasm extends EventTarget {
+export default class FundudeWasm {
   static ready() {
     return READY;
   }
 
   static boot(cart: Uint8Array) {
-    return FundudeWasm.ready().then(ms => new FundudeWasm(cart));
+    return FundudeWasm.ready().then(() => new FundudeWasm(cart));
   }
+
+  public changed = new Signal<void>();
 
   private readonly pointer: number;
   cart!: PtrArray;
@@ -77,8 +80,6 @@ export default class FundudeWasm extends EventTarget {
   readonly memory: ReturnType<typeof memory>;
 
   constructor(cart: Uint8Array) {
-    super();
-
     this.pointer = Module._alloc();
     this.init(cart);
 
@@ -102,7 +103,7 @@ export default class FundudeWasm extends EventTarget {
     this.cart = PtrArray.clone(cart);
     Module._init(this.pointer, cart.length, this.cart.ptr);
 
-    this.dispatchEvent(new CustomEvent("programCounter"));
+    this.changed.dispatch();
   }
 
   dealloc() {
@@ -125,23 +126,17 @@ export default class FundudeWasm extends EventTarget {
   setBreakpoint(bp: number) {
     this.breakpoint = bp;
     Module._set_breakpoint(this.pointer, bp);
-    this.dispatchEvent(
-      new CustomEvent("programCounter", { detail: this.registers.PC() })
-    );
+    this.changed.dispatch();
   }
 
   step() {
     Module._step(this.pointer);
-    this.dispatchEvent(
-      new CustomEvent("programCounter", { detail: this.registers.PC() })
-    );
+    this.changed.dispatch();
   }
 
   stepFrame(frames = 1) {
     Module._step_frames(this.pointer, frames);
-    this.dispatchEvent(
-      new CustomEvent("programCounter", { detail: this.registers.PC() })
-    );
+    this.changed.dispatch();
   }
 
   static *disassemble(cart: Uint8Array): IterableIterator<GBInstruction> {
