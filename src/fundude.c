@@ -20,6 +20,7 @@ void fd_init(fundude* fd, size_t cart_length, uint8_t cart[]) {
 void fd_reset(fundude* fd) {
   memset(fd->display, 0, sizeof(fd->display));
   fd->reg.PC._ = 0;
+  fd->mem.boot_complete = 0;
   fd->mode = SYS_NORM;
 }
 
