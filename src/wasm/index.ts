@@ -16,14 +16,16 @@ export interface GBInstruction {
   text: string;
 }
 
-type PtrArray = Uint8Array & { ptr: number };
+interface PtrArray extends Uint8Array {
+  ptr: number;
+}
 
 const PtrArray = {
-  segment: function(ptr: number, length: number): PtrArray {
+  segment(ptr: number, length: number): PtrArray {
     const array = Module.HEAPU8.subarray(ptr, ptr + length);
     return Object.assign(array, { ptr });
   },
-  clone: function(array: Uint8Array) {
+  clone(array: Uint8Array) {
     const ptr = Module._malloc(array.length);
     const ptrArray = PtrArray.segment(ptr, array.length);
     ptrArray.set(array);
