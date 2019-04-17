@@ -5,6 +5,7 @@ import classnames from "classnames";
 import FundudeWasm, { MEMORY_OFFSETS } from "../../wasm";
 import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";
+import Form from "../Form";
 
 const CSS = {
   root: style({
@@ -23,6 +24,9 @@ const CSS = {
   cell: style({
     flex: "1 1 auto",
     textAlign: "center"
+  }),
+  focus: style({
+    boxShadow: "inset 0 0 0 1px black"
   }),
 
   hl: style({
@@ -61,7 +65,7 @@ function MemoryOutput(props: {
       childWidth={430}
       childHeight={15}
       totalChildren={height}
-      focus={Math.floor(props.focus / WIDTH)}
+      focus={Math.floor((props.focus - MEMORY_OFFSETS.shift) / WIDTH)}
     >
       {row => (
         <div className={CSS.row}>
@@ -70,13 +74,15 @@ function MemoryOutput(props: {
           </strong>
           {times(WIDTH, col => {
             const i = row * WIDTH + col;
+            const loc = row * WIDTH + col + MEMORY_OFFSETS.shift;
             return (
               <span
                 key={col}
                 className={classnames(
                   CSS.cell,
-                  props.highlightClasses[i + MEMORY_OFFSETS.shift],
-                  MEMLOC_CSS[i + MEMORY_OFFSETS.shift]
+                  props.highlightClasses[loc],
+                  MEMLOC_CSS[loc],
+                  loc === props.focus && CSS.focus
                 )}
               >
                 {hex2(props.mem[i])}
@@ -99,11 +105,14 @@ export default function Memory(props: { fd: FundudeWasm }) {
           <button
             key={key}
             className={REGION_CSS[key]}
-            onClick={() => setFocus(tuple[0] - MEMORY_OFFSETS.shift)}
+            onClick={() => setFocus(tuple[0])}
           >
-            {key}
+            {key}<br />${hex4(tuple[0])}
           </button>
         ))}
+        <Form onSubmit={({ search }) => setFocus(parseInt(String(search), 16))}>
+          <input name="search" pattern="[0-9a-fA-F]*" />
+        </Form>
       </div>
       <MemoryOutput
         mem={mem}
