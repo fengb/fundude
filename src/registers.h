@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#error
+#endif
+
 typedef enum {
   COND_NZ,
   COND_Z,
@@ -12,19 +16,11 @@ typedef enum {
 } cond;
 
 typedef struct {
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   uint8_t _padding : 4;
   bool C : 1;
   bool H : 1;
   bool N : 1;
   bool Z : 1;
-#else
-  bool Z : 1;
-  bool N : 1;
-  bool H : 1;
-  bool C : 1;
-  uint8_t _padding : 4;
-#endif
 } fd_flags;
 
 typedef struct {
@@ -36,7 +32,6 @@ typedef struct {
 } reg16;
 
 typedef struct {
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   union {
     reg16 AF;
     struct {
@@ -71,42 +66,6 @@ typedef struct {
       reg8 H;
     };
   };
-#else
-  union {
-    reg16 AF;
-    struct {
-      reg8 A;
-      union {
-        reg8 F;
-        fd_flags FLAGS;
-      };
-    };
-  };
-
-  union {
-    reg16 BC;
-    struct {
-      reg8 B;
-      reg8 C;
-    };
-  };
-
-  union {
-    reg16 DE;
-    struct {
-      reg8 D;
-      reg8 E;
-    };
-  };
-
-  union {
-    reg16 HL;
-    struct {
-      reg8 H;
-      reg8 L;
-    };
-  };
-#endif
 
   reg16 SP;
   reg16 PC;
