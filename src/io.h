@@ -1,6 +1,27 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef enum __attribute__((__packed__)) {
+  SHADE_WHITE = 0,
+  SHADE_LIGHT_GRAY = 1,
+  SHADE_DARK_GRAY = 2,
+  SHADE_BLACK = 3,
+} shade;
+
+typedef enum __attribute__((__packed__)) {
+  LCDC_HBLANK = 0,
+  LCDC_VBLANK = 1,
+  LCDC_SEARCHING = 2,
+  LCDC_TRANSFERRING = 3,
+} lcdc_mode;
+
+typedef struct __attribute__((__packed__)) {
+  shade color0 : 2;
+  shade color1 : 2;
+  shade color2 : 2;
+  shade color3 : 2;
+} color_palette;
+
 typedef union {
   uint8_t RAW[0x4C];
   struct {
@@ -54,16 +75,32 @@ typedef union {
 
     uint8_t wave_pattern[0x10];
 
-    uint8_t LCDC;
-    uint8_t STAT;
+    struct {
+      bool bg_enable : 1;
+      bool obj_enable : 1;
+      uint8_t obj_size : 1;
+      uint8_t bg_tile_map : 1;
+      uint8_t bg_window_tile_data : 1;
+      bool window_enable : 1;
+      uint8_t window_tile_map : 1;
+      bool lcd_enable : 1;
+    } LCDC;
+    struct {
+      lcdc_mode mode : 2;
+      bool coincidence : 1;
+      bool hblank_int : 1;
+      bool vblank_int : 1;
+      bool oam_int : 1;
+      bool coincidence_int : 1;
+    } STAT;
     uint8_t SCY;
     uint8_t SCX;
     uint8_t LY;
     uint8_t LYC;
     uint8_t DMA;
-    uint8_t BGP;
-    uint8_t OBP0;
-    uint8_t OBP1;
+    color_palette BGP;
+    color_palette OBP0;
+    color_palette OBP1;
     uint8_t WY;
     uint8_t WX;
   };

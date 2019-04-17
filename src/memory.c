@@ -13,9 +13,17 @@ uint8_t* fdm_ptr(fd_memory* mem, uint16_t addr) {
   return &mem->RAW[addr - BEYOND_CART];
 }
 
+bool is_locked(fd_memory* m, uint16_t addr) {
+  return (0x8000 <= addr && addr < 0xA000 && m->io_ports.STAT.mode == LCDC_TRANSFERRING) ||
+         (0xFE00 <= addr && addr < 0xFEA0 && m->io_ports.STAT.mode >= LCDC_SEARCHING);
+}
+
 uint8_t fdm_get(fd_memory* m, uint16_t addr) {
   if (!m->boot_complete && addr < BEYOND_BOOTLOADER) {
     return BOOTLOADER[addr];
+  }
+  if (is_locked(m, addr)) {
+    return 0xFF;
   }
   uint8_t* ptr = fdm_ptr(m, addr);
   return *ptr;
@@ -24,6 +32,9 @@ uint8_t fdm_get(fd_memory* m, uint16_t addr) {
 void fdm_set(fd_memory* m, uint16_t addr, uint8_t val) {
   // Can't update cart data
   if (addr < BEYOND_CART) {
+    return;
+  }
+  if (is_locked(m, addr)) {
     return;
   }
   uint8_t* ptr = fdm_ptr(m, addr);
