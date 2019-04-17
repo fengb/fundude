@@ -1,7 +1,7 @@
-import React, { memo } from "react";
-import { times } from "lodash";
+import React from "react";
+import { times, map } from "lodash";
 import { style } from "typestyle";
-import FundudeWasm from "../../wasm";
+import FundudeWasm, { MEMORY_OFFSETS } from "../../wasm";
 import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";
 
@@ -32,11 +32,25 @@ const CSS = {
   })
 };
 
+const REGION_CSS: Record<string, string> = {
+  vram: style({ backgroundColor: "purple" }),
+  ram: style({ backgroundColor: "brown" }),
+  oam: style({ backgroundColor: "pink" }),
+  ioPorts: style({ backgroundColor: "yellow" }),
+  himem: style({ backgroundColor: "blue" })
+};
+
+const MEMLOC_CSS: Record<number, string> = {};
+for (const [key, tuple] of Object.entries(MEMORY_OFFSETS.segments)) {
+  for (let loc = tuple[0]; loc < tuple[1]; loc++) {
+    MEMLOC_CSS[loc] = REGION_CSS[key];
+  }
+}
+
 const WIDTH = 16;
 
 function MemoryOutput(props: {
-  mem: Uint8Array;
-  displayStart: number;
+  mem: FundudeWasm["memory"];
   focus: number;
   highlightClasses: Record<number, string>;
 }) {
@@ -51,7 +65,7 @@ function MemoryOutput(props: {
       {row => (
         <div className={CSS.row}>
           <strong className={CSS.addr}>
-            ${hex4(props.displayStart + row * WIDTH)}
+            ${hex4(MEMORY_OFFSETS.shift + row * WIDTH)}
           </strong>
           {times(WIDTH, col => {
             const i = row * WIDTH + col;
@@ -59,8 +73,8 @@ function MemoryOutput(props: {
               <span
                 key={col}
                 className={`${CSS.cell} ${
-                  props.highlightClasses[i + props.displayStart]
-                }`}
+                  props.highlightClasses[i + MEMORY_OFFSETS.shift]
+                } ${MEMLOC_CSS[i + MEMORY_OFFSETS.shift]}`}
               >
                 {hex2(props.mem[i])}
               </span>
@@ -78,15 +92,18 @@ export default function Memory(props: { fd: FundudeWasm }) {
   return (
     <div className={CSS.root}>
       <div>
-        <button onClick={() => setFocus(mem.offsets.vram)}>VRAM</button>
-        <button onClick={() => setFocus(mem.offsets.ram)}>RAM</button>
-        <button onClick={() => setFocus(mem.offsets.oam)}>OAM</button>
-        <button onClick={() => setFocus(mem.offsets.io_ports)}>IO Ports</button>
-        <button onClick={() => setFocus(mem.offsets.himem)}>HIMEM</button>
+        {map(MEMORY_OFFSETS.segments, (tuple, key) => (
+          <button
+            key={key}
+            className={REGION_CSS[key]}
+            onClick={() => setFocus(tuple[0] - MEMORY_OFFSETS.shift)}
+          >
+            {key}
+          </button>
+        ))}
       </div>
       <MemoryOutput
         mem={mem}
-        displayStart={mem.displayStart}
         focus={focus}
         highlightClasses={{
           [props.fd.registers.HL()]: CSS.hl,

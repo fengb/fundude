@@ -43,20 +43,20 @@ function registers(raw: Uint8Array) {
   };
 }
 
-const CART_OFFSET = 0x8000;
-
-function memory(raw: Uint8Array) {
-  return Object.assign(raw, {
-    displayStart: CART_OFFSET,
-    offsets: {
-      vram: 0x8000 - CART_OFFSET,
-      ram: 0xc000 - CART_OFFSET,
-      oam: 0xfe00 - CART_OFFSET,
-      io_ports: 0xff00 - CART_OFFSET,
-      himem: 0xff80 - CART_OFFSET
-    }
-  });
+function tuple<T1, T2>(t1: T1, t2: T2): [T1, T2] {
+  return [t1, t2];
 }
+
+export const MEMORY_OFFSETS = {
+  shift: 0x8000,
+  segments: {
+    vram: tuple(0x8000, 0xa000),
+    ram: tuple(0xc000, 0xe000),
+    oam: tuple(0xfe00, 0xfea0),
+    ioPorts: tuple(0xff00, 0xff4c),
+    himem: tuple(0xff80, 0xffff)
+  }
+};
 
 export default class FundudeWasm {
   static ready() {
@@ -77,7 +77,7 @@ export default class FundudeWasm {
   readonly display: Uint8Array;
 
   readonly registers: ReturnType<typeof registers>;
-  readonly memory: ReturnType<typeof memory>;
+  readonly memory: Uint8Array;
 
   constructor(cart: Uint8Array) {
     this.pointer = Module._alloc();
@@ -90,9 +90,7 @@ export default class FundudeWasm {
     this.registers = registers(
       PtrArray.segment(Module._registers_ptr(this.pointer), 12)
     );
-    this.memory = memory(
-      PtrArray.segment(Module._memory_ptr(this.pointer), 0x8000)
-    );
+    this.memory = PtrArray.segment(Module._memory_ptr(this.pointer), 0x8000);
   }
 
   init(cart: Uint8Array) {
