@@ -1,6 +1,7 @@
 import React from "react";
 import { times, map } from "lodash";
 import { style } from "typestyle";
+import classnames from "classnames";
 import FundudeWasm, { MEMORY_OFFSETS } from "../../wasm";
 import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";
@@ -72,9 +73,11 @@ function MemoryOutput(props: {
             return (
               <span
                 key={col}
-                className={`${CSS.cell} ${
-                  props.highlightClasses[i + MEMORY_OFFSETS.shift]
-                } ${MEMLOC_CSS[i + MEMORY_OFFSETS.shift]}`}
+                className={classnames(
+                  CSS.cell,
+                  props.highlightClasses[i + MEMORY_OFFSETS.shift],
+                  MEMLOC_CSS[i + MEMORY_OFFSETS.shift]
+                )}
               >
                 {hex2(props.mem[i])}
               </span>
