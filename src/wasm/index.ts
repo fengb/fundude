@@ -10,7 +10,6 @@ const Module = fundude({
   onRuntimeInitialized: READY.resolve
 });
 
-export type Palette = Record<number, Uint8Array>;
 export interface GBInstruction {
   addr: number;
   text: string;
@@ -78,6 +77,9 @@ export default class FundudeWasm {
   readonly height: number;
   readonly display: Uint8Array;
 
+  readonly background: Uint8Array;
+  readonly window: Uint8Array;
+
   readonly registers: ReturnType<typeof registers>;
   readonly memory: Uint8Array;
 
@@ -88,6 +90,12 @@ export default class FundudeWasm {
     this.width = Module._display_width();
     this.height = Module._display_height();
     this.display = PtrArray.segment(this.pointer, this.width * this.height);
+
+    this.background = PtrArray.segment(
+      Module._background_ptr(this.pointer),
+      256 * 256
+    );
+    this.window = PtrArray.segment(Module._window_ptr(this.pointer), 256 * 256);
 
     this.registers = registers(
       PtrArray.segment(Module._registers_ptr(this.pointer), 12)
@@ -111,15 +119,6 @@ export default class FundudeWasm {
       Module._free(this.cart.ptr);
     }
     Module._free(this.pointer);
-  }
-
-  imageData(palette: Palette) {
-    const imageData = new ImageData(this.width, this.height);
-    for (let i = 0; i < this.display.length; i++) {
-      const colorIndex = this.display[i];
-      imageData.data.set(palette[colorIndex], 4 * i);
-    }
-    return imageData;
   }
 
   breakpoint: number = -1;

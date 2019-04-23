@@ -22,6 +22,7 @@ typedef enum {
 typedef struct {
   uint8_t display[WIDTH * HEIGHT];
   uint8_t background[256][256];
+  uint8_t window[256][256];
 
   fd_registers reg;
   fd_memory mem;

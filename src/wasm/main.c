@@ -34,6 +34,16 @@ int disassemble(fundude* fd, char* out) {
 }
 
 EMSCRIPTEN_KEEPALIVE
+void* background_ptr(fundude* fd) {
+  return &fd->background;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void* window_ptr(fundude* fd) {
+  return &fd->window;
+}
+
+EMSCRIPTEN_KEEPALIVE
 fd_registers* registers_ptr(fundude* fd) {
   return &fd->reg;
 }

@@ -2,6 +2,7 @@
 
 #define PIXELS_PER_TILE 8
 #define BACKGROUND_TILES 32
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 enum {
   TILE_MAP_9800 = 0,
@@ -42,23 +43,29 @@ shade shade_from_color(uint8_t val, color_palette pal) {
   }
 }
 
+size_t draw_line(uint8_t tgt[], size_t max, uint16_t line, color_palette pal) {
+  size_t len = MIN(max, PIXELS_PER_TILE);
+  for (int i = 0; i < len; i++) {
+    uint8_t color = color_from_uint16(line, i);
+    tgt[i] = shade_from_color(color, pal);
+  }
+  return len;
+}
+
 // TODO: optimize by "materializing" the background instead of this shenanigans
-void render_bg(fundude* fd) {
+void render_bg(fundude* fd, uint8_t background[256][256], uint8_t tile_map_flag) {
   uint8_t tile_addressing = fd->mem.io_ports.LCDC.bg_window_tile_data;
+  tile_map* tm =
+      tile_map_flag == TILE_MAP_9800 ? &fd->mem.vram.tile_map_9800 : &fd->mem.vram.tile_map_9C00;
+
   for (int r = 0; r < BACKGROUND_TILES; r++) {
     for (int c = 0; c < BACKGROUND_TILES; c++) {
-      int tile_index = fd->mem.io_ports.LCDC.bg_tile_map == TILE_MAP_9800
-                           ? fd->mem.vram.tile_map_9800[r][c]
-                           : fd->mem.vram.tile_map_9C00[r][c];
+      int tile_index = tm->_[r][c];
       tile t = tile_data(&fd->mem.vram, tile_addressing, tile_index);
 
       for (int y = 0; y < PIXELS_PER_TILE; y++) {
-        uint16_t line = t._[y];
-        for (int x = 0; x < PIXELS_PER_TILE; x++) {
-          uint8_t color = color_from_uint16(line, x);
-          uint8_t shade = shade_from_color(color, fd->mem.io_ports.BGP);
-          fd->background[r * PIXELS_PER_TILE + y][c * PIXELS_PER_TILE + x] = shade;
-        }
+        draw_line(background[r * PIXELS_PER_TILE + y], PIXELS_PER_TILE, t._[y],
+                  fd->mem.io_ports.BGP);
       }
     }
   }
@@ -66,7 +73,8 @@ void render_bg(fundude* fd) {
 
 // TODO: render over cycles instead of all at once
 void ppu_render(fundude* fd) {
-  render_bg(fd);
+  render_bg(fd, fd->background, fd->mem.io_ports.LCDC.bg_tile_map);
+  render_bg(fd, fd->window, fd->mem.io_ports.LCDC.window_tile_map);
 
   uint8_t scx = fd->mem.io_ports.SCX;
   uint8_t scy = fd->mem.io_ports.SCY;

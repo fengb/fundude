@@ -1,5 +1,4 @@
 import React from "react";
-import FundudeWasm from "../wasm";
 
 const PADDING = 1;
 
@@ -10,7 +9,21 @@ const PALETTE: Record<number, Uint8Array> = {
   3: Uint8Array.of(15, 56, 15, 255)
 };
 
-export default function Display({ fundude }: { fundude: FundudeWasm }) {
+function imageData(pixels: Uint8Array, width: number) {
+  const imageData = new ImageData(width, pixels.length / width);
+  for (let i = 0; i < pixels.length; i++) {
+    const colorIndex = pixels[i];
+    const color = PALETTE[colorIndex] || Uint8Array.of(255, 0, 0, 255);
+    imageData.data.set(color, 4 * i);
+  }
+  return imageData;
+}
+
+export default function Display(props: {
+  pixels: Uint8Array;
+  width: number;
+  height: number;
+}) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   React.useEffect(() => {
     if (!ref.current) {
@@ -18,15 +31,15 @@ export default function Display({ fundude }: { fundude: FundudeWasm }) {
     }
 
     const ctx = ref.current.getContext("2d")!;
-    ctx.putImageData(fundude.imageData(PALETTE), PADDING, PADDING);
+    ctx.putImageData(imageData(props.pixels, props.width), PADDING, PADDING);
   });
 
   return (
     <canvas
       id="display"
       ref={ref}
-      width={fundude.width + PADDING * 2}
-      height={fundude.height + PADDING * 2}
+      width={props.width + PADDING * 2}
+      height={props.height + PADDING * 2}
     />
   );
 }

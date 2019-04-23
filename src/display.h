@@ -8,12 +8,16 @@ typedef struct {
 } tile;
 
 typedef struct {
+  uint8_t _[BACKGROUND_TILES][BACKGROUND_TILES];
+} tile_map;
+
+typedef struct {
   tile tile_data_8000[128];  // $8000-87FF
   tile tile_data_8800[128];  // $8800-8FFF
   tile tile_data_9000[128];  // $9000-97FF
 
-  uint8_t tile_map_9800[BACKGROUND_TILES][BACKGROUND_TILES];  // $9800-9BFF
-  uint8_t tile_map_9C00[BACKGROUND_TILES][BACKGROUND_TILES];  // $9C00-9FFF
+  tile_map tile_map_9800;  // $9800-9BFF
+  tile_map tile_map_9C00;  // $9C00-9FFF
 } fd_vram;
 
 typedef struct {

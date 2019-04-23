@@ -23,7 +23,9 @@ export function App() {
     <div className={CSS.root}>
       <CartList extra={{ bootloader: BOOTLOADER }} />
       <div>
-        <Display fundude={fd} />
+        <Display pixels={fd.display} width={160} height={144} />
+        <Display pixels={fd.background} width={256} height={256} />
+        <Display pixels={fd.window} width={256} height={256} />
         <button onClick={() => fd.step()}>Step</button>
         <button onClick={() => fd.stepFrame()}>Step Frame</button>
         <button onClick={() => fd.stepFrame(60)}>Step Second</button>
