@@ -1,4 +1,5 @@
 #include "fundude.h"
+#include <ppu.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,7 +60,12 @@ int fd_step(fundude* fd) {
 }
 
 int fd_step_frames(fundude* fd, short frames) {
-  return fd_step_cycles(fd, CYCLES_PER_FRAME * frames);
+  int total = 0;
+  while (frames --> 0) {
+    total += fd_step_cycles(fd, CYCLES_PER_FRAME);
+    ppu_render(fd);
+  }
+  return total;
 }
 
 int fd_step_cycles(fundude* fd, int cycles) {
@@ -76,7 +82,7 @@ int fd_step_cycles(fundude* fd, int cycles) {
 
     fd->reg.PC._ = res.jump;
     cycles -= res.duration;
-  } while(cycles >= 0 && fd->breakpoint != fd->reg.PC._);
+  } while (cycles >= 0 && fd->breakpoint != fd->reg.PC._);
 
   return fd->reg.PC._;
 }

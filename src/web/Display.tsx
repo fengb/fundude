@@ -19,7 +19,7 @@ export default function Display({ fundude }: { fundude: FundudeWasm }) {
 
     const ctx = ref.current.getContext("2d")!;
     ctx.putImageData(fundude.imageData(PALETTE), PADDING, PADDING);
-  }, [ref.current]);
+  });
 
   return (
     <canvas

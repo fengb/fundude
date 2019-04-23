@@ -1,6 +1,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define BACKGROUND_TILES 32
+
 typedef struct {
   uint16_t _[8];
 } tile;
@@ -10,8 +12,8 @@ typedef struct {
   tile tile_data_8800[128];  // $8800-8FFF
   tile tile_data_9000[128];  // $9000-97FF
 
-  uint8_t tile_map_9800[0x0400];  // $9800-9BFF
-  uint8_t tile_map_9C00[0x0400];  // $9C00-9FFF
+  uint8_t tile_map_9800[BACKGROUND_TILES][BACKGROUND_TILES];  // $9800-9BFF
+  uint8_t tile_map_9C00[BACKGROUND_TILES][BACKGROUND_TILES];  // $9C00-9FFF
 } fd_vram;
 
 typedef struct {
