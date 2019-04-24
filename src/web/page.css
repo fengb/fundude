@@ -2,10 +2,3 @@
   box-sizing: border-box;
   margin: 0;
 }
-
-#display {
-  display: block;
-  margin: 0 auto;
-  width: 324px;
-  height: 292px;
-}

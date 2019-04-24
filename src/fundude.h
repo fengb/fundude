@@ -1,8 +1,8 @@
 #ifndef __FUNDUDE_H
 #define __FUNDUDE_H
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "cart.h"
 #include "memory.h"
 #include "registers.h"
@@ -21,6 +21,9 @@ typedef enum {
 
 typedef struct {
   uint8_t display[WIDTH * HEIGHT];
+  uint8_t background[256][256];
+  uint8_t window[256][256];
+  uint8_t tile_data[96][256];
 
   fd_registers reg;
   fd_memory mem;

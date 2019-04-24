@@ -10,7 +10,6 @@ const Module = fundude({
   onRuntimeInitialized: READY.resolve
 });
 
-export type Palette = Record<number, Uint8Array>;
 export interface GBInstruction {
   addr: number;
   text: string;
@@ -20,10 +19,21 @@ interface PtrArray extends Uint8Array {
   ptr: number;
 }
 
+interface PtrMatrix extends PtrArray {
+  width: number;
+  height: number;
+}
+
 const PtrArray = {
   segment(ptr: number, length: number): PtrArray {
     const array = Module.HEAPU8.subarray(ptr, ptr + length);
     return Object.assign(array, { ptr });
+  },
+  matrix(ptr: number, width: number, height: number) {
+    return Object.assign(PtrArray.segment(ptr, width * height), {
+      width,
+      height
+    });
   },
   clone(array: Uint8Array) {
     const ptr = Module._malloc(array.length);
@@ -76,7 +86,11 @@ export default class FundudeWasm {
 
   readonly width: number;
   readonly height: number;
-  readonly display: Uint8Array;
+  readonly display: PtrMatrix;
+
+  readonly background: PtrMatrix;
+  readonly window: PtrMatrix;
+  readonly tileData: PtrMatrix;
 
   readonly registers: ReturnType<typeof registers>;
   readonly memory: Uint8Array;
@@ -87,7 +101,19 @@ export default class FundudeWasm {
 
     this.width = Module._display_width();
     this.height = Module._display_height();
-    this.display = PtrArray.segment(this.pointer, this.width * this.height);
+    this.display = PtrArray.matrix(this.pointer, this.width, this.height);
+
+    this.background = PtrArray.matrix(
+      Module._background_ptr(this.pointer),
+      256,
+      256
+    );
+    this.window = PtrArray.matrix(Module._window_ptr(this.pointer), 256, 256);
+    this.tileData = PtrArray.matrix(
+      Module._tile_data_ptr(this.pointer),
+      256,
+      96
+    );
 
     this.registers = registers(
       PtrArray.segment(Module._registers_ptr(this.pointer), 12)
@@ -111,15 +137,6 @@ export default class FundudeWasm {
       Module._free(this.cart.ptr);
     }
     Module._free(this.pointer);
-  }
-
-  imageData(palette: Palette) {
-    const imageData = new ImageData(this.width, this.height);
-    for (let i = 0; i < this.display.length; i++) {
-      const colorIndex = this.display[i];
-      imageData.data.set(palette[colorIndex], 4 * i);
-    }
-    return imageData;
   }
 
   breakpoint: number = -1;

@@ -12,7 +12,6 @@ typedef struct {
   zasm zasm;
 } op_result;
 
-void op_run(fundude* fd, uint32_t µs);
 op_result op_tick(fundude* fd, uint8_t op[]);
 
 #endif

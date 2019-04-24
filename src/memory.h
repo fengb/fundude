@@ -12,7 +12,7 @@ typedef struct {
   union {
     uint8_t RAW[0x8000];
     struct {
-      uint8_t vram[0x2000];            // 0x8000 - 0xA000
+      fd_vram vram;                    // 0x8000 - 0xA000
       uint8_t switchable_ram[0x2000];  // 0xA000 - 0xC000
       uint8_t ram[0x2000];             // 0xC000 - 0xE000
       uint8_t _pad_ram_echo[0x1E00];   // 0xE000 - 0xFE00
