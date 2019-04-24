@@ -44,6 +44,11 @@ void* window_ptr(fundude* fd) {
 }
 
 EMSCRIPTEN_KEEPALIVE
+void* tile_data_ptr(fundude* fd) {
+  return &fd->tile_data;
+}
+
+EMSCRIPTEN_KEEPALIVE
 fd_registers* registers_ptr(fundude* fd) {
   return &fd->reg;
 }

@@ -19,11 +19,12 @@ function imageData(pixels: Uint8Array, width: number) {
   return imageData;
 }
 
-export default function Display(props: {
-  pixels: Uint8Array;
+interface Matrix extends Uint8Array {
   width: number;
   height: number;
-}) {
+}
+
+export default function Display(props: { pixels: Matrix }) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   React.useEffect(() => {
     if (!ref.current) {
@@ -31,15 +32,18 @@ export default function Display(props: {
     }
 
     const ctx = ref.current.getContext("2d")!;
-    ctx.putImageData(imageData(props.pixels, props.width), PADDING, PADDING);
+    ctx.putImageData(
+      imageData(props.pixels, props.pixels.width),
+      PADDING,
+      PADDING
+    );
   });
 
   return (
     <canvas
-      id="display"
       ref={ref}
-      width={props.width + PADDING * 2}
-      height={props.height + PADDING * 2}
+      width={props.pixels.width + PADDING * 2}
+      height={props.pixels.height + PADDING * 2}
     />
   );
 }

@@ -12,9 +12,14 @@ typedef struct {
 } tile_map;
 
 typedef struct {
-  tile tile_data_8000[128];  // $8000-87FF
-  tile tile_data_8800[128];  // $8800-8FFF
-  tile tile_data_9000[128];  // $9000-97FF
+  union {
+    tile ALL[3 * 128];
+    struct {
+      tile _8000[128];  // $8000-87FF
+      tile _8800[128];  // $8800-8FFF
+      tile _9000[128];  // $9000-97FF
+    };
+  } tile_data;
 
   tile_map tile_map_9800;  // $9800-9BFF
   tile_map tile_map_9C00;  // $9C00-9FFF

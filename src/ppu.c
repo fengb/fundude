@@ -3,6 +3,9 @@
 #define PIXELS_PER_TILE 8
 #define BACKGROUND_TILES 32
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
+#define ARRAYLEN(x) (sizeof(x) / sizeof(x[0]))
+
+color_palette NO_PALETTE = {.color0 = 0, .color1 = 1, .color2 = 2, .color3 = 3};
 
 enum {
   TILE_MAP_9800 = 0,
@@ -16,11 +19,11 @@ typedef enum {
 
 tile tile_data(fd_vram* vram, tile_addressing addressing, uint8_t index) {
   if (index >= 128) {
-    return vram->tile_data_8800[index - 128];
+    return vram->tile_data._8800[index - 128];
   } else if (addressing == TILE_ADDRESSING_8000) {
-    return vram->tile_data_8000[index];
+    return vram->tile_data._8000[index];
   } else {
-    return vram->tile_data_9000[index];
+    return vram->tile_data._9000[index];
   }
 }
 
@@ -31,7 +34,7 @@ tile sprite_data(fd_vram* vram, uint8_t index) {
 uint8_t color_from_uint16(uint16_t val, int bit) {
   uint8_t hb = val >> 8;
   uint8_t lb = val & 0xFF;
-  return (lb >> bit & 1) << 1 & (hb >> bit & 1);
+  return (lb >> bit & 1) << 1 | (hb >> bit & 1);
 }
 
 shade shade_from_color(uint8_t val, color_palette pal) {
@@ -40,16 +43,19 @@ shade shade_from_color(uint8_t val, color_palette pal) {
     case 1: return pal.color1;
     case 2: return pal.color2;
     case 3: return pal.color3;
+    default: return 0xFF;
   }
 }
 
-size_t draw_line(uint8_t tgt[], size_t max, uint16_t line, color_palette pal) {
-  size_t len = MIN(max, PIXELS_PER_TILE);
-  for (int i = 0; i < len; i++) {
-    uint8_t color = color_from_uint16(line, i);
-    tgt[i] = shade_from_color(color, pal);
+void draw_tile(uint8_t tgt[][256], size_t r, size_t c, tile t, color_palette pal) {
+  for (size_t y = 0; y < PIXELS_PER_TILE; y++) {
+    uint16_t line = t._[y];
+
+    for (size_t x = 0; x < PIXELS_PER_TILE; x++) {
+      uint8_t color = color_from_uint16(line, PIXELS_PER_TILE - x - 1);
+      tgt[r * PIXELS_PER_TILE + y][c * PIXELS_PER_TILE + x] = shade_from_color(color, pal);
+    }
   }
-  return len;
 }
 
 // TODO: optimize by "materializing" the background instead of this shenanigans
@@ -63,16 +69,20 @@ void render_bg(fundude* fd, uint8_t background[256][256], uint8_t tile_map_flag)
       int tile_index = tm->_[r][c];
       tile t = tile_data(&fd->mem.vram, tile_addressing, tile_index);
 
-      for (int y = 0; y < PIXELS_PER_TILE; y++) {
-        draw_line(background[r * PIXELS_PER_TILE + y], PIXELS_PER_TILE, t._[y],
-                  fd->mem.io_ports.BGP);
-      }
+      draw_tile(background, r, c, t, fd->mem.io_ports.BGP);
     }
   }
 }
 
 // TODO: render over cycles instead of all at once
 void ppu_render(fundude* fd) {
+  for (int i = 0; i < ARRAYLEN(fd->mem.vram.tile_data.ALL); i++) {
+    tile t = fd->mem.vram.tile_data.ALL[i];
+    int c = i % BACKGROUND_TILES;
+    int r = i / BACKGROUND_TILES;
+
+    draw_tile(fd->tile_data, r, c, t, NO_PALETTE);
+  }
   render_bg(fd, fd->background, fd->mem.io_ports.LCDC.bg_tile_map);
   render_bg(fd, fd->window, fd->mem.io_ports.LCDC.window_tile_map);
 
