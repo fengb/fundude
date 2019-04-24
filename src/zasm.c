@@ -1,6 +1,4 @@
 #include "zasm.h"
-#include <stdio.h>
-#include <string.h>
 
 zasm zasm0(const char* name) {
   return (zasm){name, 0, 0};
@@ -40,8 +38,42 @@ zasm_arg zasma_hex16(zasm_format f, uint16_t val) {
   return (zasm_arg){ZASM_HEX16, f, val};
 }
 
+static char hexch(int i, int byte_offset) {
+  switch ((i >> (byte_offset * 8)) & 0xF) {
+    case 0x0: return '0';
+    case 0x1: return '1';
+    case 0x2: return '2';
+    case 0x3: return '3';
+    case 0x4: return '4';
+    case 0x5: return '5';
+    case 0x6: return '6';
+    case 0x7: return '7';
+    case 0x8: return '8';
+    case 0x9: return '9';
+    case 0xA: return 'A';
+    case 0xB: return 'B';
+    case 0xC: return 'C';
+    case 0xD: return 'D';
+    case 0xE: return 'E';
+    case 0xF: return 'F';
+    default: return '?';
+  }
+}
+
+static size_t putsn(char* out, size_t limit, const char* in) {
+  size_t i;
+  for (i = 0; i < limit; i++) {
+    out[i] = in[i];
+
+    if (in[i] == '\0') {
+      break;
+    }
+  }
+
+  return i;
+}
+
 static char* zasma_raw(zasm_arg arg) {
-  static char buf[8];
   switch (arg.type) {
     case ZASM_COND:
       switch (arg.val) {
@@ -81,29 +113,61 @@ static char* zasma_raw(zasm_arg arg) {
         case offsetof(fd_registers, PC): return "PC";
         default: return "W?";
       }
-    case ZASM_HEX8: snprintf(buf, sizeof(buf), "$%02X", arg.val); return buf;
-    case ZASM_HEX16: snprintf(buf, sizeof(buf), "$%04X", arg.val); return buf;
+    case ZASM_HEX8: {
+      static char buf[4];
+      buf[0] = '$';
+      buf[1] = hexch(arg.val, 1);
+      buf[2] = hexch(arg.val, 0);
+      buf[3] = '\0';
+      return buf;
+    }
+    case ZASM_HEX16: {
+      static char buf[6];
+      buf[0] = '$';
+      buf[1] = hexch(arg.val, 3);
+      buf[2] = hexch(arg.val, 2);
+      buf[3] = hexch(arg.val, 1);
+      buf[4] = hexch(arg.val, 0);
+      buf[5] = '\0';
+      return buf;
+    }
     default: return 0;
   }
 }
 
-static char* zasma_str(zasm_arg arg) {
-  static char buf[16];
+static size_t zasma_puts(char* out, size_t limit, zasm_arg arg) {
   char* raw = zasma_raw(arg);
   if (raw == 0) {
-    return "";
+    return 0;
   }
+
+  size_t offset = 0;
   switch (arg.format) {
-    case ZASM_PLAIN: snprintf(buf, sizeof(buf), " %s", raw); return buf;
-    case ZASM_PAREN: snprintf(buf, sizeof(buf), " (%s)", raw); return buf;
-    case ZASM_HIMEM: snprintf(buf, sizeof(buf), " ($FF00+%s)", raw); return buf;
+    case ZASM_PLAIN:
+      offset += putsn(out + offset, limit - offset, " ");
+      offset += putsn(out + offset, limit - offset, raw);
+      return offset;
+    case ZASM_PAREN:
+      offset += putsn(out + offset, limit - offset, " (");
+      offset += putsn(out + offset, limit - offset, raw);
+      offset += putsn(out + offset, limit - offset, ")");
+      return offset;
+    case ZASM_HIMEM:
+      offset += putsn(out + offset, limit - offset, " ($FF00+");
+      offset += putsn(out + offset, limit - offset, raw);
+      offset += putsn(out + offset, limit - offset, ")");
+      return offset;
+    default:  //
+      offset += putsn(out + offset, limit - offset, " ???");
+      offset += putsn(out + offset, limit - offset, raw);
+      return offset;
   }
-  return " ???";
 }
 
-int zasm_snprintf(char* out, size_t size, zasm z) {
-  strncpy(out, z.name, size);
-  strncat(out, zasma_str(z.arg1), size);
-  strncat(out, zasma_str(z.arg2), size);
-  return size;
+int zasm_puts(char* out, size_t limit, zasm z) {
+  size_t offset = 0;
+  offset += putsn(out + offset, limit - offset, z.name);
+  offset += zasma_puts(out + offset, limit - offset, z.arg1);
+  offset += zasma_puts(out + offset, limit - offset, z.arg2);
+  return offset;
 }

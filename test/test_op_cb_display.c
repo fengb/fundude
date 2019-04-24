@@ -13,7 +13,7 @@ int main() {
       fd.reg.HL._ = BEYOND_CART;
       op[1] = (h << 4) | l;
       op_result r = op_tick(&fd, op);
-      zasm_snprintf(buf, sizeof(buf), r.zasm);
+      zasm_puts(buf, sizeof(buf), r.zasm);
       printf("%-11s|", buf);
     }
     printf("\n");

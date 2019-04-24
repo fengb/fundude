@@ -1,5 +1,4 @@
 #include "fundude.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "op.h"
@@ -34,7 +33,7 @@ int fd_disassemble(fundude* fd, char* out) {
 
   op_result res = op_tick(fd, &fd->mem.cart[addr]);
 
-  zasm_snprintf(out, 100, res.zasm);
+  zasm_puts(out, 100, res.zasm);
   fd->reg.PC._ += res.length;
 
   if (fd->reg.PC._ >= fd->mem.cart_length) {

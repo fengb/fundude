@@ -44,6 +44,6 @@ zasm_arg zasma_reg16(zasm_format f, fundude* fd, reg16* reg);
 zasm_arg zasma_hex8(zasm_format f, uint8_t val);
 zasm_arg zasma_hex16(zasm_format f, uint16_t val);
 
-int zasm_snprintf(char* out, size_t size, zasm z);
+int zasm_puts(char* out, size_t limit, zasm z);
 
 #endif

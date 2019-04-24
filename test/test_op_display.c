@@ -15,7 +15,7 @@ int main() {
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
       op_result r = op_tick(&fd, op);
-      zasm_snprintf(buf, sizeof(buf), r.zasm);
+      zasm_puts(buf, sizeof(buf), r.zasm);
       printf("%-13s|", buf);
     }
     printf("\n");

@@ -1,6 +1,5 @@
 #include "op_cb.h"
 #include <assert.h>
-#include <stdlib.h>
 #include "op_do.h"
 
 cb_result cb_rlc(fundude* fd, uint8_t val) {
