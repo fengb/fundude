@@ -23,9 +23,9 @@ void fd_reset(fundude* fd) {
   fd->mode = SYS_NORM;
 }
 
-int fd_disassemble(fundude* fd, char* out) {
+char* fd_disassemble(fundude* fd) {
   if (fd->mode == SYS_FATAL) {
-    return -99999;
+    return NULL;
   }
 
   fd->mem.boot_complete = 1;
@@ -33,13 +33,13 @@ int fd_disassemble(fundude* fd, char* out) {
 
   op_result res = op_tick(fd, &fd->mem.cart[addr]);
 
-  zasm_puts(out, 100, res.zasm);
+  zasm_puts(fd->disassembly, sizeof(fd->disassembly), res.zasm);
   fd->reg.PC._ += res.length;
 
   if (fd->reg.PC._ >= fd->mem.cart_length) {
     fd->mode = SYS_FATAL;
   }
-  return addr;
+  return fd->disassembly;
 }
 
 int fd_step(fundude* fd) {

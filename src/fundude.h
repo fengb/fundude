@@ -26,6 +26,7 @@ typedef struct {
   fd_memory mem;
 
   int breakpoint;
+  char disassembly[24];
 
   sys_mode mode;
 } fundude;
@@ -34,7 +35,7 @@ fundude* fd_alloc(void);
 void fd_init(fundude* fd, size_t cart_length, uint8_t cart[]);
 void fd_reset(fundude* fd);
 
-int fd_disassemble(fundude* fd, char* out);
+char* fd_disassemble(fundude* fd);
 
 int fd_step(fundude* fd);
 int fd_step_frames(fundude* fd, short frames);

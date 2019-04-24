@@ -34,8 +34,8 @@ int step_frames(fundude* fd, short frames) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-int disassemble(fundude* fd, char* out) {
-  return fd_disassemble(fd, out);
+char* disassemble(fundude* fd) {
+  return fd_disassemble(fd);
 }
 
 EMSCRIPTEN_KEEPALIVE

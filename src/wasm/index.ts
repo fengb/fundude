@@ -141,12 +141,11 @@ export default class FundudeWasm {
 
   static *disassemble(cart: Uint8Array): IterableIterator<GBInstruction> {
     const fd = new FundudeWasm(cart);
-    const outPtr = Module._malloc(100);
     try {
-      let addr = 0;
       while (true) {
-        addr = Module._disassemble(fd.pointer, outPtr);
-        if (addr < 0) {
+        const addr = fd.registers.PC();
+        const outPtr = Module._disassemble(fd.pointer);
+        if (!outPtr) {
           return;
         }
         yield {
@@ -155,7 +154,6 @@ export default class FundudeWasm {
         };
       }
     } finally {
-      Module._free(outPtr);
       fd.dealloc();
     }
   }
