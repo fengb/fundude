@@ -3,6 +3,9 @@
 #include <stddef.h>
 
 uint8_t* fdm_ptr(fd_memory* mem, uint16_t addr) {
+  if (!mem->boot_complete && addr < BEYOND_BOOTLOADER) {
+    return &BOOTLOADER[addr];
+  }
   if (addr < BEYOND_CART) {
     return mem->cart + addr;
   } else if (0xE000 <= addr && addr < 0xFE00) {
@@ -19,9 +22,6 @@ bool is_locked(fd_memory* m, uint16_t addr) {
 }
 
 uint8_t fdm_get(fd_memory* m, uint16_t addr) {
-  if (!m->boot_complete && addr < BEYOND_BOOTLOADER) {
-    return BOOTLOADER[addr];
-  }
   if (is_locked(m, addr)) {
     return 0xFF;
   }
