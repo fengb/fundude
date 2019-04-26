@@ -1,7 +1,6 @@
 version: '2'
 services:
-  build:
-    image: trzeci/emscripten
-    command: ["make"]
+  builder:
+    build: .
     volumes:
-      - ".:/src"
+      - ".:/opt/fundude"
