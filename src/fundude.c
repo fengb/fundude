@@ -97,10 +97,14 @@ void* fd_tile_data_ptr(fundude* fd) {
   return &fd->tile_data;
 }
 
-fd_registers* fd_registers_ptr(fundude* fd){
+fd_registers* fd_registers_ptr(fundude* fd) {
   return &fd->reg;
 }
 
 fd_memory* fd_memory_ptr(fundude* fd) {
   return &fd->mem;
+}
+
+void fd_set_breakpoint(fundude* fd, int breakpoint) {
+  fd->breakpoint = breakpoint;
 }

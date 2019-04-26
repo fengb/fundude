@@ -50,5 +50,6 @@ void* fd_window_ptr(fundude* fd);
 void* fd_tile_data_ptr(fundude* fd);
 fd_registers* fd_registers_ptr(fundude* fd);
 fd_memory* fd_memory_ptr(fundude* fd);
+void fd_set_breakpoint(fundude* fd, int breakpoint);
 
 #endif
