@@ -1,14 +1,9 @@
 //@ts-ignore
-import fundude from "../../build/fundude";
+import WASM from "../../build/fundude.wasm";
 
 import { Signal } from "micro-signals";
-import { deferred } from "./util";
 
-const READY = deferred();
-
-const Module = fundude({
-  onRuntimeInitialized: READY.resolve
-});
+Object.assign(window, { WASM });
 
 export interface GBInstruction {
   addr: number;
@@ -26,7 +21,7 @@ interface PtrMatrix extends PtrArray {
 
 const PtrArray = {
   segment(ptr: number, length: number): PtrArray {
-    const array = Module.HEAPU8.subarray(ptr, ptr + length);
+    const array = new Uint8Array(WASM.memory.buffer, ptr, length);
     return Object.assign(array, { ptr });
   },
   matrix(ptr: number, width: number, height: number) {
@@ -36,12 +31,19 @@ const PtrArray = {
     });
   },
   clone(array: Uint8Array) {
-    const ptr = Module._malloc(array.length);
+    const ptr = WASM.malloc(array.length);
     const ptrArray = PtrArray.segment(ptr, array.length);
     ptrArray.set(array);
     return ptrArray;
   }
 };
+
+function toUTF8(ptr: number) {
+  const scan = new Uint8Array(WASM.memory.buffer, ptr);
+  const end = scan.findIndex(c => c === 0);
+  const rawBytes = scan.subarray(0, end);
+  return new TextDecoder("utf-8").decode(rawBytes);
+}
 
 function registers(raw: Uint8Array) {
   return {
@@ -72,7 +74,7 @@ export const MEMORY_OFFSETS = {
 
 export default class FundudeWasm {
   static ready() {
-    return READY;
+    return Promise.resolve();
   }
 
   static boot(cart: Uint8Array) {
@@ -96,63 +98,63 @@ export default class FundudeWasm {
   readonly memory: Uint8Array;
 
   constructor(cart: Uint8Array) {
-    this.pointer = Module._alloc();
+    this.pointer = WASM.fd_alloc();
     this.init(cart);
 
-    this.width = Module._display_width();
-    this.height = Module._display_height();
+    this.width = 160;
+    this.height = 144;
     this.display = PtrArray.matrix(this.pointer, this.width, this.height);
 
     this.background = PtrArray.matrix(
-      Module._background_ptr(this.pointer),
+      WASM.fd_background_ptr(this.pointer),
       256,
       256
     );
-    this.window = PtrArray.matrix(Module._window_ptr(this.pointer), 256, 256);
+    this.window = PtrArray.matrix(WASM.fd_window_ptr(this.pointer), 256, 256);
     this.tileData = PtrArray.matrix(
-      Module._tile_data_ptr(this.pointer),
+      WASM.fd_tile_data_ptr(this.pointer),
       256,
       96
     );
 
     this.registers = registers(
-      PtrArray.segment(Module._registers_ptr(this.pointer), 12)
+      PtrArray.segment(WASM.fd_registers_ptr(this.pointer), 12)
     );
-    this.memory = PtrArray.segment(Module._memory_ptr(this.pointer), 0x8000);
+    this.memory = PtrArray.segment(WASM.fd_memory_ptr(this.pointer), 0x8000);
   }
 
   init(cart: Uint8Array) {
     if (this.cart) {
-      Module._free(this.cart.ptr);
+      WASM.free(this.cart.ptr);
     }
 
     this.cart = PtrArray.clone(cart);
-    Module._init(this.pointer, cart.length, this.cart.ptr);
+    WASM.fd_init(this.pointer, cart.length, this.cart.ptr);
 
     this.changed.dispatch();
   }
 
   dealloc() {
     if (this.cart) {
-      Module._free(this.cart.ptr);
+      WASM.free(this.cart.ptr);
     }
-    Module._free(this.pointer);
+    WASM.free(this.pointer);
   }
 
   breakpoint: number = -1;
   setBreakpoint(bp: number) {
     this.breakpoint = bp;
-    Module._set_breakpoint(this.pointer, bp);
+    WASM.fd_set_breakpoint(this.pointer, bp);
     this.changed.dispatch();
   }
 
   step() {
-    Module._step(this.pointer);
+    WASM.fd_step(this.pointer);
     this.changed.dispatch();
   }
 
   stepFrame(frames = 1) {
-    Module._step_frames(this.pointer, frames);
+    WASM.fd_step_frames(this.pointer, frames);
     this.changed.dispatch();
   }
 
@@ -161,13 +163,13 @@ export default class FundudeWasm {
     try {
       while (true) {
         const addr = fd.registers.PC();
-        const outPtr = Module._disassemble(fd.pointer);
+        const outPtr = WASM.fd_disassemble(fd.pointer);
         if (!outPtr) {
           return;
         }
         yield {
           addr,
-          text: Module.UTF8ToString(outPtr)
+          text: toUTF8(outPtr)
         };
       }
     } finally {

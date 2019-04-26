@@ -23,25 +23,6 @@ void fd_reset(fundude* fd) {
   fd->mode = SYS_NORM;
 }
 
-char* fd_disassemble(fundude* fd) {
-  if (fd->mode == SYS_FATAL) {
-    return NULL;
-  }
-
-  fd->mem.boot_complete = 1;
-  int addr = fd->reg.PC._;
-
-  op_result res = op_tick(fd, &fd->mem.cart[addr]);
-
-  zasm_puts(fd->disassembly, sizeof(fd->disassembly), res.zasm);
-  fd->reg.PC._ += res.length;
-
-  if (fd->reg.PC._ >= fd->mem.cart_length) {
-    fd->mode = SYS_FATAL;
-  }
-  return fd->disassembly;
-}
-
 int fd_step(fundude* fd) {
   if (fd->mode == SYS_FATAL) {
     return -9999;
@@ -59,7 +40,7 @@ int fd_step(fundude* fd) {
 
 int fd_step_frames(fundude* fd, short frames) {
   int total = 0;
-  while (frames --> 0) {
+  while (frames-- > 0) {
     total += fd_step_cycles(fd, CYCLES_PER_FRAME);
     ppu_render(fd);
   }
@@ -83,4 +64,43 @@ int fd_step_cycles(fundude* fd, int cycles) {
   } while (cycles >= 0 && fd->breakpoint != fd->reg.PC._);
 
   return fd->reg.PC._;
+}
+
+char* fd_disassemble(fundude* fd) {
+  if (fd->mode == SYS_FATAL) {
+    return NULL;
+  }
+
+  fd->mem.boot_complete = 1;
+  int addr = fd->reg.PC._;
+
+  op_result res = op_tick(fd, &fd->mem.cart[addr]);
+
+  zasm_puts(fd->disassembly, sizeof(fd->disassembly), res.zasm);
+  fd->reg.PC._ += res.length;
+
+  if (fd->reg.PC._ >= fd->mem.cart_length) {
+    fd->mode = SYS_FATAL;
+  }
+  return fd->disassembly;
+}
+
+void* fd_background_ptr(fundude* fd) {
+  return &fd->background;
+}
+
+void* fd_window_ptr(fundude* fd) {
+  return &fd->window;
+}
+
+void* fd_tile_data_ptr(fundude* fd) {
+  return &fd->tile_data;
+}
+
+fd_registers* fd_registers_ptr(fundude* fd){
+  return &fd->reg;
+}
+
+fd_memory* fd_memory_ptr(fundude* fd) {
+  return &fd->mem;
 }
