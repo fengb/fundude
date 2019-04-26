@@ -1,8 +1,7 @@
 #include "fundude.h"
-#include <ppu.h>
-#include <stdlib.h>
-#include <string.h>
+#include "libc.h"
 #include "op.h"
+#include "ppu.h"
 
 #define CYCLES_PER_FRAME 16742
 

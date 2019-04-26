@@ -1,5 +1,4 @@
 #include "op.h"
-#include <assert.h>
 #include "fundude.h"
 #include "op_cb.h"
 #include "op_do.h"
@@ -865,6 +864,5 @@ op_result op_tick(fundude* fd, uint8_t op[]) {
     case 0xFF: return op_rst_d8___(fd, 0x38);
   }
 
-  assert(false);  // How did we get here?
   return OP_UNKNOWN(fd);
 }

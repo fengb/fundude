@@ -1,5 +1,4 @@
 #include <emscripten.h>
-#include <string.h>
 #include "fundude.h"
 
 EMSCRIPTEN_KEEPALIVE

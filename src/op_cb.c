@@ -1,5 +1,4 @@
 #include "op_cb.h"
-#include <assert.h>
 #include "op_do.h"
 
 cb_result cb_rlc(fundude* fd, uint8_t val) {
@@ -128,6 +127,5 @@ cb_result cb_run(fundude* fd, uint8_t op, uint8_t val) {
     case 0xF8: return cb_set(fd, val, 7);
   }
 
-  assert(false);  // How's this possible?
   return (cb_result){"???", 0};
 }
