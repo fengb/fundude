@@ -1,5 +1,6 @@
 #include "fundude.h"
-#include "libc.h"
+#include <stdlib.h>
+#include <string.h>
 #include "op.h"
 #include "ppu.h"
 

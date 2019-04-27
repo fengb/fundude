@@ -1,7 +1,8 @@
 CC=clang
 WASM_LD=wasm-ld
 
-WASM_FLAGS=-Os -nostdinc --target=wasm32-unknown-unknown -isystem /usr/lib/llvm-8/lib/clang/8.0.0/include
+WASM_LIBC_DIR=vendor/wasi-sysroot
+WASM_FLAGS=-Os --target=wasm32-freestanding -isystem $(WASM_LIBC_DIR)/include
 
 SRC_DIR := src
 OUT_DIR := build
@@ -18,7 +19,7 @@ TEST_TARGETS := $(patsubst $(TEST_MAIN_DIR)/%.c,%,$(TEST_MAIN_FILES))
 
 $(OUT_DIR)/fundude.wasm: FILE_EXPORTS=$(shell scripts/c-functions src/fundude.h)
 $(OUT_DIR)/fundude.wasm: LIB_EXPORTS=malloc free
-$(OUT_DIR)/fundude.wasm: $(OBJ_FILES) $(SRC_DIR)/wasm/libc.a
+$(OUT_DIR)/fundude.wasm: $(OBJ_FILES) $(WASM_LIBC_DIR)/lib/*.a
 	$(WASM_LD) -o "$@" --no-entry $(patsubst %,--export=%,$(FILE_EXPORTS) $(LIB_EXPORTS)) $^
 
 $(OUT_DIR)/%.o: $(SRC_DIR)/%.c
