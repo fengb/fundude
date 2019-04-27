@@ -38,8 +38,6 @@ const PtrArray = {
   }
 };
 
-Object.assign(window, { PtrArray });
-
 function toUTF8(ptr: number) {
   const scan = new Uint8Array(WASM.memory.buffer, ptr);
   const end = scan.findIndex(c => c === 0);
@@ -63,14 +61,6 @@ export const MEMORY_OFFSETS = {
 };
 
 export default class FundudeWasm {
-  static ready() {
-    return Promise.resolve();
-  }
-
-  static boot(cart: Uint8Array) {
-    return FundudeWasm.ready().then(() => new FundudeWasm(cart));
-  }
-
   public changed = new Signal<void>();
 
   private readonly pointer: number;
