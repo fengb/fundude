@@ -38,13 +38,18 @@ fundude* fd_alloc(void);
 void fd_init(fundude* fd, size_t cart_length, uint8_t cart[]);
 void fd_reset(fundude* fd);
 
-char* fd_disassemble(fundude* fd);
-
 int fd_step(fundude* fd);
 int fd_step_frames(fundude* fd, short frames);
 int fd_step_cycles(fundude* fd, int cycles);
 
-uint64_t to_cycles(uint32_t us);
-uint32_t to_us(uint64_t clock);
+#pragma mark debugging tools
+
+char* fd_disassemble(fundude* fd);
+void* fd_background_ptr(fundude* fd);
+void* fd_window_ptr(fundude* fd);
+void* fd_tile_data_ptr(fundude* fd);
+fd_registers* fd_registers_ptr(fundude* fd);
+fd_memory* fd_memory_ptr(fundude* fd);
+void fd_set_breakpoint(fundude* fd, int breakpoint);
 
 #endif

@@ -1,6 +1,15 @@
-FROM trzeci/emscripten
+FROM ubuntu:19.04
 
-COPY package.json package-lock.json /src/
-RUN npm install
+RUN apt-get update \
+    && apt-get install -y \
+               clang-8 \
+               lld-8 \
+               make \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY . /src
+RUN cp /usr/bin/clang-8 /usr/bin/clang
+RUN cp /usr/bin/wasm-ld-8 /usr/bin/wasm-ld
+
+RUN mkdir -p /opt/fundude
+
+WORKDIR /opt/fundude

@@ -55,7 +55,7 @@ for (const [key, tuple] of Object.entries(MEMORY_OFFSETS.segments)) {
 const WIDTH = 16;
 
 function MemoryOutput(props: {
-  mem: FundudeWasm["memory"];
+  mem: Uint8Array
   focus: number;
   highlightClasses: Record<number, string>;
 }) {
@@ -85,7 +85,7 @@ function MemoryOutput(props: {
                   loc === props.focus && CSS.focus
                 )}
               >
-                {hex2(props.mem[i])}
+                {hex2(props.mem[i] || 0)}
               </span>
             );
           })}
@@ -97,7 +97,6 @@ function MemoryOutput(props: {
 
 export default function Memory(props: { fd: FundudeWasm }) {
   const [focus, setFocus] = React.useState(0);
-  const mem = props.fd.memory;
   return (
     <div className={CSS.root}>
       <div>
@@ -107,7 +106,8 @@ export default function Memory(props: { fd: FundudeWasm }) {
             className={REGION_CSS[key]}
             onClick={() => setFocus(tuple[0])}
           >
-            {key}<br />${hex4(tuple[0])}
+            {key}
+            <br />${hex4(tuple[0])}
           </button>
         ))}
         <Form onSubmit={({ search }) => setFocus(parseInt(String(search), 16))}>
@@ -115,11 +115,11 @@ export default function Memory(props: { fd: FundudeWasm }) {
         </Form>
       </div>
       <MemoryOutput
-        mem={mem}
+        mem={props.fd.memory()}
         focus={focus}
         highlightClasses={{
-          [props.fd.registers.HL()]: CSS.hl,
-          [props.fd.registers.SP()]: CSS.sp
+          [props.fd.registers().HL()]: CSS.hl,
+          [props.fd.registers().SP()]: CSS.sp
         }}
       />
     </div>

@@ -19,27 +19,27 @@ export default function Registers({ fd }: { fd: FundudeWasm }) {
     <dl className={CSS.root}>
       <div className={CSS.child}>
         <dt>AF</dt>
-        <dd>{hex4(fd.registers.AF())}</dd>
+        <dd>{hex4(fd.registers().AF())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>BC</dt>
-        <dd>{hex4(fd.registers.BC())}</dd>
+        <dd>{hex4(fd.registers().BC())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>DE</dt>
-        <dd>{hex4(fd.registers.DE())}</dd>
+        <dd>{hex4(fd.registers().DE())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>HL</dt>
-        <dd>{hex4(fd.registers.HL())}</dd>
+        <dd>{hex4(fd.registers().HL())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>SP</dt>
-        <dd>{hex4(fd.registers.SP())}</dd>
+        <dd>{hex4(fd.registers().SP())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>PC</dt>
-        <dd>{hex4(fd.registers.PC())}</dd>
+        <dd>{hex4(fd.registers().PC())}</dd>
       </div>
     </dl>
   );

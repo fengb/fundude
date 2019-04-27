@@ -13,15 +13,14 @@ interface Props {
 
 export const Context = React.createContext<Item>(null!);
 
-export class Provider extends React.Component<Props, Partial<Item>> {
+export class Provider extends React.Component<Props, Item> {
   constructor(props: Props) {
     super(props);
-    this.state = {};
-    FundudeWasm.boot(props.bootCart).then(fd => {
-      Object.assign(window, { fd });
-      this.setState({ fd });
-      fd.changed.add(() => this.forceUpdate());
-    });
+
+    const fd = new FundudeWasm(props.bootCart);
+    fd.changed.add(() => this.forceUpdate());
+
+    this.state = { fd };
   }
 
   render() {

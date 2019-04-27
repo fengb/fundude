@@ -39,10 +39,8 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
   );
 
   React.useEffect(() => {
-    FundudeWasm.ready().then(() => {
-      const assembly = Array.from(FundudeWasm.disassemble(props.fd.cart));
-      setAssembly(keyBy(assembly, "addr"));
-    });
+    const assembly = Array.from(FundudeWasm.disassemble(props.fd.cart));
+    setAssembly(keyBy(assembly, "addr"));
   }, [props.fd.cart]);
 
   return (
@@ -51,7 +49,7 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
         childWidth={250}
         childHeight={15}
         totalChildren={props.fd.cart.length}
-        focus={props.fd.registers.PC()}
+        focus={props.fd.registers().PC()}
       >
         {addr => (
           <div
