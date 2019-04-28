@@ -12,11 +12,11 @@ before_install:
   - docker-compose pull
 
 script:
-  - docker-compose run build make test
+  - docker-compose run builder make test
 
 before_deploy:
-  - docker-compose run build
-  - npm run build
+  - docker-compose run builder make
+  - yarn build
 
 deploy:
   provider: pages
