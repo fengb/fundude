@@ -17,7 +17,7 @@ export default function CartList({
     const file = acceptedFiles[0];
     const data = new Uint8Array(await readAsArray(file));
     cache.setItem(file.name, data);
-    fd && fd.init(data);
+    fd.init(data);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
@@ -26,14 +26,12 @@ export default function CartList({
     <div>
       {Object.keys(extra).map(name => (
         <div key={name}>
-          <button onClick={() => fd && fd.init(extra[name])}>{name}</button>
+          <button onClick={() => fd.init(extra[name])}>{name}</button>
         </div>
       ))}
       {Object.keys(cache.data).map(name => (
         <div key={name}>
-          <button onClick={() => fd && fd.init(cache.data[name])}>
-            {name}
-          </button>
+          <button onClick={() => fd.init(cache.data[name])}>{name}</button>
         </div>
       ))}
       <div {...getRootProps()}>
