@@ -10,33 +10,42 @@ export interface GBInstruction {
   text: string;
 }
 
-export interface PtrArray extends Uint8Array {
-  ptr: number;
-}
-
 export interface PtrMatrix extends PtrArray {
   width: number;
   height: number;
 }
 
-const PtrArray = {
-  segment(ptr: number, length: number): PtrArray {
-    const array = new Uint8Array(WASM.memory.buffer, ptr, length);
-    return Object.assign(array, { ptr });
-  },
-  matrix(ptr: number, width: number, height: number): PtrMatrix {
-    return Object.assign(PtrArray.segment(ptr, width * height), {
+export class PtrArray {
+  public base: Uint8Array;
+  readonly ptr: number;
+
+  constructor(ptr: number, length: number) {
+    this.ptr = ptr;
+    this.base = new Uint8Array(WASM.memory.buffer, ptr, length);
+  }
+
+  static clone(array: Uint8Array): PtrArray {
+    const ptr = WASM.malloc(array.length);
+    const ptrArray = new PtrArray(ptr, array.length);
+    ptrArray.base.set(array);
+    return ptrArray;
+  }
+
+  static matrix(ptr: number, width: number, height: number): PtrMatrix {
+    return Object.assign(new PtrArray(ptr, width * height), {
       width,
       height
     });
-  },
-  clone(array: Uint8Array) {
-    const ptr = WASM.malloc(array.length);
-    const ptrArray = PtrArray.segment(ptr, array.length);
-    ptrArray.set(array);
-    return ptrArray;
   }
-};
+
+  length(): number {
+    if (this.base.length == 0) {
+      this.base = new Uint8Array(WASM.memory.buffer, this.ptr, length);
+    }
+
+    return this.base.length;
+  }
+}
 
 function toUTF8(ptr: number) {
   const scan = new Uint8Array(WASM.memory.buffer, ptr);
@@ -95,19 +104,19 @@ export default class FundudeWasm {
   }
 
   registers() {
-    const raw = PtrArray.segment(WASM.fd_registers_ptr(this.pointer), 12);
+    const raw = new PtrArray(WASM.fd_registers_ptr(this.pointer), 12);
     return Object.assign(raw, {
-      AF: () => raw[0] + (raw[1] << 8),
-      BC: () => raw[2] + (raw[3] << 8),
-      DE: () => raw[4] + (raw[5] << 8),
-      HL: () => raw[6] + (raw[7] << 8),
-      SP: () => raw[8] + (raw[9] << 8),
-      PC: () => raw[10] + (raw[11] << 8)
+      AF: () => raw.base[0] + (raw.base[1] << 8),
+      BC: () => raw.base[2] + (raw.base[3] << 8),
+      DE: () => raw.base[4] + (raw.base[5] << 8),
+      HL: () => raw.base[6] + (raw.base[7] << 8),
+      SP: () => raw.base[8] + (raw.base[9] << 8),
+      PC: () => raw.base[10] + (raw.base[11] << 8)
     });
   }
 
   memory() {
-    return PtrArray.segment(WASM.fd_memory_ptr(this.pointer), 0x8000);
+    return new PtrArray(WASM.fd_memory_ptr(this.pointer), 0x8000);
   }
 
   init(cart: Uint8Array) {

@@ -30,7 +30,7 @@ export function App() {
         <button onClick={() => fd.step()}>Step</button>
         <button onClick={() => fd.stepFrame()}>Step Frame</button>
         <button onClick={() => fd.stepFrame(60)}>Step Second</button>
-        <Registers fd={fd} />
+        <Registers reg={fd.registers()} />
       </div>
       <Disassembler fd={fd} />
       <Memory fd={fd} />

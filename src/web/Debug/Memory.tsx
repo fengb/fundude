@@ -2,7 +2,7 @@ import React from "react";
 import { times, map } from "lodash";
 import { style } from "typestyle";
 import classnames from "classnames";
-import FundudeWasm, { MEMORY_OFFSETS } from "../../wasm";
+import FundudeWasm, { PtrArray, MEMORY_OFFSETS } from "../../wasm";
 import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";
 import Form from "../Form";
@@ -55,11 +55,11 @@ for (const [key, tuple] of Object.entries(MEMORY_OFFSETS.segments)) {
 const WIDTH = 16;
 
 function MemoryOutput(props: {
-  mem: Uint8Array
+  mem: PtrArray;
   focus: number;
   highlightClasses: Record<number, string>;
 }) {
-  const height = props.mem.length / WIDTH;
+  const height = props.mem.length() / WIDTH;
   return (
     <LazyScroller
       childWidth={430}
@@ -85,7 +85,7 @@ function MemoryOutput(props: {
                   loc === props.focus && CSS.focus
                 )}
               >
-                {hex2(props.mem[i] || 0)}
+                {hex2(props.mem.base[i] || 0)}
               </span>
             );
           })}
@@ -97,6 +97,7 @@ function MemoryOutput(props: {
 
 export default function Memory(props: { fd: FundudeWasm }) {
   const [focus, setFocus] = React.useState(0);
+  const reg = props.fd.registers();
   return (
     <div className={CSS.root}>
       <div>
@@ -118,8 +119,8 @@ export default function Memory(props: { fd: FundudeWasm }) {
         mem={props.fd.memory()}
         focus={focus}
         highlightClasses={{
-          [props.fd.registers().HL()]: CSS.hl,
-          [props.fd.registers().SP()]: CSS.sp
+          [reg.HL()]: CSS.hl,
+          [reg.SP()]: CSS.sp
         }}
       />
     </div>

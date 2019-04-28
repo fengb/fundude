@@ -14,32 +14,34 @@ const CSS = {
   })
 };
 
-export default function Registers({ fd }: { fd: FundudeWasm }) {
+export default function Registers(props: {
+  reg: ReturnType<FundudeWasm["registers"]>;
+}) {
   return (
     <dl className={CSS.root}>
       <div className={CSS.child}>
         <dt>AF</dt>
-        <dd>{hex4(fd.registers().AF())}</dd>
+        <dd>{hex4(props.reg.AF())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>BC</dt>
-        <dd>{hex4(fd.registers().BC())}</dd>
+        <dd>{hex4(props.reg.BC())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>DE</dt>
-        <dd>{hex4(fd.registers().DE())}</dd>
+        <dd>{hex4(props.reg.DE())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>HL</dt>
-        <dd>{hex4(fd.registers().HL())}</dd>
+        <dd>{hex4(props.reg.HL())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>SP</dt>
-        <dd>{hex4(fd.registers().SP())}</dd>
+        <dd>{hex4(props.reg.SP())}</dd>
       </div>
       <div className={CSS.child}>
         <dt>PC</dt>
-        <dd>{hex4(fd.registers().PC())}</dd>
+        <dd>{hex4(props.reg.PC())}</dd>
       </div>
     </dl>
   );

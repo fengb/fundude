@@ -1,5 +1,6 @@
 import React from "react";
 import { style } from "typestyle";
+import { PtrMatrix } from "../wasm";
 
 const CSS = {
   root: style({
@@ -21,22 +22,17 @@ const PALETTE: Record<number, Uint8Array> = {
   3: Uint8Array.of(15, 56, 15, 255)
 };
 
-interface Matrix extends Uint8Array {
-  width: number;
-  height: number;
-}
-
-function imageData(pixels: Matrix) {
+function imageData(pixels: PtrMatrix) {
   const imageData = new ImageData(pixels.width, pixels.height);
-  for (let i = 0; i < pixels.length; i++) {
-    const colorIndex = pixels[i];
+  for (let i = 0; i < pixels.length(); i++) {
+    const colorIndex = pixels.base[i];
     const color = PALETTE[colorIndex] || Uint8Array.of(255, 0, 0, 255);
     imageData.data.set(color, 4 * i);
   }
   return imageData;
 }
 
-export default function Display(props: { pixels: Matrix; scale?: number }) {
+export default function Display(props: { pixels: PtrMatrix; scale?: number }) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   React.useEffect(() => {
     if (!ref.current) {
