@@ -23,6 +23,10 @@ void fd_reset(fundude* fd) {
   fd->cpu.PC._ = 0;
   fd->mmu.boot_complete = 0;
   fd->mode = SYS_NORM;
+  fd->clock.cpu = 0;
+  fd->clock.ppu = 0;
+  fd->mmu.io_ports.STAT.mode = LCDC_VBLANK;
+  fd->mmu.io_ports.LCDC.lcd_enable = false;
 }
 
 int fd_step(fundude* fd) {

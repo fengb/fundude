@@ -102,6 +102,12 @@ void ppu_render(fundude* fd) {
 }
 
 void ppu_step(fundude* fd, int cycles) {
+  if (!fd->mmu.io_ports.LCDC.lcd_enable) {
+    fd->clock.ppu = 0;
+    fd->mmu.io_ports.STAT.mode = LCDC_VBLANK;
+    return;
+  }
+
   fd->clock.ppu += cycles;
 
   if (fd->clock.ppu > DOTS_PER_FRAME) {
