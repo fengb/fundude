@@ -1,35 +1,35 @@
-#include "memory.h"
+#include "mmux.h"
 #include <stdbool.h>
 #include <stddef.h>
 
-uint8_t* fdm_ptr(fd_memory* mem, uint16_t addr) {
-  if (!mem->boot_complete && addr < BEYOND_BOOTLOADER) {
+uint8_t* mmu_ptr(mmu* m, uint16_t addr) {
+  if (!m->boot_complete && addr < BEYOND_BOOTLOADER) {
     return &BOOTLOADER[addr];
   }
   if (addr < BEYOND_CART) {
-    return mem->cart + addr;
+    return m->cart + addr;
   } else if (0xE000 <= addr && addr < 0xFE00) {
     // Echo of 8kB Internal RAM
-    return &mem->ram[addr - 0xE000];
+    return &m->ram[addr - 0xE000];
   }
 
-  return &mem->RAW[addr - BEYOND_CART];
+  return &m->RAW[addr - BEYOND_CART];
 }
 
-bool is_locked(fd_memory* m, uint16_t addr) {
+bool is_locked(mmu* m, uint16_t addr) {
   return (0x8000 <= addr && addr < 0xA000 && m->io_ports.STAT.mode == LCDC_TRANSFERRING) ||
          (0xFE00 <= addr && addr < 0xFEA0 && m->io_ports.STAT.mode >= LCDC_SEARCHING);
 }
 
-uint8_t fdm_get(fd_memory* m, uint16_t addr) {
+uint8_t mmu_get(mmu* m, uint16_t addr) {
   if (is_locked(m, addr)) {
     return 0xFF;
   }
-  uint8_t* ptr = fdm_ptr(m, addr);
+  uint8_t* ptr = mmu_ptr(m, addr);
   return *ptr;
 }
 
-void fdm_set(fd_memory* m, uint16_t addr, uint8_t val) {
+void mmu_set(mmu* m, uint16_t addr, uint8_t val) {
   // Can't update cart data
   if (addr < BEYOND_CART) {
     return;
@@ -37,7 +37,7 @@ void fdm_set(fd_memory* m, uint16_t addr, uint8_t val) {
   if (is_locked(m, addr)) {
     return;
   }
-  uint8_t* ptr = fdm_ptr(m, addr);
+  uint8_t* ptr = mmu_ptr(m, addr);
   *ptr = val;
 }
 

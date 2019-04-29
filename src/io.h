@@ -104,4 +104,4 @@ typedef union {
     uint8_t WY;          // $FF4A
     uint8_t WX;          // $FF4B
   };
-} fd_io;
+} io;

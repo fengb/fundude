@@ -1,5 +1,5 @@
-#include "op_cb.h"
-#include "op_do.h"
+#include "cpux_cb.h"
+#include "cpux_do.h"
 
 cb_result cb_rlc(fundude* fd, uint8_t val) {
   return (cb_result){"RLC", do_rlc(fd, val)};
@@ -51,11 +51,11 @@ cb_result cb_srl(fundude* fd, uint8_t val) {
   }
 
 cb_result cb_bit(fundude* fd, uint8_t val, int bit) {
-  fd->reg.FLAGS = (fd_flags){
+  fd->cpu.FLAGS = (cpu_flags){
       .Z = (val >> bit & 1) == 0,
       .N = false,
       .H = true,
-      .C = fd->reg.FLAGS.C,
+      .C = fd->cpu.FLAGS.C,
   };
   NAME_GLUE("BIT", bit);
   return (cb_result){name, val};
@@ -73,16 +73,16 @@ cb_result cb_set(fundude* fd, uint8_t val, int bit) {
   return (cb_result){name, val | mask};
 }
 
-reg8* cb_tgt(fundude* fd, uint8_t op) {
+cpu_reg8* cb_tgt(fundude* fd, uint8_t op) {
   switch (op & 7) {
-    case 0: return &fd->reg.B;
-    case 1: return &fd->reg.C;
-    case 2: return &fd->reg.D;
-    case 3: return &fd->reg.E;
-    case 4: return &fd->reg.H;
-    case 5: return &fd->reg.L;
+    case 0: return &fd->cpu.B;
+    case 1: return &fd->cpu.C;
+    case 2: return &fd->cpu.D;
+    case 3: return &fd->cpu.E;
+    case 4: return &fd->cpu.H;
+    case 5: return &fd->cpu.L;
     case 6: return NULL;
-    case 7: return &fd->reg.A;
+    case 7: return &fd->cpu.A;
   }
 
   return NULL;

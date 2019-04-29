@@ -2,8 +2,8 @@
 #define __GBA_H
 
 #include <stdint.h>
+#include "cpu.h"
 #include "fundude.h"
-#include "registers.h"
 
 typedef enum {
   ZASM_NONE,
@@ -37,10 +37,10 @@ zasm zasm0(const char* m);
 zasm zasm1(const char* m, zasm_arg arg);
 zasm zasm2(const char* m, zasm_arg arg1, zasm_arg arg2);
 
-zasm_arg zasma_cond(cond c);
+zasm_arg zasma_cond(cpu_cond c);
 zasm_arg zasma_sys_mode(sys_mode m);
-zasm_arg zasma_reg8(zasm_format f, fundude* fd, reg8* reg);
-zasm_arg zasma_reg16(zasm_format f, fundude* fd, reg16* reg);
+zasm_arg zasma_reg8(zasm_format f, fundude* fd, cpu_reg8* reg);
+zasm_arg zasma_reg16(zasm_format f, fundude* fd, cpu_reg16* reg);
 zasm_arg zasma_hex8(zasm_format f, uint8_t val);
 zasm_arg zasma_hex16(zasm_format f, uint16_t val);
 

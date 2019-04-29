@@ -12,7 +12,7 @@ zasm zasm2(const char* name, zasm_arg arg1, zasm_arg arg2) {
   return (zasm){name, arg1, arg2};
 }
 
-zasm_arg zasma_cond(cond c) {
+zasm_arg zasma_cond(cpu_cond c) {
   return (zasm_arg){ZASM_COND, ZASM_PLAIN, c};
 }
 
@@ -20,13 +20,13 @@ zasm_arg zasma_sys_mode(sys_mode m) {
   return (zasm_arg){ZASM_SYS_MODE, ZASM_PLAIN, m};
 }
 
-zasm_arg zasma_reg8(zasm_format f, fundude* fd, reg8* reg) {
-  uint16_t offset = (void*)reg - (void*)&fd->reg;
+zasm_arg zasma_reg8(zasm_format f, fundude* fd, cpu_reg8* reg) {
+  uint16_t offset = (void*)reg - (void*)&fd->cpu;
   return (zasm_arg){ZASM_REG8, f, offset};
 }
 
-zasm_arg zasma_reg16(zasm_format f, fundude* fd, reg16* reg) {
-  uint16_t offset = (void*)reg - (void*)&fd->reg;
+zasm_arg zasma_reg16(zasm_format f, fundude* fd, cpu_reg16* reg) {
+  uint16_t offset = (void*)reg - (void*)&fd->cpu;
   return (zasm_arg){ZASM_REG16, f, offset};
 }
 
@@ -77,10 +77,10 @@ static char* zasma_raw(zasm_arg arg) {
   switch (arg.type) {
     case ZASM_COND:
       switch (arg.val) {
-        case COND_NZ: return "NZ";
-        case COND_Z: return "Z";
-        case COND_NC: return "NC";
-        case COND_C: return "C";
+        case CPU_COND_NZ: return "NZ";
+        case CPU_COND_Z: return "Z";
+        case CPU_COND_NC: return "NC";
+        case CPU_COND_C: return "C";
         default: return "N?";
       }
     case ZASM_SYS_MODE:
@@ -93,24 +93,24 @@ static char* zasma_raw(zasm_arg arg) {
       }
     case ZASM_REG8:
       switch (arg.val) {
-        case offsetof(fd_registers, A): return "A";
-        case offsetof(fd_registers, F): return "F";
-        case offsetof(fd_registers, B): return "B";
-        case offsetof(fd_registers, C): return "C";
-        case offsetof(fd_registers, D): return "D";
-        case offsetof(fd_registers, E): return "E";
-        case offsetof(fd_registers, H): return "H";
-        case offsetof(fd_registers, L): return "L";
+        case offsetof(cpu, A): return "A";
+        case offsetof(cpu, F): return "F";
+        case offsetof(cpu, B): return "B";
+        case offsetof(cpu, C): return "C";
+        case offsetof(cpu, D): return "D";
+        case offsetof(cpu, E): return "E";
+        case offsetof(cpu, H): return "H";
+        case offsetof(cpu, L): return "L";
         default: return "R?";
       }
     case ZASM_REG16:
       switch (arg.val) {
-        case offsetof(fd_registers, AF): return "AF";
-        case offsetof(fd_registers, BC): return "BC";
-        case offsetof(fd_registers, DE): return "DE";
-        case offsetof(fd_registers, HL): return "HL";
-        case offsetof(fd_registers, SP): return "SP";
-        case offsetof(fd_registers, PC): return "PC";
+        case offsetof(cpu, AF): return "AF";
+        case offsetof(cpu, BC): return "BC";
+        case offsetof(cpu, DE): return "DE";
+        case offsetof(cpu, HL): return "HL";
+        case offsetof(cpu, SP): return "SP";
+        case offsetof(cpu, PC): return "PC";
         default: return "W?";
       }
     case ZASM_HEX8: {

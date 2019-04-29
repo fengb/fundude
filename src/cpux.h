@@ -1,5 +1,5 @@
-#ifndef __OP_H
-#define __OP_H
+#ifndef __CPUX_H
+#define __CPUX_H
 
 #include <stdbool.h>
 #include "fundude.h"
@@ -10,8 +10,8 @@ typedef struct {
   int length;
   int duration;
   zasm zasm;
-} op_result;
+} cpu_result;
 
-op_result op_tick(fundude* fd, uint8_t op[]);
+cpu_result cpu_tick(fundude* fd, uint8_t op[]);
 
 #endif

@@ -5,8 +5,8 @@ import Display from "./Display";
 import CartList from "./CartList";
 import { BOOTLOADER } from "./data";
 import Disassembler from "./Debug/Disassembler";
-import Registers from "./Debug/Registers";
-import Memory from "./Debug/Memory";
+import Cpu from "./Debug/Cpu";
+import Mmu from "./Debug/Mmu";
 
 const CSS = {
   root: style({
@@ -30,10 +30,10 @@ export function App() {
         <button onClick={() => fd.step()}>Step</button>
         <button onClick={() => fd.stepFrame()}>Step Frame</button>
         <button onClick={() => fd.stepFrame(60)}>Step Second</button>
-        <Registers reg={fd.registers()} />
+        <Cpu reg={fd.cpu()} />
       </div>
       <Disassembler fd={fd} />
-      <Memory fd={fd} />
+      <Mmu fd={fd} />
     </div>
   );
 }

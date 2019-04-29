@@ -1,5 +1,5 @@
-#ifndef __REGISTERS_H
-#define __REGISTERS_H
+#ifndef __CPU_H
+#define __CPU_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -9,11 +9,11 @@
 #endif
 
 typedef enum {
-  COND_NZ,
-  COND_Z,
-  COND_NC,
-  COND_C,
-} cond;
+  CPU_COND_NZ,
+  CPU_COND_Z,
+  CPU_COND_NC,
+  CPU_COND_C,
+} cpu_cond;
 
 typedef struct {
   uint8_t _padding : 4;
@@ -21,54 +21,54 @@ typedef struct {
   bool H : 1;
   bool N : 1;
   bool Z : 1;
-} fd_flags;
+} cpu_flags;
 
 typedef struct {
   uint8_t _;
-} reg8;
+} cpu_reg8;
 
 typedef struct {
   uint16_t _;
-} reg16;
+} cpu_reg16;
 
 typedef struct {
   union {
-    reg16 AF;
+    cpu_reg16 AF;
     struct {
       union {
-        reg8 F;
-        fd_flags FLAGS;
+        cpu_reg8 F;
+        cpu_flags FLAGS;
       };
-      reg8 A;
+      cpu_reg8 A;
     };
   };
 
   union {
-    reg16 BC;
+    cpu_reg16 BC;
     struct {
-      reg8 C;
-      reg8 B;
+      cpu_reg8 C;
+      cpu_reg8 B;
     };
   };
 
   union {
-    reg16 DE;
+    cpu_reg16 DE;
     struct {
-      reg8 E;
-      reg8 D;
+      cpu_reg8 E;
+      cpu_reg8 D;
     };
   };
 
   union {
-    reg16 HL;
+    cpu_reg16 HL;
     struct {
-      reg8 L;
-      reg8 H;
+      cpu_reg8 L;
+      cpu_reg8 H;
     };
   };
 
-  reg16 SP;
-  reg16 PC;
-} fd_registers;
+  cpu_reg16 SP;
+  cpu_reg16 PC;
+} cpu;
 
 #endif

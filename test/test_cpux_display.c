@@ -1,11 +1,11 @@
 #include <stdio.h>
-#include "op.h"
+#include "cpux.h"
 
 int main() {
   fundude fd;
   uint8_t cart[0x4000];
-  fd.mem.cart = cart;
-  fd.mem.cart_length = sizeof(cart);
+  fd.mmu.cart = cart;
+  fd.mmu.cart_length = sizeof(cart);
 
   char buf[100];
 
@@ -14,14 +14,14 @@ int main() {
   for (int h = 0; h <= 0xF; h++) {
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
-      op_result r = op_tick(&fd, op);
+      cpu_result r = cpu_tick(&fd, op);
       zasm_puts(buf, sizeof(buf), r.zasm);
       printf("%-13s|", buf);
     }
     printf("\n");
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
-      op_result r = op_tick(&fd, op);
+      cpu_result r = cpu_tick(&fd, op);
 
       printf("%2d %3d       |", r.length, r.duration);
     }

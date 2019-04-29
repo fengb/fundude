@@ -1,4 +1,4 @@
-#include "ppu.h"
+#include "ppux.h"
 
 #define PIXELS_PER_TILE 8
 #define BACKGROUND_TILES 32
@@ -17,7 +17,7 @@ typedef enum {
   TILE_ADDRESSING_8800 = 1,
 } tile_addressing;
 
-tile tile_data(fd_vram* vram, tile_addressing addressing, uint8_t index) {
+ppu_tile tile_data(ppu_vram* vram, tile_addressing addressing, uint8_t index) {
   if (index >= 128) {
     return vram->tile_data._8800[index - 128];
   } else if (addressing == TILE_ADDRESSING_8000) {
@@ -27,7 +27,7 @@ tile tile_data(fd_vram* vram, tile_addressing addressing, uint8_t index) {
   }
 }
 
-tile sprite_data(fd_vram* vram, uint8_t index) {
+ppu_tile sprite_data(ppu_vram* vram, uint8_t index) {
   return tile_data(vram, TILE_ADDRESSING_8000, index);
 }
 
@@ -47,7 +47,7 @@ shade shade_from_color(uint8_t val, color_palette pal) {
   }
 }
 
-void draw_tile(uint8_t tgt[][256], size_t r, size_t c, tile t, color_palette pal) {
+void draw_tile(uint8_t tgt[][256], size_t r, size_t c, ppu_tile t, color_palette pal) {
   for (size_t y = 0; y < PIXELS_PER_TILE; y++) {
     uint16_t line = t._[y];
 
@@ -60,34 +60,34 @@ void draw_tile(uint8_t tgt[][256], size_t r, size_t c, tile t, color_palette pal
 
 // TODO: optimize by "materializing" the background instead of this shenanigans
 void render_bg(fundude* fd, uint8_t background[256][256], uint8_t tile_map_flag) {
-  uint8_t tile_addressing = fd->mem.io_ports.LCDC.bg_window_tile_data;
-  tile_map* tm =
-      tile_map_flag == TILE_MAP_9800 ? &fd->mem.vram.tile_map_9800 : &fd->mem.vram.tile_map_9C00;
+  uint8_t tile_addressing = fd->mmu.io_ports.LCDC.bg_window_tile_data;
+  ppu_tile_map* tm =
+      tile_map_flag == TILE_MAP_9800 ? &fd->mmu.vram.tile_map_9800 : &fd->mmu.vram.tile_map_9C00;
 
   for (int r = 0; r < BACKGROUND_TILES; r++) {
     for (int c = 0; c < BACKGROUND_TILES; c++) {
       int tile_index = tm->_[r][c];
-      tile t = tile_data(&fd->mem.vram, tile_addressing, tile_index);
+      ppu_tile t = tile_data(&fd->mmu.vram, tile_addressing, tile_index);
 
-      draw_tile(background, r, c, t, fd->mem.io_ports.BGP);
+      draw_tile(background, r, c, t, fd->mmu.io_ports.BGP);
     }
   }
 }
 
 // TODO: render over cycles instead of all at once
 void ppu_render(fundude* fd) {
-  for (int i = 0; i < ARRAYLEN(fd->mem.vram.tile_data.ALL); i++) {
-    tile t = fd->mem.vram.tile_data.ALL[i];
+  for (int i = 0; i < ARRAYLEN(fd->mmu.vram.tile_data.ALL); i++) {
+    ppu_tile t = fd->mmu.vram.tile_data.ALL[i];
     int c = i % BACKGROUND_TILES;
     int r = i / BACKGROUND_TILES;
 
     draw_tile(fd->tile_data, r, c, t, NO_PALETTE);
   }
-  render_bg(fd, fd->background, fd->mem.io_ports.LCDC.bg_tile_map);
-  render_bg(fd, fd->window, fd->mem.io_ports.LCDC.window_tile_map);
+  render_bg(fd, fd->background, fd->mmu.io_ports.LCDC.bg_tile_map);
+  render_bg(fd, fd->window, fd->mmu.io_ports.LCDC.window_tile_map);
 
-  uint8_t scx = fd->mem.io_ports.SCX;
-  uint8_t scy = fd->mem.io_ports.SCY;
+  uint8_t scx = fd->mmu.io_ports.SCX;
+  uint8_t scy = fd->mmu.io_ports.SCY;
 
   // TODO: use memcpy
   for (int x = 0; x < WIDTH; x++) {

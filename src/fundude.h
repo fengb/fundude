@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "cart.h"
-#include "memory.h"
-#include "registers.h"
+#include "cpu.h"
+#include "mmu.h"
 
 #define WIDTH 160
 #define HEIGHT 144
@@ -25,8 +25,8 @@ typedef struct {
   uint8_t window[256][256];
   uint8_t tile_data[96][256];
 
-  fd_registers reg;
-  fd_memory mem;
+  cpu cpu;
+  mmu mmu;
 
   int breakpoint;
   char disassembly[24];
@@ -48,8 +48,8 @@ char* fd_disassemble(fundude* fd);
 void* fd_background_ptr(fundude* fd);
 void* fd_window_ptr(fundude* fd);
 void* fd_tile_data_ptr(fundude* fd);
-fd_registers* fd_registers_ptr(fundude* fd);
-fd_memory* fd_memory_ptr(fundude* fd);
+void* fd_cpu_ptr(fundude* fd);
+void* fd_mmu_ptr(fundude* fd);
 void fd_set_breakpoint(fundude* fd, int breakpoint);
 
 #endif

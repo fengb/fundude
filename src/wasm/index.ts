@@ -58,7 +58,7 @@ function tuple<T1, T2>(t1: T1, t2: T2): [T1, T2] {
   return [t1, t2];
 }
 
-export const MEMORY_OFFSETS = {
+export const MMU_OFFSETS = {
   shift: 0x8000,
   segments: {
     vram: tuple(0x8000, 0xa000),
@@ -103,8 +103,8 @@ export default class FundudeWasm {
     return PtrArray.matrix(WASM.fd_tile_data_ptr(this.pointer), 256, 96);
   }
 
-  registers() {
-    const raw = new PtrArray(WASM.fd_registers_ptr(this.pointer), 12);
+  cpu() {
+    const raw = new PtrArray(WASM.fd_cpu_ptr(this.pointer), 12);
     return Object.assign(raw, {
       AF: () => raw.base[0] + (raw.base[1] << 8),
       BC: () => raw.base[2] + (raw.base[3] << 8),
@@ -115,8 +115,8 @@ export default class FundudeWasm {
     });
   }
 
-  memory() {
-    return new PtrArray(WASM.fd_memory_ptr(this.pointer), 0x8000);
+  mmu() {
+    return new PtrArray(WASM.fd_mmu_ptr(this.pointer), 0x8000);
   }
 
   init(cart: Uint8Array) {
@@ -159,7 +159,7 @@ export default class FundudeWasm {
     const fd = new FundudeWasm(cart);
     try {
       while (true) {
-        const addr = fd.registers().PC();
+        const addr = fd.cpu().PC();
         const outPtr = WASM.fd_disassemble(fd.pointer);
         if (!outPtr) {
           return;

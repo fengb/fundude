@@ -14,8 +14,8 @@ const CSS = {
   })
 };
 
-export default function Registers(props: {
-  reg: ReturnType<FundudeWasm["registers"]>;
+export default function Cpu(props: {
+  reg: ReturnType<FundudeWasm["cpu"]>;
 }) {
   return (
     <dl className={CSS.root}>

@@ -2,7 +2,7 @@ import React from "react";
 import { times, map } from "lodash";
 import { style } from "typestyle";
 import classnames from "classnames";
-import FundudeWasm, { PtrArray, MEMORY_OFFSETS } from "../../wasm";
+import FundudeWasm, { PtrArray, MMU_OFFSETS } from "../../wasm";
 import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";
 import Form from "../Form";
@@ -46,7 +46,7 @@ const REGION_CSS: Record<string, string> = {
 };
 
 const MEMLOC_CSS: Record<number, string> = {};
-for (const [key, tuple] of Object.entries(MEMORY_OFFSETS.segments)) {
+for (const [key, tuple] of Object.entries(MMU_OFFSETS.segments)) {
   for (let loc = tuple[0]; loc < tuple[1]; loc++) {
     MEMLOC_CSS[loc] = REGION_CSS[key];
   }
@@ -54,7 +54,7 @@ for (const [key, tuple] of Object.entries(MEMORY_OFFSETS.segments)) {
 
 const WIDTH = 16;
 
-function MemoryOutput(props: {
+function MmuOutput(props: {
   mem: PtrArray;
   focus: number;
   highlightClasses: Record<number, string>;
@@ -65,16 +65,16 @@ function MemoryOutput(props: {
       childWidth={430}
       childHeight={15}
       totalChildren={height}
-      focus={Math.floor((props.focus - MEMORY_OFFSETS.shift) / WIDTH)}
+      focus={Math.floor((props.focus - MMU_OFFSETS.shift) / WIDTH)}
     >
       {row => (
         <div className={CSS.row}>
           <strong className={CSS.addr}>
-            ${hex4(MEMORY_OFFSETS.shift + row * WIDTH)}
+            ${hex4(MMU_OFFSETS.shift + row * WIDTH)}
           </strong>
           {times(WIDTH, col => {
             const i = row * WIDTH + col;
-            const loc = row * WIDTH + col + MEMORY_OFFSETS.shift;
+            const loc = row * WIDTH + col + MMU_OFFSETS.shift;
             return (
               <span
                 key={col}
@@ -95,13 +95,13 @@ function MemoryOutput(props: {
   );
 }
 
-export default function Memory(props: { fd: FundudeWasm }) {
+export default function Mmu(props: { fd: FundudeWasm }) {
   const [focus, setFocus] = React.useState(0);
-  const reg = props.fd.registers();
+  const cpu = props.fd.cpu();
   return (
     <div className={CSS.root}>
       <div>
-        {map(MEMORY_OFFSETS.segments, (tuple, key) => (
+        {map(MMU_OFFSETS.segments, (tuple, key) => (
           <button
             key={key}
             className={REGION_CSS[key]}
@@ -115,12 +115,12 @@ export default function Memory(props: { fd: FundudeWasm }) {
           <input name="search" pattern="[0-9a-fA-F]*" />
         </Form>
       </div>
-      <MemoryOutput
-        mem={props.fd.memory()}
+      <MmuOutput
+        mem={props.fd.mmu()}
         focus={focus}
         highlightClasses={{
-          [reg.HL()]: CSS.hl,
-          [reg.SP()]: CSS.sp
+          [cpu.HL()]: CSS.hl,
+          [cpu.SP()]: CSS.sp
         }}
       />
     </div>

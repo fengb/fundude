@@ -1,8 +1,9 @@
 #include "fundude.h"
 #include <stdlib.h>
 #include <string.h>
-#include "op.h"
-#include "ppu.h"
+#include "cpux.h"
+#include "mmux.h"
+#include "ppux.h"
 
 #define CYCLES_PER_FRAME 16742
 
@@ -13,14 +14,14 @@ fundude* fd_alloc() {
 
 void fd_init(fundude* fd, size_t cart_length, uint8_t cart[]) {
   fd_reset(fd);
-  fd->mem.cart_length = cart_length;
-  fd->mem.cart = cart;
+  fd->mmu.cart_length = cart_length;
+  fd->mmu.cart = cart;
 }
 
 void fd_reset(fundude* fd) {
   memset(fd->display, 0, sizeof(fd->display));
-  fd->reg.PC._ = 0;
-  fd->mem.boot_complete = 0;
+  fd->cpu.PC._ = 0;
+  fd->mmu.boot_complete = 0;
   fd->mode = SYS_NORM;
 }
 
@@ -29,13 +30,13 @@ int fd_step(fundude* fd) {
     return -9999;
   }
 
-  op_result res = op_tick(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
+  cpu_result res = cpu_tick(fd, mmu_ptr(&fd->mmu, fd->cpu.PC._));
   if (res.jump <= 0 || res.length <= 0 || res.duration <= 0) {
     fd->mode = SYS_FATAL;
     return -9999;
   }
 
-  fd->reg.PC._ = res.jump;
+  fd->cpu.PC._ = res.jump;
   return res.jump;
 }
 
@@ -54,17 +55,17 @@ int fd_step_cycles(fundude* fd, int cycles) {
   }
 
   do {
-    op_result res = op_tick(fd, fdm_ptr(&fd->mem, fd->reg.PC._));
+    cpu_result res = cpu_tick(fd, mmu_ptr(&fd->mmu, fd->cpu.PC._));
     if (res.jump <= 0 || res.length <= 0 || res.duration <= 0) {
       fd->mode = SYS_FATAL;
       return -9999;
     }
 
-    fd->reg.PC._ = res.jump;
+    fd->cpu.PC._ = res.jump;
     cycles -= res.duration;
-  } while (cycles >= 0 && fd->breakpoint != fd->reg.PC._);
+  } while (cycles >= 0 && fd->breakpoint != fd->cpu.PC._);
 
-  return fd->reg.PC._;
+  return fd->cpu.PC._;
 }
 
 char* fd_disassemble(fundude* fd) {
@@ -72,15 +73,15 @@ char* fd_disassemble(fundude* fd) {
     return NULL;
   }
 
-  fd->mem.boot_complete = 1;
-  int addr = fd->reg.PC._;
+  fd->mmu.boot_complete = 1;
+  int addr = fd->cpu.PC._;
 
-  op_result res = op_tick(fd, &fd->mem.cart[addr]);
+  cpu_result res = cpu_tick(fd, &fd->mmu.cart[addr]);
 
   zasm_puts(fd->disassembly, sizeof(fd->disassembly), res.zasm);
-  fd->reg.PC._ += res.length;
+  fd->cpu.PC._ += res.length;
 
-  if (fd->reg.PC._ >= fd->mem.cart_length) {
+  if (fd->cpu.PC._ >= fd->mmu.cart_length) {
     fd->mode = SYS_FATAL;
   }
   return fd->disassembly;
@@ -98,12 +99,12 @@ void* fd_tile_data_ptr(fundude* fd) {
   return &fd->tile_data;
 }
 
-fd_registers* fd_registers_ptr(fundude* fd) {
-  return &fd->reg;
+void* fd_cpu_ptr(fundude* fd) {
+  return &fd->cpu;
 }
 
-fd_memory* fd_memory_ptr(fundude* fd) {
-  return &fd->mem;
+void* fd_mmu_ptr(fundude* fd) {
+  return &fd->mmu;
 }
 
 void fd_set_breakpoint(fundude* fd, int breakpoint) {
