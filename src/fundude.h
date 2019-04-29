@@ -28,6 +28,11 @@ typedef struct {
   cpu cpu;
   mmu mmu;
 
+  struct {
+    int cpu;
+    int ppu;
+  } clock;
+
   int breakpoint;
   char disassembly[24];
 

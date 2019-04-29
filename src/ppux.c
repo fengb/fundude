@@ -5,6 +5,9 @@
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define ARRAYLEN(x) (sizeof(x) / sizeof(x[0]))
 
+#define DOTS_PER_LINE 456
+#define DOTS_PER_FRAME 70224
+
 color_palette NO_PALETTE = {.color0 = 0, .color1 = 1, .color2 = 2, .color3 = 3};
 
 enum {
@@ -95,5 +98,30 @@ void ppu_render(fundude* fd) {
       int display_offset = y * HEIGHT + x;
       fd->display[display_offset] = fd->background[(scy + y) % HEIGHT][(scx + x) % WIDTH];
     }
+  }
+}
+
+void ppu_step(fundude* fd, int cycles) {
+  fd->clock.ppu += cycles;
+
+  if (fd->clock.ppu > DOTS_PER_FRAME) {
+    fd->clock.ppu %= DOTS_PER_FRAME;
+    // TODO: render specific pixels in mode 3 / transferring
+    ppu_render(fd);
+  }
+
+  if (fd->clock.ppu > HEIGHT * DOTS_PER_LINE) {
+    fd->mmu.io_ports.STAT.mode = LCDC_VBLANK;
+    return;
+  }
+
+  int offset = fd->clock.ppu % 456;
+  if (offset < 80) {
+    fd->mmu.io_ports.STAT.mode = LCDC_SEARCHING;
+  } else if (offset < 291) {
+    // TODO: depends on sprite
+    fd->mmu.io_ports.STAT.mode = LCDC_TRANSFERRING;
+  } else {
+    fd->mmu.io_ports.STAT.mode = LCDC_HBLANK;
   }
 }

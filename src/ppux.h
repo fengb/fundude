@@ -1,3 +1,3 @@
 #include "fundude.h"
 
-void ppu_render(fundude* fd);
+void ppu_step(fundude* fd, int cycles);

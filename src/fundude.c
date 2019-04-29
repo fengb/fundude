@@ -26,27 +26,11 @@ void fd_reset(fundude* fd) {
 }
 
 int fd_step(fundude* fd) {
-  if (fd->mode == SYS_FATAL) {
-    return -9999;
-  }
-
-  cpu_result res = cpu_tick(fd, mmu_ptr(&fd->mmu, fd->cpu.PC._));
-  if (res.jump <= 0 || res.length <= 0 || res.duration <= 0) {
-    fd->mode = SYS_FATAL;
-    return -9999;
-  }
-
-  fd->cpu.PC._ = res.jump;
-  return res.jump;
+  return fd_step_cycles(fd, 1);
 }
 
 int fd_step_frames(fundude* fd, short frames) {
-  int total = 0;
-  while (frames-- > 0) {
-    total += fd_step_cycles(fd, CYCLES_PER_FRAME);
-    ppu_render(fd);
-  }
-  return total;
+  return fd_step_cycles(fd, frames * CYCLES_PER_FRAME);
 }
 
 int fd_step_cycles(fundude* fd, int cycles) {
@@ -54,18 +38,24 @@ int fd_step_cycles(fundude* fd, int cycles) {
     return -9999;
   }
 
+  cycles += fd->clock.cpu;
+  int track = cycles;
+
   do {
     cpu_result res = cpu_tick(fd, mmu_ptr(&fd->mmu, fd->cpu.PC._));
-    if (res.jump <= 0 || res.length <= 0 || res.duration <= 0) {
+    if (res.jump < 0 || res.length <= 0 || res.duration <= 0) {
       fd->mode = SYS_FATAL;
       return -9999;
     }
 
-    fd->cpu.PC._ = res.jump;
-    cycles -= res.duration;
-  } while (cycles >= 0 && fd->breakpoint != fd->cpu.PC._);
+    ppu_step(fd, res.duration);
 
-  return fd->cpu.PC._;
+    fd->cpu.PC._ = res.jump;
+    track -= res.duration;
+  } while (track >= 0 && fd->breakpoint != fd->cpu.PC._);
+
+  fd->clock.cpu = track;
+  return cycles + track;
 }
 
 char* fd_disassemble(fundude* fd) {
