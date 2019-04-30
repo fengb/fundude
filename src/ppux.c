@@ -101,7 +101,7 @@ void ppu_render(fundude* fd) {
   }
 }
 
-void ppu_step(fundude* fd, int cycles) {
+void ppu_step(fundude* fd, uint8_t cycles) {
   if (!fd->mmu.io_ports.LCDC.lcd_enable) {
     fd->clock.ppu = 0;
     fd->mmu.io_ports.STAT.mode = LCDC_VBLANK;

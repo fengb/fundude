@@ -31,6 +31,7 @@ typedef struct {
   struct {
     int cpu;
     int ppu;
+    uint16_t timer;
   } clock;
 
   int breakpoint;

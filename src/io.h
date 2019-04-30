@@ -22,6 +22,13 @@ typedef struct __attribute__((__packed__)) {
   shade color3 : 2;
 } color_palette;
 
+typedef enum __attribute__((__packed__)) {
+  IO_TIMER_SPEED_4096 = 0,
+  IO_TIMER_SPEED_262144 = 1,
+  IO_TIMER_SPEED_65536 = 2,
+  IO_TIMER_SPEED_16384 = 3,
+} io_timer_speed;
+
 typedef union {
   uint8_t RAW[0x4C];
   struct {
@@ -43,7 +50,10 @@ typedef union {
     uint8_t DIV;   // $FF04
     uint8_t TIMA;  // $FF05
     uint8_t TMA;   // $FF06
-    uint8_t TAC;   // $FF07
+    struct {
+      io_timer_speed speed : 2;
+      bool active : 1;
+    } TAC;
     uint8_t _pad_ff08_0e[7];
     uint8_t IF;  // FF0F
 

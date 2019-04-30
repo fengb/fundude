@@ -4,6 +4,7 @@
 #include "cpux.h"
 #include "mmux.h"
 #include "ppux.h"
+#include "timerx.h"
 
 #define CYCLES_PER_FRAME (4 * 16742)
 
@@ -57,6 +58,7 @@ int fd_step_cycles(fundude* fd, int cycles) {
     }
 
     ppu_step(fd, res.duration);
+    io_step(fd, res.duration);
 
     fd->cpu.PC._ = res.jump;
     track -= res.duration;
