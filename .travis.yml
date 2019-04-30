@@ -15,7 +15,7 @@ script:
   - docker-compose run builder make test
 
 before_deploy:
-  - docker-compose run builder make
+  - docker-compose run builder make && echo
   - yarn build
 
 deploy:

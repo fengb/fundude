@@ -13,3 +13,5 @@ RUN cp /usr/bin/wasm-ld-8 /usr/bin/wasm-ld
 RUN mkdir -p /opt/fundude
 
 WORKDIR /opt/fundude
+
+ENV MAKEFLAGS=-j4
