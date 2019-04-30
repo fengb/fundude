@@ -44,7 +44,7 @@ void fd_init(fundude* fd, size_t cart_length, uint8_t cart[]);
 void fd_reset(fundude* fd);
 
 int fd_step(fundude* fd);
-int fd_step_frames(fundude* fd, short frames);
+short fd_step_frames(fundude* fd, short frames);
 int fd_step_cycles(fundude* fd, int cycles);
 
 #pragma mark debugging tools

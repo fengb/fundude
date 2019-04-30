@@ -23,12 +23,12 @@ export function App() {
 
   function TURBO() {
     const start = Date.now();
-    fd.stepFrame(INT16_MAX);
+    const rendered = fd.stepFrame(INT16_MAX);
     console.log(
       "TURBO -- rt:",
       (Date.now() - start) / 1000,
       "gb:",
-      INT16_MAX / 60
+      rendered / 60
     );
   }
 

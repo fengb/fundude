@@ -145,14 +145,16 @@ export default class FundudeWasm {
     this.changed.dispatch();
   }
 
-  step() {
-    WASM.fd_step(this.pointer);
+  step(): number {
+    const cycles = WASM.fd_step(this.pointer);
     this.changed.dispatch();
+    return cycles;
   }
 
-  stepFrame(frames = 1) {
-    WASM.fd_step_frames(this.pointer, frames);
+  stepFrame(frames = 1): number {
+    const cycles = WASM.fd_step_frames(this.pointer, frames);
     this.changed.dispatch();
+    return cycles;
   }
 
   static *disassemble(cart: Uint8Array): IterableIterator<GBInstruction> {
