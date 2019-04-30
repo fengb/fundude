@@ -355,7 +355,7 @@ cpu_result op_add_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
 cpu_result op_add_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_add_rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
-                  zasm2("ADD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
+                  zasm2("ADD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 cpu_result op_add_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
@@ -398,7 +398,7 @@ cpu_result op_adc_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
 cpu_result op_adc_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_add_rr(fd, tgt, fd->cpu.FLAGS.C + mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
-                  zasm2("ADC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
+                  zasm2("ADC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 cpu_result op_adc_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
@@ -416,7 +416,7 @@ cpu_result op_sub_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
 cpu_result op_sub_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_sub_rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
-                  zasm2("SUB", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
+                  zasm2("SUB", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 cpu_result op_sub_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
@@ -434,7 +434,7 @@ cpu_result op_sbc_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
 cpu_result op_sbc_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_sub_rr(fd, tgt, fd->cpu.FLAGS.C + mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
-                  zasm2("SBC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
+                  zasm2("SBC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 cpu_result op_sbc_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
@@ -452,7 +452,7 @@ cpu_result op_and_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
 cpu_result op_and_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_and_rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
-                  zasm2("AND", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
+                  zasm2("AND", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 cpu_result op_and_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
@@ -470,7 +470,7 @@ cpu_result op_or__rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
 cpu_result op_or__rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_or__rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
-                  zasm2("OR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
+                  zasm2("OR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 cpu_result op_or__rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
@@ -488,7 +488,7 @@ cpu_result op_xor_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
 cpu_result op_xor_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_xor_rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
-                  zasm2("XOR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
+                  zasm2("XOR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 cpu_result op_xor_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
@@ -506,7 +506,7 @@ cpu_result op_cp__rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
 cpu_result op_cp__rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_cp__rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
-                  zasm2("CP", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
+                  zasm2("CP", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 cpu_result op_cp__rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
