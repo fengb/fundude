@@ -56,7 +56,12 @@ int fd_step_cycles(fundude* fd, int cycles) {
 
     fd->cpu.PC._ = res.jump;
     track -= res.duration;
-  } while (track >= 0 && fd->breakpoint != fd->cpu.PC._);
+
+    if (fd->breakpoint == fd->cpu.PC._) {
+      fd->clock.cpu = 0;
+      return cycles - track;
+    }
+  } while (track >= 0);
 
   fd->clock.cpu = track;
   return cycles + track;
