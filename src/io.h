@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
+#include "intr.h"
 
 typedef enum __attribute__((__packed__)) {
   SHADE_WHITE = 0,
@@ -55,7 +56,7 @@ typedef union {
       bool active : 1;
     } TAC;
     uint8_t _pad_ff08_0e[7];
-    uint8_t IF;  // FF0F
+    intr_flags IF;  // FF0F
 
     uint8_t NR10;  // $FF10
     uint8_t NR11;  // $FF11

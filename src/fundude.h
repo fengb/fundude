@@ -28,6 +28,8 @@ typedef struct {
   cpu cpu;
   mmu mmu;
 
+  bool interrupt_master;
+
   struct {
     int cpu;
     int ppu;

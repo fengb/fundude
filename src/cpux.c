@@ -82,7 +82,7 @@ cpu_result op_ccf(fundude* fd) {
 }
 
 cpu_result op_int______(fundude* fd, bool set) {
-  // TODO: enable/disable interrupt
+  fd->interrupt_master = set;
   return CPU_STEP(fd, 1, 4, zasm0(set ? "EI" : "DI"));
 }
 
@@ -158,7 +158,7 @@ cpu_result op_ret______(fundude* fd) {
 
 cpu_result op_rti______(fundude* fd) {
   uint8_t val = do_pop(fd);
-  // TODO: enable interrupts
+  fd->interrupt_master = true;
   return CPU_JUMP(val, 1, 8, zasm0("RETI"));
 }
 
