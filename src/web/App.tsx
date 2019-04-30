@@ -13,38 +13,34 @@ const CSS = {
     width: "100vw",
     height: "100vh",
     display: "flex"
+  }),
+
+  controls: style({
+    display: "flex",
+    justifyContent: "space-between"
   })
 };
 
-const INT16_MAX = 2 ** 16 / 2 - 1;
-
 export function App() {
-  const { fd } = React.useContext(FD.Context);
-
-  function TURBO() {
-    const start = Date.now();
-    const rendered = fd.stepFrame(INT16_MAX);
-    console.log(
-      "TURBO -- rt:",
-      (Date.now() - start) / 1000,
-      "gb:",
-      rendered / 60
-    );
-  }
+  const { fd, run, stop } = React.useContext(FD.Context);
 
   return (
     <div className={CSS.root}>
       <CartList extra={{ bootloader: BOOTLOADER }} />
       <div>
-        <Display pixels={fd.display()} />
+        <Display pixels={fd.display()} signal={fd.changed} />
+        <div className={CSS.controls}>
+          <button onClick={run}>Run</button>
+          <div>
+            <button onClick={() => fd.step() && stop()}>Step</button>
+            <button onClick={() => fd.stepFrame() && stop()}>Frame</button>
+            <button onClick={() => fd.stepFrame(60) && stop()}>Second</button>
+          </div>
+        </div>
+        <Cpu reg={fd.cpu()} />
         <Display pixels={fd.background()} />
         <Display pixels={fd.window()} />
         <Display pixels={fd.tileData()} />
-        <button onClick={() => fd.step()}>Cycle</button>
-        <button onClick={() => fd.stepFrame()}>Frame</button>
-        <button onClick={() => fd.stepFrame(60)}>Second</button>
-        <button onClick={TURBO}>TURBO</button>
-        <Cpu reg={fd.cpu()} />
       </div>
       <Disassembler fd={fd} />
       <Mmu fd={fd} />

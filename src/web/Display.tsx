@@ -1,6 +1,7 @@
 import React from "react";
 import { style } from "typestyle";
 import { PtrMatrix } from "../wasm";
+import { Signal } from "micro-signals";
 
 const CSS = {
   root: style({
@@ -32,16 +33,30 @@ function imageData(pixels: PtrMatrix) {
   return imageData;
 }
 
-export default function Display(props: { pixels: PtrMatrix; scale?: number }) {
+export default function Display(props: {
+  pixels: PtrMatrix;
+  scale?: number;
+  signal?: Signal<any>;
+}) {
   const ref = React.useRef<HTMLCanvasElement>(null);
-  React.useEffect(() => {
+  const render = React.useCallback(() => {
     if (!ref.current) {
       return;
     }
 
     const ctx = ref.current.getContext("2d")!;
     ctx.putImageData(imageData(props.pixels), PADDING, PADDING);
-  });
+  }, [ref.current]);
+
+  React.useEffect(render);
+
+  React.useEffect(() => {
+    if (props.signal) {
+      const signal = props.signal;
+      signal.add(render);
+      return () => signal.remove(render);
+    }
+  }, [props.signal]);
 
   return (
     <canvas

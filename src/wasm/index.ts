@@ -18,9 +18,11 @@ export interface PtrMatrix extends PtrArray {
 export class PtrArray {
   public base: Uint8Array;
   readonly ptr: number;
+  readonly _length: number;
 
   constructor(ptr: number, length: number) {
     this.ptr = ptr;
+    this._length = length;
     this.base = new Uint8Array(WASM.memory.buffer, ptr, length);
   }
 
@@ -40,7 +42,7 @@ export class PtrArray {
 
   length(): number {
     if (this.base.length == 0) {
-      this.base = new Uint8Array(WASM.memory.buffer, this.ptr, length);
+      this.base = new Uint8Array(WASM.memory.buffer, this.ptr, this._length);
     }
 
     return this.base.length;

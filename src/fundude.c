@@ -5,7 +5,7 @@
 #include "mmux.h"
 #include "ppux.h"
 
-#define CYCLES_PER_FRAME 16742
+#define CYCLES_PER_FRAME (4 * 16742)
 
 fundude* fd_alloc() {
   fundude* fd = malloc(sizeof(fundude));
