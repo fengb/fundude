@@ -39,7 +39,7 @@ zasm_arg zasma_hex16(zasm_format f, uint16_t val) {
 }
 
 static char hexch(int i, int byte_offset) {
-  switch ((i >> (byte_offset * 8)) & 0xF) {
+  switch ((i >> (byte_offset * 4)) & 0xF) {
     case 0x0: return '0';
     case 0x1: return '1';
     case 0x2: return '2';

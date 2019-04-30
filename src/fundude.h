@@ -20,13 +20,18 @@ typedef enum {
 } sys_mode;
 
 typedef struct {
-  uint8_t display[WIDTH * HEIGHT];
+  uint8_t display[HEIGHT][WIDTH];
   uint8_t background[256][256];
   uint8_t window[256][256];
   uint8_t tile_data[96][256];
 
   cpu cpu;
   mmu mmu;
+
+  struct {
+    int cpu;
+    int ppu;
+  } clock;
 
   int breakpoint;
   char disassembly[24];

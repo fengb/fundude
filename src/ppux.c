@@ -1,9 +1,13 @@
 #include "ppux.h"
 
 #define PIXELS_PER_TILE 8
-#define BACKGROUND_TILES 32
+#define BG_TILES 32
+#define BG_PIXELS 256
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define ARRAYLEN(x) (sizeof(x) / sizeof(x[0]))
+
+#define DOTS_PER_LINE 456
+#define DOTS_PER_FRAME 70224
 
 color_palette NO_PALETTE = {.color0 = 0, .color1 = 1, .color2 = 2, .color3 = 3};
 
@@ -13,8 +17,8 @@ enum {
 };
 
 typedef enum {
-  TILE_ADDRESSING_8000 = 0,
-  TILE_ADDRESSING_8800 = 1,
+  TILE_ADDRESSING_8800 = 0,
+  TILE_ADDRESSING_8000 = 1,
 } tile_addressing;
 
 ppu_tile tile_data(ppu_vram* vram, tile_addressing addressing, uint8_t index) {
@@ -59,17 +63,17 @@ void draw_tile(uint8_t tgt[][256], size_t r, size_t c, ppu_tile t, color_palette
 }
 
 // TODO: optimize by "materializing" the background instead of this shenanigans
-void render_bg(fundude* fd, uint8_t background[256][256], uint8_t tile_map_flag) {
+void render_bg(fundude* fd, uint8_t background[BG_PIXELS][BG_PIXELS], uint8_t tile_map_flag) {
   uint8_t tile_addressing = fd->mmu.io_ports.LCDC.bg_window_tile_data;
   ppu_tile_map* tm =
       tile_map_flag == TILE_MAP_9800 ? &fd->mmu.vram.tile_map_9800 : &fd->mmu.vram.tile_map_9C00;
 
-  for (int r = 0; r < BACKGROUND_TILES; r++) {
-    for (int c = 0; c < BACKGROUND_TILES; c++) {
+  for (int r = 0; r < BG_TILES; r++) {
+    for (int c = 0; c < BG_TILES; c++) {
       int tile_index = tm->_[r][c];
-      ppu_tile t = tile_data(&fd->mmu.vram, tile_addressing, tile_index);
+      ppu_tile tile = tile_data(&fd->mmu.vram, tile_addressing, tile_index);
 
-      draw_tile(background, r, c, t, fd->mmu.io_ports.BGP);
+      draw_tile(background, r, c, tile, fd->mmu.io_ports.BGP);
     }
   }
 }
@@ -78,8 +82,8 @@ void render_bg(fundude* fd, uint8_t background[256][256], uint8_t tile_map_flag)
 void ppu_render(fundude* fd) {
   for (int i = 0; i < ARRAYLEN(fd->mmu.vram.tile_data.ALL); i++) {
     ppu_tile t = fd->mmu.vram.tile_data.ALL[i];
-    int c = i % BACKGROUND_TILES;
-    int r = i / BACKGROUND_TILES;
+    int c = i % BG_TILES;
+    int r = i / BG_TILES;
 
     draw_tile(fd->tile_data, r, c, t, NO_PALETTE);
   }
@@ -90,10 +94,45 @@ void ppu_render(fundude* fd) {
   uint8_t scy = fd->mmu.io_ports.SCY;
 
   // TODO: use memcpy
-  for (int x = 0; x < WIDTH; x++) {
-    for (int y = 0; y < HEIGHT; y++) {
-      int display_offset = y * HEIGHT + x;
-      fd->display[display_offset] = fd->background[(scy + y) % HEIGHT][(scx + x) % WIDTH];
+  for (int y = 0; y < HEIGHT; y++) {
+    for (int x = 0; x < WIDTH; x++) {
+      fd->display[y][x] = fd->background[(scy + y) % BG_PIXELS][(scx + x) % BG_PIXELS];
     }
+  }
+}
+
+void ppu_step(fundude* fd, int cycles) {
+  if (!fd->mmu.io_ports.LCDC.lcd_enable) {
+    fd->clock.ppu = 0;
+    fd->mmu.io_ports.STAT.mode = LCDC_VBLANK;
+    return;
+  }
+
+  fd->clock.ppu += cycles;
+
+  if (fd->clock.ppu > DOTS_PER_FRAME) {
+    fd->clock.ppu %= DOTS_PER_FRAME;
+  }
+
+  fd->mmu.io_ports.LY = fd->clock.ppu / 456;
+  fd->mmu.io_ports.STAT.coincidence = fd->mmu.io_ports.LY == fd->mmu.io_ports.LYC;
+
+  if (fd->clock.ppu > HEIGHT * DOTS_PER_LINE) {
+    // TODO: render specific pixels in mode 3 / transferring
+    if (fd->mmu.io_ports.STAT.mode != LCDC_VBLANK) {
+      fd->mmu.io_ports.STAT.mode = LCDC_VBLANK;
+      ppu_render(fd);
+    }
+    return;
+  }
+
+  int offset = fd->clock.ppu % 456;
+  if (offset < 80) {
+    fd->mmu.io_ports.STAT.mode = LCDC_SEARCHING;
+  } else if (offset < 291) {
+    // TODO: depends on sprite
+    fd->mmu.io_ports.STAT.mode = LCDC_TRANSFERRING;
+  } else {
+    fd->mmu.io_ports.STAT.mode = LCDC_HBLANK;
   }
 }
