@@ -16,8 +16,21 @@ const CSS = {
   })
 };
 
+const INT16_MAX = 2 ** 16 / 2 - 1;
+
 export function App() {
   const { fd } = React.useContext(FD.Context);
+
+  function TURBO() {
+    const start = Date.now();
+    fd.stepFrame(INT16_MAX);
+    console.log(
+      "TURBO -- rt:",
+      (Date.now() - start) / 1000,
+      "gb:",
+      INT16_MAX / 60
+    );
+  }
 
   return (
     <div className={CSS.root}>
@@ -27,9 +40,10 @@ export function App() {
         <Display pixels={fd.background()} />
         <Display pixels={fd.window()} />
         <Display pixels={fd.tileData()} />
-        <button onClick={() => fd.step()}>Step</button>
-        <button onClick={() => fd.stepFrame()}>Step Frame</button>
-        <button onClick={() => fd.stepFrame(60)}>Step Second</button>
+        <button onClick={() => fd.step()}>Cycle</button>
+        <button onClick={() => fd.stepFrame()}>Frame</button>
+        <button onClick={() => fd.stepFrame(60)}>Second</button>
+        <button onClick={TURBO}>TURBO</button>
         <Cpu reg={fd.cpu()} />
       </div>
       <Disassembler fd={fd} />
