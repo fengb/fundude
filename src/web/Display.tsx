@@ -5,6 +5,10 @@ import { PtrMatrix } from "../wasm";
 import { Signal } from "micro-signals";
 
 const CSS = {
+  root: style({
+    backgroundColor: "white"
+  }),
+
   grid: style({
     backgroundSize: `8px 8px`,
     backgroundImage: [
@@ -64,7 +68,7 @@ export default function Display(props: {
 
   return (
     <canvas
-      className={classnames(scale === 1 && CSS.grid)}
+      className={classnames(CSS.root, scale === 1 && CSS.grid)}
       ref={ref}
       width={width}
       height={height}

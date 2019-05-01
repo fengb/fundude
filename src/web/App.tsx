@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { style } from "typestyle";
 import FD from "../wasm/react";
 import Display from "./Display";
-import CartList from "./CartList";
+import CartSelect from "./CartSelect";
 import { BOOTLOADER } from "./data";
 import Debug from "./Debug";
 
@@ -18,6 +18,40 @@ const CSS = {
 
   app: style({
     margin: "0 50px"
+  }),
+
+  shell: style({
+    padding: "20px",
+    background: "#f5f5dc",
+    boxShadow: "inset 0 0 0 4px rgba(32, 32, 32, 0.5)",
+    borderRadius: "8px 8px 40px 40px"
+  }),
+
+  displayWrapper: style({
+    backgroundColor: "#606060",
+    padding: "20px 50px 0",
+    borderRadius: "8px"
+  }),
+
+  logo: style({
+    textTransform: "uppercase",
+    fontFamily: "'Gill Sans', sans-serif",
+    fontWeight: "bold",
+    fontStyle: "italic",
+    letterSpacing: "-2px",
+    color: "white"
+  }),
+
+  logoInvert: style({
+    fontSize: "0.6em",
+    verticalAlign: "4px",
+    color: "#606060",
+    background: "white",
+    padding: "0 4px 0 2px"
+  }),
+
+  controls: style({
+    height: "300px"
   })
 };
 
@@ -26,8 +60,16 @@ export function App() {
 
   return (
     <div className={CSS.app}>
-      <CartList extra={{ bootloader: BOOTLOADER }} />
-      <Display pixels={fd.display()} signal={fd.changed} scale={2} />
+      <CartSelect extra={{ bootloader: BOOTLOADER }} />
+      <div className={CSS.shell}>
+        <div className={CSS.displayWrapper}>
+          <Display pixels={fd.display()} signal={fd.changed} scale={2} />
+          <h1 className={CSS.logo}>
+            Fun dude <span className={CSS.logoInvert}>!</span>
+          </h1>
+        </div>
+        <div className={CSS.controls} />
+      </div>
     </div>
   );
 }

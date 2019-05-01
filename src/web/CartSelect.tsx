@@ -24,7 +24,7 @@ export default function CartList({
 
   return (
     <div>
-      {Object.keys(extra).map(name => (
+      {/* {Object.keys(extra).map(name => (
         <div key={name}>
           <button onClick={() => fd.init(extra[name])}>{name}</button>
         </div>
@@ -33,7 +33,7 @@ export default function CartList({
         <div key={name}>
           <button onClick={() => fd.init(cache.data[name])}>{name}</button>
         </div>
-      ))}
+      ))} */}
       <div {...getRootProps()}>
         <input {...getInputProps()} ref={filePickerRef} />
         <button onClick={() => filePickerRef.current!.click()}>Add File</button>
