@@ -9,7 +9,8 @@ import Mmu from "./Mmu";
 const CSS = {
   base: style({
     display: "flex",
-    flexDirection: "column"
+    flexDirection: "column",
+    margin: "0 50px"
   }),
 
   controls: style({

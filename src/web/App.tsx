@@ -10,6 +10,7 @@ import useEvent from "react-use/lib/useEvent";
 
 const CSS = {
   root: style({
+    overflow: "hidden",
     width: "100vw",
     height: "100vh",
     display: "flex",
@@ -17,7 +18,7 @@ const CSS = {
   }),
 
   app: style({
-    margin: "8px 50px",
+    marginTop: "8px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center"

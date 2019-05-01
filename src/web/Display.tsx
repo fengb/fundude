@@ -6,7 +6,8 @@ import { Signal } from "micro-signals";
 
 const CSS = {
   root: style({
-    backgroundColor: "white"
+    backgroundColor: "white",
+    maxWidth: "100vw"
   }),
 
   grid: style({
@@ -72,7 +73,7 @@ export default function Display(props: {
       ref={ref}
       width={width}
       height={height}
-      style={{ width: width * scale, height: height * scale }}
+      style={{ width: width * scale }}
     />
   );
 }
