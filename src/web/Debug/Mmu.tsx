@@ -14,6 +14,11 @@ const CSS = {
     height: "100%",
     maxHeight: "100vh"
   }),
+  controls: style({
+    display: "flex",
+    alignItems: "flex-end"
+  }),
+
   row: style({
     display: "flex",
     fontFamily: "monospace"
@@ -100,15 +105,14 @@ export default function Mmu(props: { fd: FundudeWasm }) {
   const cpu = props.fd.cpu();
   return (
     <div className={CSS.root}>
-      <div>
+      <div className={CSS.controls}>
         {map(MMU_OFFSETS.segments, (tuple, key) => (
           <button
             key={key}
             className={REGION_CSS[key]}
             onClick={() => setFocus(tuple[0])}
           >
-            {key}
-            <br />${hex4(tuple[0])}
+            {key} <br />${hex4(tuple[0])}
           </button>
         ))}
         <Form onSubmit={({ search }) => setFocus(parseInt(String(search), 16))}>

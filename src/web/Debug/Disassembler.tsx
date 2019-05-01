@@ -8,7 +8,7 @@ import { hex2, hex4 } from "./util";
 const CSS = {
   root: style({
     fontFamily: "monospace",
-    height: "100%"
+    display: "flex"
   }),
   child: style({
     display: "flex",
@@ -46,7 +46,7 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
   return (
     <div className={CSS.root}>
       <LazyScroller
-        childWidth={250}
+        childWidth={240}
         childHeight={15}
         totalChildren={props.fd.cart.length}
         focus={props.fd.cpu().PC()}

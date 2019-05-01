@@ -7,6 +7,11 @@ import Cpu from "./Cpu";
 import Mmu from "./Mmu";
 
 const CSS = {
+  base: style({
+    display: "flex",
+    flexDirection: "column"
+  }),
+
   controls: style({
     display: "flex",
     justifyContent: "space-between"
@@ -16,9 +21,12 @@ const CSS = {
 export function Left() {
   const { fd, run, pause } = React.useContext(FD.Context);
   return (
-    <div>
+    <div className={CSS.base}>
       <div className={CSS.controls}>
-        <button onClick={run}>Run</button>
+        <div>
+          <button onClick={run}>&#9658;</button>
+          <button onClick={pause}>&#10073;&#10073;</button>
+        </div>
         <div>
           <button onClick={() => fd.step() && pause()}>Step</button>
           <button onClick={() => fd.stepFrame() && pause()}>Frame</button>
@@ -34,10 +42,12 @@ export function Left() {
 export function Right() {
   const { fd } = React.useContext(FD.Context);
   return (
-    <div>
-      <Display pixels={fd.background()} />
-      {/* <Display pixels={fd.window()} /> */}
-      {/* <Display pixels={fd.tileData()} /> */}
+    <div className={CSS.base}>
+      <div>
+        <Display pixels={fd.background()} />
+        {/* <Display pixels={fd.window()} /> */}
+        {/* <Display pixels={fd.tileData()} /> */}
+      </div>
       <Mmu fd={fd} />
     </div>
   );

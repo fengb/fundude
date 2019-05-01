@@ -12,6 +12,10 @@ const CSS = {
     height: "100vh",
     display: "flex",
     justifyContent: "center"
+  }),
+
+  app: style({
+    margin: "0 50px"
   })
 };
 
@@ -19,7 +23,7 @@ export function App() {
   const { fd } = React.useContext(FD.Context);
 
   return (
-    <div>
+    <div className={CSS.app}>
       <CartList extra={{ bootloader: BOOTLOADER }} />
       <Display pixels={fd.display()} signal={fd.changed} />
     </div>
