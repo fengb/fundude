@@ -24,15 +24,19 @@ export class Provider extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
+    this.state = {
+      fd: new FundudeWasm(props.bootCart),
+      isRunning: false
+    };
+
     this.handleChange = this.handleChange.bind(this);
     this.run = this.run.bind(this);
     this.pause = this.pause.bind(this);
     this.spin = this.spin.bind(this);
+  }
 
-    const fd = new FundudeWasm(props.bootCart);
-    fd.changed.add(this.handleChange);
-
-    this.state = { fd, isRunning: false };
+  componentDidMount() {
+    this.run();
   }
 
   handleChange() {
@@ -56,12 +60,16 @@ export class Provider extends React.Component<Props, State> {
 
   run() {
     if (!this.state.isRunning) {
+      this.state.fd.changed.remove(this.handleChange);
       this.setState({ isRunning: true }, this.spin);
     }
   }
 
   pause() {
-    this.setState({ isRunning: false });
+    if (this.state.isRunning) {
+      this.state.fd.changed.add(this.handleChange);
+      this.setState({ isRunning: false });
+    }
   }
 
   render() {
