@@ -13,14 +13,14 @@ int main() {
     for (int l = 0; l <= 0xF; l++) {
       fd.cpu.HL._ = BEYOND_CART;
       op[1] = (h << 4) | l;
-      cpu_result r = cpu_tick(&fd, op);
+      cpu_result r = cpu_step(&fd, op);
       zasm_puts(buf, sizeof(buf), r.zasm);
       printf("%-11s|", buf);
     }
     printf("\n");
     for (int l = 0; l <= 0xF; l++) {
       op[1] = (h << 4) | l;
-      cpu_result r = cpu_tick(&fd, op);
+      cpu_result r = cpu_step(&fd, op);
       printf("%2d %3d     |", r.length, r.duration);
     }
     printf("\n\n");

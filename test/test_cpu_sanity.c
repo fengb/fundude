@@ -15,7 +15,7 @@ int main() {
   for (int h = 0; h <= 0xF; h++) {
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
-      cpu_result r = cpu_tick(&fd, op);
+      cpu_result r = cpu_step(&fd, op);
 
       ok(r.length > 0, "$%02X length > 0", op[0]);
       ok(r.duration > 0, "$%02X duration > 0", op[0]);

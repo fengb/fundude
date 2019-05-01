@@ -23,7 +23,7 @@ uint8_t intr_addr(fundude* fd) {
   return 0;
 }
 
-cpu_result intr_proc(fundude* fd) {
+cpu_result intr_step(fundude* fd) {
   static uint8_t synth_op[3] = {OP_CALL, 0, 0};
 
   if (!fd->interrupt_master) {
@@ -38,5 +38,5 @@ cpu_result intr_proc(fundude* fd) {
   fd->interrupt_master = false;
   // TODO: this is silly -- we reverse the hacked offset in OP CALL
   fd->cpu.PC._ -= 3;
-  return cpu_tick(fd, synth_op);
+  return cpu_step(fd, synth_op);
 }

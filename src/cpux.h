@@ -12,6 +12,6 @@ typedef struct {
   zasm zasm;
 } cpu_result;
 
-cpu_result cpu_tick(fundude* fd, uint8_t op[]);
+cpu_result cpu_step(fundude* fd, uint8_t op[]);
 
 #endif

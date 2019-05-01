@@ -12,21 +12,21 @@ int main() {
 
   fd.cpu.A._ = 0x45;
 
-  cpu_tick(&fd, (uint8_t[]){OP_SUB_A, 0x02});
+  cpu_step(&fd, (uint8_t[]){OP_SUB_A, 0x02});
   eqhex(fd.cpu.A._, 0x43);
-  cpu_tick(&fd, (uint8_t[]){OP_DAA});
+  cpu_step(&fd, (uint8_t[]){OP_DAA});
   eqhex(fd.cpu.A._, 0x43);
 
-  cpu_tick(&fd, (uint8_t[]){OP_SUB_A, 0x05});
+  cpu_step(&fd, (uint8_t[]){OP_SUB_A, 0x05});
   eqhex(fd.cpu.A._, 0x3E);
-  cpu_tick(&fd, (uint8_t[]){OP_DAA});
+  cpu_step(&fd, (uint8_t[]){OP_DAA});
   eqhex(fd.cpu.A._, 0x38);
   eqbool(fd.cpu.FLAGS.C, false);
 
-  cpu_tick(&fd, (uint8_t[]){OP_SUB_A, 0x91});
+  cpu_step(&fd, (uint8_t[]){OP_SUB_A, 0x91});
   eqhex(fd.cpu.A._, 0xA7);
   eqbool(fd.cpu.FLAGS.C, true);
-  cpu_tick(&fd, (uint8_t[]){OP_DAA});
+  cpu_step(&fd, (uint8_t[]){OP_DAA});
   eqhex(fd.cpu.A._, 0x07);
   eqbool(fd.cpu.FLAGS.C, true);
 

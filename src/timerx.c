@@ -14,7 +14,7 @@ static uint16_t step_up(int interval, int base, int add) {
   return (base + add) / interval - base / interval;
 }
 
-void io_step(fundude* fd, uint8_t cycles) {
+void timer_step(fundude* fd, uint8_t cycles) {
   if (!fd->mmu.io_ports.TAC.active) {
     return;
   }

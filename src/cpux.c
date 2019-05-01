@@ -583,7 +583,7 @@ cpu_result op_cb(fundude* fd, uint8_t op) {
   }
 }
 
-cpu_result cpu_tick(fundude* fd, uint8_t op[]) {
+cpu_result cpu_step(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop(fd);
     case 0x01: return op_ld__ww_df(fd, &fd->cpu.BC, with16(op));
