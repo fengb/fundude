@@ -27,7 +27,7 @@ export function App() {
   return (
     <div className={CSS.app}>
       <CartList extra={{ bootloader: BOOTLOADER }} />
-      <Display pixels={fd.display()} signal={fd.changed} />
+      <Display pixels={fd.display()} signal={fd.changed} scale={2} />
     </div>
   );
 }

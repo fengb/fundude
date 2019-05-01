@@ -1,12 +1,12 @@
 import React from "react";
+import classnames from "classnames";
 import { style } from "typestyle";
 import { PtrMatrix } from "../wasm";
 import { Signal } from "micro-signals";
 
 const CSS = {
-  root: style({
-    display: "block",
-    backgroundSize: "8px 8px",
+  grid: style({
+    backgroundSize: `8px 8px`,
     backgroundImage: [
       "linear-gradient(to right, lightgray 2px, transparent 1px)",
       "linear-gradient(to bottom, lightgray 2px, transparent 1px)"
@@ -58,12 +58,17 @@ export default function Display(props: {
     }
   }, [props.signal]);
 
+  const scale = props.scale || 1;
+  const width = props.pixels.width + PADDING * 2;
+  const height = props.pixels.height + PADDING * 2;
+
   return (
     <canvas
-      className={CSS.root}
+      className={classnames(scale === 1 && CSS.grid)}
       ref={ref}
-      width={props.pixels.width + PADDING * 2}
-      height={props.pixels.height + PADDING * 2}
+      width={width}
+      height={height}
+      style={{ width: width * scale, height: height * scale }}
     />
   );
 }
