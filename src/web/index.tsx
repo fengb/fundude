@@ -4,5 +4,5 @@ import App from "./App";
 
 const container = document.getElementById("app");
 if (container) {
-  render(<App debugMode={window.location.hash.includes("debug")} />, container);
+  render(<App debug={window.location.hash.includes("debug")} />, container);
 }

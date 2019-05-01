@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { style } from "typestyle";
 import FD from "../wasm/react";
 import Display from "./Display";
 import CartList from "./CartList";
 import { BOOTLOADER } from "./data";
 import Debug from "./Debug";
+
+import useEvent from "react-use/lib/useEvent";
 
 const CSS = {
   root: style({
@@ -30,13 +32,19 @@ export function App() {
   );
 }
 
-export default function(props: { debugMode?: boolean }) {
+export default function(props: { debug?: boolean }) {
+  const [debug, setDebug] = useState(props.debug);
+  useEvent(
+    "hashchange",
+    () => setDebug(window.location.hash.includes("debug")),
+    window
+  );
   return (
     <FD.Provider bootCart={BOOTLOADER}>
       <div className={CSS.root}>
-        {props.debugMode && <Debug.Left />}
+        {debug && <Debug.Left />}
         <App />
-        {props.debugMode && <Debug.Right />}
+        {debug && <Debug.Right />}
       </div>
     </FD.Provider>
   );
