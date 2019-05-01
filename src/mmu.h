@@ -1,6 +1,7 @@
 #ifndef __MMU_H
 #define __MMU_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "intr.h"

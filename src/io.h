@@ -99,10 +99,10 @@ typedef union {
     struct {
       lcdc_mode mode : 2;
       bool coincidence : 1;
-      bool hblank_int : 1;
-      bool vblank_int : 1;
-      bool oam_int : 1;
-      bool coincidence_int : 1;
+      bool intr_hblank : 1;
+      bool intr_vblank : 1;
+      bool intr_oam : 1;
+      bool intr_coincidence : 1;
     } STAT;
     uint8_t SCY;         // $FF42
     uint8_t SCX;         // $FF43

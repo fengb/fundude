@@ -23,10 +23,9 @@ void io_step(fundude* fd, uint8_t cycles) {
   fd->mmu.io_ports.TIMA +=
       step_up(tima_interval(fd->mmu.io_ports.TAC.speed), fd->clock.timer, cycles);
   if (fd->mmu.io_ports.TIMA < start) {
-    // Overflow!
-    // TODO: these effects actually happen 1 cycle later
+    // TODO: this effect actually happen 1 cycle later
     fd->mmu.io_ports.TIMA += fd->mmu.io_ports.TMA;
-    // IF interrupt
+    fd->mmu.io_ports.IF.vblank = true;
   }
 
   fd->clock.timer += cycles;  // overflow is fine

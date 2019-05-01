@@ -116,11 +116,18 @@ void ppu_step(fundude* fd, uint8_t cycles) {
 
   fd->mmu.io_ports.LY = fd->clock.ppu / 456;
   fd->mmu.io_ports.STAT.coincidence = fd->mmu.io_ports.LY == fd->mmu.io_ports.LYC;
+  if ((fd->mmu.io_ports.STAT.intr_coincidence && fd->mmu.io_ports.STAT.coincidence) ||
+      (fd->mmu.io_ports.STAT.intr_hblank && fd->mmu.io_ports.STAT.mode == LCDC_HBLANK) ||
+      (fd->mmu.io_ports.STAT.intr_vblank && fd->mmu.io_ports.STAT.mode == LCDC_VBLANK) ||
+      (fd->mmu.io_ports.STAT.intr_oam && fd->mmu.io_ports.STAT.mode == LCDC_SEARCHING)) {
+    fd->mmu.io_ports.IF.lcd_stat = true;
+  }
 
   if (fd->clock.ppu > HEIGHT * DOTS_PER_LINE) {
     // TODO: render specific pixels in mode 3 / transferring
     if (fd->mmu.io_ports.STAT.mode != LCDC_VBLANK) {
       fd->mmu.io_ports.STAT.mode = LCDC_VBLANK;
+      fd->mmu.io_ports.IF.vblank = true;
       ppu_render(fd);
     }
     return;
