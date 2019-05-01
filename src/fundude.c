@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cpux.h"
+#include "intrx.h"
 #include "mmux.h"
 #include "ppux.h"
 #include "timerx.h"
@@ -51,8 +52,12 @@ int fd_step_cycles(fundude* fd, int cycles) {
   int track = cycles;
 
   do {
-    cpu_result res = cpu_tick(fd, mmu_ptr(&fd->mmu, fd->cpu.PC._));
-    if (res.jump < 0 || res.length <= 0 || res.duration <= 0) {
+    cpu_result res = intr_proc(fd);
+    if (res.length <= 0 || res.duration <= 0) {
+      res = cpu_tick(fd, mmu_ptr(&fd->mmu, fd->cpu.PC._));
+    }
+
+    if (res.length <= 0 || res.duration <= 0) {
       fd->mode = SYS_FATAL;
       return -9999;
     }

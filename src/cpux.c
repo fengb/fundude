@@ -21,12 +21,12 @@ static bool cond_check(fundude* fd, cpu_cond c) {
   }
 }
 
-static cpu_result CPU_JUMP(uint16_t jump, int length, int duration, zasm g) {
-  return (cpu_result){jump, (length), (duration), g};
+static cpu_result CPU_JUMP(uint16_t jump, int length, int duration, zasm z) {
+  return (cpu_result){jump, (length), (duration), z};
 }
 
-static cpu_result CPU_STEP(fundude* fd, int length, int duration, zasm g) {
-  return CPU_JUMP(fd->cpu.PC._ + length, length, duration, g);
+static cpu_result CPU_STEP(fundude* fd, int length, int duration, zasm z) {
+  return CPU_JUMP(fd->cpu.PC._ + length, length, duration, z);
 }
 
 static cpu_result CPU_UNKNOWN(fundude* fd) {
