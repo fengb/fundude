@@ -152,12 +152,12 @@ cpu_result op_jp__WW___(fundude* fd, cpu_reg16* tgt) {
 }
 
 cpu_result op_ret______(fundude* fd) {
-  uint8_t val = do_pop(fd);
+  uint16_t val = do_pop16(fd);
   return CPU_JUMP(val, 1, 8, zasm0("RET"));
 }
 
 cpu_result op_rti______(fundude* fd) {
-  uint8_t val = do_pop(fd);
+  uint16_t val = do_pop16(fd);
   fd->interrupt_master = true;
   return CPU_JUMP(val, 1, 8, zasm0("RETI"));
 }
@@ -166,12 +166,12 @@ cpu_result op_ret_if___(fundude* fd, cpu_cond c) {
   if (!cond_check(fd, c)) {
     return CPU_STEP(fd, 1, 8, zasm1("RET", zasma_cond(c)));
   }
-  uint8_t val = do_pop(fd);
+  uint16_t val = do_pop16(fd);
   return CPU_JUMP(val, 1, 8, zasm1("RET", zasma_cond(c)));
 }
 
 cpu_result op_rst_d8___(fundude* fd, uint8_t val) {
-  do_push(fd, fd->cpu.PC._);
+  do_push16(fd, fd->cpu.PC._);
   return CPU_JUMP(val, 1, 32, zasm1("RST", zasma_hex8(ZASM_PLAIN, val)));
 }
 
@@ -548,24 +548,17 @@ cpu_result op_cpl_rr___(fundude* fd, cpu_reg8* tgt) {
 }
 
 cpu_result op_pop_ww___(fundude* fd, cpu_reg16* tgt) {
-  // This logic would be easier of we passed in 2x cpu_reg8,
-  // but it would be semantically incorrect. Sad panda.
-  uint8_t hb = do_pop(fd);
-  uint8_t lb = do_pop(fd);
-  tgt->_ = (hb << 8) | lb;
+  tgt->_ = do_pop16(fd);
   return CPU_STEP(fd, 1, 12, zasm1("POP", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
 cpu_result op_psh_ww___(fundude* fd, cpu_reg16* tgt) {
-  uint8_t hb = tgt->_ >> 8;
-  uint8_t lb = tgt->_ & 0xFF;
-  do_push(fd, lb);
-  do_push(fd, hb);
+  do_push16(fd, tgt->_);
   return CPU_STEP(fd, 1, 16, zasm1("PUSH", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
 cpu_result op_cal_AF___(fundude* fd, uint16_t val) {
-  do_push(fd, fd->cpu.PC._ + 3);
+  do_push16(fd, fd->cpu.PC._ + 3);
   return CPU_JUMP(val, 3, 12, zasm1("CALL", zasma_hex16(ZASM_PLAIN, val)));
 }
 
@@ -573,7 +566,7 @@ cpu_result op_cal_if_AF(fundude* fd, cpu_cond c, uint16_t val) {
   if (!cond_check(fd, c)) {
     return CPU_STEP(fd, 3, 12, zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
   }
-  do_push(fd, fd->cpu.PC._ + 3);
+  do_push16(fd, fd->cpu.PC._ + 3);
   return CPU_JUMP(val, 3, 12, zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
 }
 
