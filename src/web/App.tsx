@@ -17,11 +17,14 @@ const CSS = {
   }),
 
   app: style({
-    margin: "0 50px"
+    margin: "8px 50px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center"
   }),
 
   shell: style({
-    padding: "20px",
+    padding: "20px 16px",
     background: "#f5f5dc",
     boxShadow: "inset 0 0 0 4px rgba(32, 32, 32, 0.5)",
     borderRadius: "8px 8px 40px 40px"
@@ -60,7 +63,7 @@ export function App() {
 
   return (
     <div className={CSS.app}>
-      <CartSelect extra={{ bootloader: BOOTLOADER }} />
+      <CartSelect startName="Bootloader" />
       <div className={CSS.shell}>
         <div className={CSS.displayWrapper}>
           <Display pixels={fd.display()} signal={fd.changed} scale={2} />
