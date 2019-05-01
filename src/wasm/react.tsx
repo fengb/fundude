@@ -4,7 +4,7 @@ import FundudeWasm from ".";
 interface Item {
   fd: FundudeWasm;
   run: () => void;
-  stop: () => void;
+  pause: () => void;
 }
 
 interface Props {
@@ -26,7 +26,7 @@ export class Provider extends React.Component<Props, State> {
 
     this.handleChange = this.handleChange.bind(this);
     this.run = this.run.bind(this);
-    this.stop = this.stop.bind(this);
+    this.pause = this.pause.bind(this);
     this.spin = this.spin.bind(this);
 
     const fd = new FundudeWasm(props.bootCart);
@@ -48,7 +48,7 @@ export class Provider extends React.Component<Props, State> {
 
     this.state.fd.stepFrame();
     if (this.state.fd.cpu().PC() === this.state.fd.breakpoint) {
-      return this.stop();
+      return this.pause();
     }
 
     requestAnimationFrame(this.spin);
@@ -60,7 +60,7 @@ export class Provider extends React.Component<Props, State> {
     }
   }
 
-  stop() {
+  pause() {
     this.setState({ isRunning: false });
   }
 
@@ -71,7 +71,7 @@ export class Provider extends React.Component<Props, State> {
 
     return (
       <Context.Provider
-        value={{ fd: this.state.fd, run: this.run, stop: this.stop }}
+        value={{ fd: this.state.fd, run: this.run, pause: this.pause }}
       >
         {this.props.children}
       </Context.Provider>

@@ -4,54 +4,36 @@ import FD from "../wasm/react";
 import Display from "./Display";
 import CartList from "./CartList";
 import { BOOTLOADER } from "./data";
-import Disassembler from "./Debug/Disassembler";
-import Cpu from "./Debug/Cpu";
-import Mmu from "./Debug/Mmu";
+import Debug from "./Debug";
 
 const CSS = {
   root: style({
     width: "100vw",
     height: "100vh",
-    display: "flex"
-  }),
-
-  controls: style({
     display: "flex",
-    justifyContent: "space-between"
+    justifyContent: "center"
   })
 };
 
 export function App() {
-  const { fd, run, stop } = React.useContext(FD.Context);
+  const { fd } = React.useContext(FD.Context);
 
   return (
-    <div className={CSS.root}>
+    <div>
       <CartList extra={{ bootloader: BOOTLOADER }} />
-      <div>
-        <Display pixels={fd.display()} signal={fd.changed} />
-        <div className={CSS.controls}>
-          <button onClick={run}>Run</button>
-          <div>
-            <button onClick={() => fd.step() && stop()}>Step</button>
-            <button onClick={() => fd.stepFrame() && stop()}>Frame</button>
-            <button onClick={() => fd.stepFrame(60) && stop()}>Second</button>
-          </div>
-        </div>
-        <Cpu reg={fd.cpu()} />
-        <Display pixels={fd.background()} />
-        <Display pixels={fd.window()} />
-        <Display pixels={fd.tileData()} />
-      </div>
-      <Disassembler fd={fd} />
-      <Mmu fd={fd} />
+      <Display pixels={fd.display()} signal={fd.changed} />
     </div>
   );
 }
 
-export default function() {
+export default function(props: { debugMode?: boolean }) {
   return (
     <FD.Provider bootCart={BOOTLOADER}>
-      <App />
+      <div className={CSS.root}>
+        {props.debugMode && <Debug.Left />}
+        <App />
+        {props.debugMode && <Debug.Right />}
+      </div>
     </FD.Provider>
   );
 }
