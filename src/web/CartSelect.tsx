@@ -9,8 +9,29 @@ const CSS = {
   root: style({
     position: "relative",
     width: "350px",
-    height: "18px"
+    height: "18px",
+    zIndex: 1
   }),
+
+  backdrop: style({
+    position: "fixed",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    background: "#000000",
+    opacity: 0,
+    transition: "300ms ease-in opacity",
+    pointerEvents: "none",
+
+    $nest: {
+      "&.active": {
+        pointerEvents: "initial",
+        opacity: 0.8
+      }
+    }
+  }),
+
   toggler: style({
     position: "absolute",
     boxSizing: "content-box",
@@ -34,19 +55,16 @@ const CSS = {
 
   selector: style({
     position: "absolute",
-    height: "0",
     overflow: "hidden",
     top: "100%",
     width: "100%",
-    background: "#d9d9d9e0",
-    zIndex: 1,
-    opacity: 0,
+    background: "#ffffffd0",
+    transition: "300ms ease-in-out height",
+    height: "0",
 
     $nest: {
       "&.active": {
-        height: "350px",
-        transition: "300ms ease-in opacity",
-        opacity: 1
+        height: "350px"
       }
     }
   })
@@ -88,6 +106,10 @@ export default function CartSelect(props: { startName: string }) {
 
   return (
     <div className={CSS.root}>
+      <div
+        className={classnames(CSS.backdrop, choosing && "active")}
+        onClick={() => setChoosing(false)}
+      />
       <button className={CSS.toggler} onClick={() => setChoosing(!choosing)}>
         {name}
       </button>
