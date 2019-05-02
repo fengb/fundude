@@ -171,7 +171,7 @@ cpu_result op_ret_if___(fundude* fd, cpu_cond c) {
 }
 
 cpu_result op_rst_d8___(fundude* fd, uint8_t val) {
-  do_push16(fd, fd->cpu.PC._);
+  do_push16(fd, fd->cpu.PC._ + 1);
   return CPU_JUMP(val, 1, 32, zasm1("RST", zasma_hex8(ZASM_PLAIN, val)));
 }
 
