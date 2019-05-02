@@ -28,9 +28,12 @@ typedef struct {
   cpu cpu;
   mmu mmu;
 
+  bool interrupt_master;
+
   struct {
     int cpu;
     int ppu;
+    uint16_t timer;
   } clock;
 
   int breakpoint;

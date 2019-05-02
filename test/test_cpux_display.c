@@ -14,14 +14,14 @@ int main() {
   for (int h = 0; h <= 0xF; h++) {
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
-      cpu_result r = cpu_tick(&fd, op);
+      cpu_result r = cpu_step(&fd, op);
       zasm_puts(buf, sizeof(buf), r.zasm);
       printf("%-13s|", buf);
     }
     printf("\n");
     for (int l = 0; l <= 0xF; l++) {
       op[0] = (h << 4) | l;
-      cpu_result r = cpu_tick(&fd, op);
+      cpu_result r = cpu_step(&fd, op);
 
       printf("%2d %3d       |", r.length, r.duration);
     }

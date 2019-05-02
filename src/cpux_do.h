@@ -6,8 +6,8 @@ bool will_borrow_from(int bit, int a, int b);
 
 uint8_t flag_shift(fundude* fd, uint8_t val, bool C);
 
-void do_push(fundude* fd, uint8_t val);
-uint8_t do_pop(fundude* fd);
+void do_push16(fundude* fd, uint16_t val);
+uint16_t do_pop16(fundude* fd);
 
 void do_and_rr(fundude* fd, cpu_reg8* tgt, uint8_t val);
 void do_or__rr(fundude* fd, cpu_reg8* tgt, uint8_t val);

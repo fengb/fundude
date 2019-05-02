@@ -21,12 +21,12 @@ static bool cond_check(fundude* fd, cpu_cond c) {
   }
 }
 
-static cpu_result CPU_JUMP(uint16_t jump, int length, int duration, zasm g) {
-  return (cpu_result){jump, (length), (duration), g};
+static cpu_result CPU_JUMP(uint16_t jump, int length, int duration, zasm z) {
+  return (cpu_result){jump, (length), (duration), z};
 }
 
-static cpu_result CPU_STEP(fundude* fd, int length, int duration, zasm g) {
-  return CPU_JUMP(fd->cpu.PC._ + length, length, duration, g);
+static cpu_result CPU_STEP(fundude* fd, int length, int duration, zasm z) {
+  return CPU_JUMP(fd->cpu.PC._ + length, length, duration, z);
 }
 
 static cpu_result CPU_UNKNOWN(fundude* fd) {
@@ -82,7 +82,7 @@ cpu_result op_ccf(fundude* fd) {
 }
 
 cpu_result op_int______(fundude* fd, bool set) {
-  // TODO: enable/disable interrupt
+  fd->interrupt_master = set;
   return CPU_STEP(fd, 1, 4, zasm0(set ? "EI" : "DI"));
 }
 
@@ -147,18 +147,17 @@ cpu_result op_jp__if_AF(fundude* fd, cpu_cond c, uint16_t target) {
 }
 
 cpu_result op_jp__WW___(fundude* fd, cpu_reg16* tgt) {
-  uint16_t target = mmu_get(&fd->mmu, tgt->_);
-  return CPU_JUMP(target, 1, 4, zasm1("JP", zasma_reg16(ZASM_PAREN, fd, tgt)));
+  return CPU_JUMP(tgt->_, 1, 4, zasm1("JP", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
 
 cpu_result op_ret______(fundude* fd) {
-  uint8_t val = do_pop(fd);
+  uint16_t val = do_pop16(fd);
   return CPU_JUMP(val, 1, 8, zasm0("RET"));
 }
 
 cpu_result op_rti______(fundude* fd) {
-  uint8_t val = do_pop(fd);
-  // TODO: enable interrupts
+  uint16_t val = do_pop16(fd);
+  fd->interrupt_master = true;
   return CPU_JUMP(val, 1, 8, zasm0("RETI"));
 }
 
@@ -166,12 +165,12 @@ cpu_result op_ret_if___(fundude* fd, cpu_cond c) {
   if (!cond_check(fd, c)) {
     return CPU_STEP(fd, 1, 8, zasm1("RET", zasma_cond(c)));
   }
-  uint8_t val = do_pop(fd);
+  uint16_t val = do_pop16(fd);
   return CPU_JUMP(val, 1, 8, zasm1("RET", zasma_cond(c)));
 }
 
 cpu_result op_rst_d8___(fundude* fd, uint8_t val) {
-  do_push(fd, fd->cpu.PC._);
+  do_push16(fd, fd->cpu.PC._ + 1);
   return CPU_JUMP(val, 1, 32, zasm1("RST", zasma_hex8(ZASM_PLAIN, val)));
 }
 
@@ -281,7 +280,7 @@ cpu_result op_ldi_WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
 }
 
 cpu_result op_ldi_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
-  mmu_set(&fd->mmu, tgt->_, src->_++);
+  tgt->_ = mmu_get(&fd->mmu, src->_++);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LDI", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
@@ -293,7 +292,7 @@ cpu_result op_ldd_WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
 }
 
 cpu_result op_ldd_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
-  mmu_set(&fd->mmu, tgt->_, src->_--);
+  tgt->_ = mmu_get(&fd->mmu, src->_--);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LDD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
@@ -548,24 +547,17 @@ cpu_result op_cpl_rr___(fundude* fd, cpu_reg8* tgt) {
 }
 
 cpu_result op_pop_ww___(fundude* fd, cpu_reg16* tgt) {
-  // This logic would be easier of we passed in 2x cpu_reg8,
-  // but it would be semantically incorrect. Sad panda.
-  uint8_t hb = do_pop(fd);
-  uint8_t lb = do_pop(fd);
-  tgt->_ = (hb << 8) | lb;
+  tgt->_ = do_pop16(fd);
   return CPU_STEP(fd, 1, 12, zasm1("POP", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
 cpu_result op_psh_ww___(fundude* fd, cpu_reg16* tgt) {
-  uint8_t hb = tgt->_ >> 8;
-  uint8_t lb = tgt->_ & 0xFF;
-  do_push(fd, lb);
-  do_push(fd, hb);
+  do_push16(fd, tgt->_);
   return CPU_STEP(fd, 1, 16, zasm1("PUSH", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
 cpu_result op_cal_AF___(fundude* fd, uint16_t val) {
-  do_push(fd, fd->cpu.PC._ + 3);
+  do_push16(fd, fd->cpu.PC._ + 3);
   return CPU_JUMP(val, 3, 12, zasm1("CALL", zasma_hex16(ZASM_PLAIN, val)));
 }
 
@@ -573,7 +565,7 @@ cpu_result op_cal_if_AF(fundude* fd, cpu_cond c, uint16_t val) {
   if (!cond_check(fd, c)) {
     return CPU_STEP(fd, 3, 12, zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
   }
-  do_push(fd, fd->cpu.PC._ + 3);
+  do_push16(fd, fd->cpu.PC._ + 3);
   return CPU_JUMP(val, 3, 12, zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
 }
 
@@ -590,7 +582,7 @@ cpu_result op_cb(fundude* fd, uint8_t op) {
   }
 }
 
-cpu_result cpu_tick(fundude* fd, uint8_t op[]) {
+cpu_result cpu_step(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop(fd);
     case 0x01: return op_ld__ww_df(fd, &fd->cpu.BC, with16(op));

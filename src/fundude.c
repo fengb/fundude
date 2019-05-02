@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cpux.h"
+#include "intrx.h"
 #include "mmux.h"
 #include "ppux.h"
+#include "timerx.h"
 
 #define CYCLES_PER_FRAME (4 * 16742)
 
@@ -41,6 +43,18 @@ short fd_step_frames(fundude* fd, short frames) {
   return cycles / CYCLES_PER_FRAME;
 }
 
+static cpu_result exec_step(fundude* fd) {
+  cpu_result res = intr_step(fd);
+  if (res.duration > 0) {
+    return res;
+  }
+
+  if (fd->mode == SYS_HALT) {
+    return (cpu_result){fd->cpu.PC._, 0, 4, "*SKIP*"};
+  }
+  return cpu_step(fd, mmu_ptr(&fd->mmu, fd->cpu.PC._));
+}
+
 int fd_step_cycles(fundude* fd, int cycles) {
   if (fd->mode == SYS_FATAL) {
     return -9999;
@@ -50,13 +64,14 @@ int fd_step_cycles(fundude* fd, int cycles) {
   int track = cycles;
 
   do {
-    cpu_result res = cpu_tick(fd, mmu_ptr(&fd->mmu, fd->cpu.PC._));
-    if (res.jump < 0 || res.length <= 0 || res.duration <= 0) {
+    cpu_result res = exec_step(fd);
+    if (res.duration <= 0) {
       fd->mode = SYS_FATAL;
       return -9999;
     }
 
     ppu_step(fd, res.duration);
+    timer_step(fd, res.duration);
 
     fd->cpu.PC._ = res.jump;
     track -= res.duration;
@@ -79,7 +94,7 @@ char* fd_disassemble(fundude* fd) {
   fd->mmu.boot_complete = 1;
   int addr = fd->cpu.PC._;
 
-  cpu_result res = cpu_tick(fd, &fd->mmu.cart[addr]);
+  cpu_result res = cpu_step(fd, &fd->mmu.cart[addr]);
 
   zasm_puts(fd->disassembly, sizeof(fd->disassembly), res.zasm);
   fd->cpu.PC._ += res.length;

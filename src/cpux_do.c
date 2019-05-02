@@ -26,12 +26,25 @@ uint8_t flag_shift(fundude* fd, uint8_t val, bool C) {
   return val;
 }
 
-void do_push(fundude* fd, uint8_t val) {
+static void do_push8(fundude* fd, uint8_t val) {
   mmu_set(&fd->mmu, --fd->cpu.SP._, val);
 }
 
-uint8_t do_pop(fundude* fd) {
+void do_push16(fundude* fd, uint16_t val) {
+  uint8_t hb = val >> 8;
+  uint8_t lb = val & 0xFF;
+  do_push8(fd, lb);
+  do_push8(fd, hb);
+}
+
+static uint8_t do_pop8(fundude* fd) {
   return mmu_get(&fd->mmu, fd->cpu.SP._++);
+}
+
+uint16_t do_pop16(fundude* fd) {
+  uint8_t hb = do_pop8(fd);
+  uint8_t lb = do_pop8(fd);
+  return (hb << 8) | lb;
 }
 
 void do_and_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {

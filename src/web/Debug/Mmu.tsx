@@ -43,11 +43,11 @@ const CSS = {
 };
 
 const REGION_CSS: Record<string, string> = {
-  vram: style({ backgroundColor: "purple" }),
-  ram: style({ backgroundColor: "brown" }),
-  oam: style({ backgroundColor: "pink" }),
-  ioPorts: style({ backgroundColor: "yellow" }),
-  himem: style({ backgroundColor: "blue" })
+  vram: style({ backgroundColor: "#ffaaaa" }),
+  ram: style({ backgroundColor: "#ffffaa" }),
+  oam: style({ backgroundColor: "#aaffaa" }),
+  ioPorts: style({ backgroundColor: "#aaffff" }),
+  himem: style({ backgroundColor: "#aaaaff" })
 };
 
 const MEMLOC_CSS: Record<number, string> = {};
