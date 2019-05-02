@@ -281,7 +281,7 @@ cpu_result op_ldi_WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
 }
 
 cpu_result op_ldi_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
-  mmu_set(&fd->mmu, tgt->_, src->_++);
+  tgt->_ = mmu_get(&fd->mmu, src->_++);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LDI", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
@@ -293,7 +293,7 @@ cpu_result op_ldd_WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
 }
 
 cpu_result op_ldd_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
-  mmu_set(&fd->mmu, tgt->_, src->_--);
+  tgt->_ = mmu_get(&fd->mmu, src->_--);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LDD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
