@@ -5,6 +5,8 @@ import Display from "./Display";
 import CartSelect from "./CartSelect";
 import { BOOTLOADER } from "./data";
 import Debug from "./Debug";
+//@ts-ignore
+import Logo from "./logo.svg";
 
 import useEvent from "react-use/lib/useEvent";
 
@@ -37,7 +39,8 @@ const CSS = {
     borderRadius: "8px"
   }),
 
-  logo: style({
+  title: style({
+    position: "relative",
     textTransform: "uppercase",
     fontFamily: "'Gill Sans', sans-serif",
     fontWeight: "bold",
@@ -46,12 +49,15 @@ const CSS = {
     color: "white"
   }),
 
-  logoInvert: style({
-    fontSize: "0.6em",
-    verticalAlign: "4px",
-    color: "#606060",
-    background: "white",
-    padding: "0 4px 0 2px"
+  titleText: style({
+    color: "transparent"
+  }),
+
+  logo: style({
+    position: "absolute",
+    top: "20%",
+    height: "59%",
+    pointerEvents: "none"
   }),
 
   controls: style({
@@ -68,8 +74,9 @@ export function App() {
       <div className={CSS.shell}>
         <div className={CSS.displayWrapper}>
           <Display pixels={fd.display()} signal={fd.changed} scale={2} />
-          <h1 className={CSS.logo}>
-            Fun dude <span className={CSS.logoInvert}>!</span>
+          <h1 className={CSS.title}>
+            <Logo className={CSS.logo} />
+            <span className={CSS.titleText}>FUN DUDE</span>
           </h1>
         </div>
         <div className={CSS.controls} />
