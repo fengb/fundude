@@ -1,4 +1,5 @@
 #include "cpux_do.h"
+#include "bit.h"
 #include "mmux.h"
 
 bool is_uint8_zero(int val) {
@@ -31,10 +32,8 @@ static void do_push8(fundude* fd, uint8_t val) {
 }
 
 void do_push16(fundude* fd, uint16_t val) {
-  uint8_t hb = val >> 8;
-  uint8_t lb = val & 0xFF;
-  do_push8(fd, lb);
-  do_push8(fd, hb);
+  do_push8(fd, BYTE_LO(val));
+  do_push8(fd, BYTE_HI(val));
 }
 
 static uint8_t do_pop8(fundude* fd) {
@@ -90,21 +89,21 @@ void do_sub_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
 }
 
 uint8_t do_rlc(fundude* fd, uint8_t val) {
-  int msb = val >> 7 & 1;
+  int msb = BIT_GET(val, 7);
   return flag_shift(fd, val << 1 | msb, msb);
 }
 
 uint8_t do_rrc(fundude* fd, uint8_t val) {
-  int lsb = val & 1;
+  int lsb = BIT_GET(val, 0);
   return flag_shift(fd, val >> 1 | (lsb << 7), lsb);
 }
 
 uint8_t do_rl(fundude* fd, uint8_t val) {
-  int msb = val >> 7 & 1;
+  int msb = BIT_GET(val, 7);
   return flag_shift(fd, val << 1 | fd->cpu.FLAGS.C, msb);
 }
 
 uint8_t do_rr(fundude* fd, uint8_t val) {
-  int lsb = val & 1;
+  int lsb = BIT_GET(val, 0);
   return flag_shift(fd, val >> 1 | (fd->cpu.FLAGS.C << 7), lsb);
 }

@@ -1,4 +1,5 @@
 #include "zasm.h"
+#include "bit.h"
 
 zasm zasm0(const char* name) {
   return (zasm){name, 0, 0};
@@ -38,9 +39,8 @@ zasm_arg zasma_hex16(zasm_format f, uint16_t val) {
   return (zasm_arg){ZASM_HEX16, f, val};
 }
 
-static char hexch(int i, int nibble_offset) {
-  int nibble = (i >> (nibble_offset * 4)) & 0xF;
-  return "0123456789ABCDEF"[nibble];
+static char hexch(int val, int pos) {
+  return "0123456789ABCDEF"[NIBBLE_GET(val, pos)];
 }
 
 static size_t putsn(char* out, size_t limit, const char* in) {

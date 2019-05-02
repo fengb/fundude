@@ -1,4 +1,5 @@
 #include "cpux_cb.h"
+#include "bit.h"
 #include "cpux_do.h"
 
 cb_result cb_rlc(fundude* fd, uint8_t val) {
@@ -26,9 +27,9 @@ cb_result cb_sra(fundude* fd, uint8_t val) {
 }
 
 cb_result cb_swap(fundude* fd, uint8_t val) {
-  int hb = val >> 4;
-  int lb = val & 0x0F;
-  return (cb_result){"SWAP", flag_shift(fd, lb << 4 | hb, false)};
+  int hi = NIBBLE_HI(val);
+  int lo = NIBBLE_LO(val);
+  return (cb_result){"SWAP", flag_shift(fd, lo << 4 | hi, false)};
 }
 
 cb_result cb_srl(fundude* fd, uint8_t val) {
@@ -52,7 +53,7 @@ cb_result cb_srl(fundude* fd, uint8_t val) {
 
 cb_result cb_bit(fundude* fd, uint8_t val, int bit) {
   fd->cpu.FLAGS = (cpu_flags){
-      .Z = (val >> bit & 1) == 0,
+      .Z = BIT_GET(val, bit) == 0,
       .N = false,
       .H = true,
       .C = fd->cpu.FLAGS.C,

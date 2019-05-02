@@ -1,4 +1,5 @@
 #include "ppux.h"
+#include "bit.h"
 
 #define PIXELS_PER_TILE 8
 #define BG_TILES 32
@@ -36,9 +37,9 @@ ppu_tile sprite_data(ppu_vram* vram, uint8_t index) {
 }
 
 uint8_t color_from_uint16(uint16_t val, int bit) {
-  uint8_t hb = val >> 8;
-  uint8_t lb = val & 0xFF;
-  return (lb >> bit & 1) << 1 | (hb >> bit & 1);
+  uint8_t hb = BYTE_HI(val);
+  uint8_t lb = BYTE_LO(val);
+  return (BIT_GET(lb, bit) << 1) | BIT_GET(hb, bit);
 }
 
 shade shade_from_color(uint8_t val, color_palette pal) {

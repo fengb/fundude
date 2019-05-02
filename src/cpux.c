@@ -1,4 +1,5 @@
 #include "cpux.h"
+#include "bit.h"
 #include "cpux_cb.h"
 #include "cpux_do.h"
 #include "fundude.h"
@@ -83,30 +84,30 @@ static cpu_result op_int______(fundude* fd, bool set) {
 }
 
 static cpu_result op_daa_rr___(fundude* fd, cpu_reg8* dst) {
-  uint8_t lb = dst->_ & 0xF;
-  uint8_t hb = (dst->_ >> 4) & 0xF;
+  uint8_t lo = NIBBLE_LO(dst->_);
+  uint8_t hi = NIBBLE_HI(dst->_);
   bool carry = fd->cpu.FLAGS.C;
 
   if (fd->cpu.FLAGS.N) {
-    if (lb >= 10) {
-      lb -= 6;
+    if (lo >= 10) {
+      lo -= 6;
     }
-    if (hb >= 10) {
-      hb -= 10;
+    if (hi >= 10) {
+      hi -= 10;
       carry = true;
     }
   } else {
-    if (lb >= 10) {
-      lb -= 10;
-      hb++;
+    if (lo >= 10) {
+      lo -= 10;
+      hi++;
     }
-    if (hb >= 10) {
-      hb -= 10;
+    if (hi >= 10) {
+      hi -= 10;
       carry = true;
     }
   }
 
-  dst->_ = (hb << 4) | lb;
+  dst->_ = (hi << 4) | lo;
   fd->cpu.FLAGS = (cpu_flags){
       .Z = is_uint8_zero(dst->_),
       .N = fd->cpu.FLAGS.N,
