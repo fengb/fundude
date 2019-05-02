@@ -16,11 +16,14 @@ typedef enum __attribute__((__packed__)) {
   LCDC_TRANSFERRING = 3,
 } lcdc_mode;
 
-typedef struct __attribute__((__packed__)) {
-  shade color0 : 2;
-  shade color1 : 2;
-  shade color2 : 2;
-  shade color3 : 2;
+typedef union {
+  uint8_t raw;
+  struct __attribute__((__packed__)) {
+    shade color0 : 2;
+    shade color1 : 2;
+    shade color2 : 2;
+    shade color3 : 2;
+  };
 } color_palette;
 
 typedef enum __attribute__((__packed__)) {

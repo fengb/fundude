@@ -13,12 +13,8 @@ static uint16_t with16(uint8_t op[]) {
 }
 
 static bool cond_check(fundude* fd, cpu_cond c) {
-  switch (c) {
-    case CPU_COND_NZ: return !fd->cpu.FLAGS.Z;
-    case CPU_COND_Z: return fd->cpu.FLAGS.Z;
-    case CPU_COND_NC: return !fd->cpu.FLAGS.C;
-    case CPU_COND_C: return fd->cpu.FLAGS.C;
-  }
+  return (c == CPU_COND_NZ && !fd->cpu.FLAGS.Z) || (c == CPU_COND_Z && fd->cpu.FLAGS.Z) ||
+         (c == CPU_COND_NC && !fd->cpu.FLAGS.C) || (c == CPU_COND_C && fd->cpu.FLAGS.C);
 }
 
 static cpu_result CPU_JUMP(uint16_t jump, int length, int duration, zasm z) {
@@ -52,16 +48,16 @@ int signed_offset(uint8_t val) {
      R8 -- byte address offset (8bit-signed + $FF00)
 */
 
-cpu_result op_nop(fundude* fd) {
+static cpu_result op_nop(fundude* fd) {
   return CPU_STEP(fd, 1, 4, zasm0("NOP"));
 }
 
-cpu_result op_sys(fundude* fd, sys_mode mode, int length) {
+static cpu_result op_sys(fundude* fd, sys_mode mode, int length) {
   fd->mode = mode;
   return CPU_STEP(fd, length, 4, zasm1("MODE", zasma_sys_mode(mode)));
 }
 
-cpu_result op_scf(fundude* fd) {
+static cpu_result op_scf(fundude* fd) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = fd->cpu.FLAGS.Z,
       .N = false,
@@ -71,7 +67,7 @@ cpu_result op_scf(fundude* fd) {
   return CPU_STEP(fd, 1, 4, zasm0("SCF"));
 }
 
-cpu_result op_ccf(fundude* fd) {
+static cpu_result op_ccf(fundude* fd) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = fd->cpu.FLAGS.Z,
       .N = false,
@@ -81,12 +77,12 @@ cpu_result op_ccf(fundude* fd) {
   return CPU_STEP(fd, 1, 4, zasm0("CCF"));
 }
 
-cpu_result op_int______(fundude* fd, bool set) {
+static cpu_result op_int______(fundude* fd, bool set) {
   fd->interrupt_master = set;
   return CPU_STEP(fd, 1, 4, zasm0(set ? "EI" : "DI"));
 }
 
-cpu_result op_daa_rr___(fundude* fd, cpu_reg8* dst) {
+static cpu_result op_daa_rr___(fundude* fd, cpu_reg8* dst) {
   uint8_t lb = dst->_ & 0xF;
   uint8_t hb = (dst->_ >> 4) & 0xF;
   bool carry = fd->cpu.FLAGS.C;
@@ -120,24 +116,25 @@ cpu_result op_daa_rr___(fundude* fd, cpu_reg8* dst) {
   return CPU_STEP(fd, 1, 4, zasm1("DAA", zasma_reg8(ZASM_PLAIN, fd, dst)));
 }
 
-cpu_result op_jr__R8___(fundude* fd, uint8_t val) {
+static cpu_result op_jr__R8___(fundude* fd, uint8_t val) {
   static const int INST_LENGTH = 2;
-  int offset = signed_offset(val) + INST_LENGTH;
-  return CPU_JUMP(fd->cpu.PC._ + offset, INST_LENGTH, 8, zasm1("JR", zasma_hex8(ZASM_PLAIN, val)));
+  int offset = signed_offset(val);
+  return CPU_JUMP(fd->cpu.PC._ + offset + INST_LENGTH, INST_LENGTH, 8,
+                  zasm1("JR", zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_jr__if_R8(fundude* fd, cpu_cond c, uint8_t val) {
+static cpu_result op_jr__if_R8(fundude* fd, cpu_cond c, uint8_t val) {
   static const int INST_LENGTH = 2;
   int offset = cond_check(fd, c) ? signed_offset(val) : 0;
   return CPU_JUMP(fd->cpu.PC._ + offset + INST_LENGTH, INST_LENGTH, 8,
                   zasm2("JR", zasma_cond(c), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_jp__AF___(fundude* fd, uint16_t target) {
+static cpu_result op_jp__AF___(fundude* fd, uint16_t target) {
   return CPU_JUMP(target, 3, 12, zasm1("JP", zasma_hex16(ZASM_PLAIN, target)));
 }
 
-cpu_result op_jp__if_AF(fundude* fd, cpu_cond c, uint16_t target) {
+static cpu_result op_jp__if_AF(fundude* fd, cpu_cond c, uint16_t target) {
   static const int INST_LENGTH = 3;
   if (!cond_check(fd, c)) {
     target = fd->cpu.PC._ + INST_LENGTH;
@@ -146,22 +143,22 @@ cpu_result op_jp__if_AF(fundude* fd, cpu_cond c, uint16_t target) {
                   zasm2("JP", zasma_cond(c), zasma_hex16(ZASM_PLAIN, target)));
 }
 
-cpu_result op_jp__WW___(fundude* fd, cpu_reg16* tgt) {
+static cpu_result op_jp__WW___(fundude* fd, cpu_reg16* tgt) {
   return CPU_JUMP(tgt->_, 1, 4, zasm1("JP", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
 
-cpu_result op_ret______(fundude* fd) {
+static cpu_result op_ret______(fundude* fd) {
   uint16_t val = do_pop16(fd);
   return CPU_JUMP(val, 1, 8, zasm0("RET"));
 }
 
-cpu_result op_rti______(fundude* fd) {
+static cpu_result op_rti______(fundude* fd) {
   uint16_t val = do_pop16(fd);
   fd->interrupt_master = true;
   return CPU_JUMP(val, 1, 8, zasm0("RETI"));
 }
 
-cpu_result op_ret_if___(fundude* fd, cpu_cond c) {
+static cpu_result op_ret_if___(fundude* fd, cpu_cond c) {
   if (!cond_check(fd, c)) {
     return CPU_STEP(fd, 1, 8, zasm1("RET", zasma_cond(c)));
   }
@@ -169,152 +166,152 @@ cpu_result op_ret_if___(fundude* fd, cpu_cond c) {
   return CPU_JUMP(val, 1, 8, zasm1("RET", zasma_cond(c)));
 }
 
-cpu_result op_rst_d8___(fundude* fd, uint8_t val) {
+static cpu_result op_rst_d8___(fundude* fd, uint8_t val) {
   do_push16(fd, fd->cpu.PC._ + 1);
   return CPU_JUMP(val, 1, 32, zasm1("RST", zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_rlc_rr___(fundude* fd, cpu_reg8* tgt) {
+static cpu_result op_rlc_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rlc(fd, tgt->_);
   return CPU_STEP(fd, 1, 4, zasm1("RLCA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_rla_rr___(fundude* fd, cpu_reg8* tgt) {
+static cpu_result op_rla_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rl(fd, tgt->_);
   return CPU_STEP(fd, 1, 4, zasm1("RLA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_rrc_rr___(fundude* fd, cpu_reg8* tgt) {
+static cpu_result op_rrc_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rrc(fd, tgt->_);
   return CPU_STEP(fd, 1, 4, zasm1("RRC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_rra_rr___(fundude* fd, cpu_reg8* tgt) {
+static cpu_result op_rra_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rr(fd, tgt->_);
   return CPU_STEP(fd, 1, 4, zasm1("RRA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_ld__rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t d8) {
+static cpu_result op_ld__rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t d8) {
   tgt->_ = d8;
   return CPU_STEP(fd, 2, 8,
                   zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, d8)));
 }
 
-cpu_result op_ld__rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_ld__rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   tgt->_ = src->_;
   return CPU_STEP(fd, 1, 4,
                   zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_ld__rr_RR(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_ld__rr_RR(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   tgt->_ = mmu_get(&fd->mmu, 0xFF00 + src->_);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_HIMEM, fd, src)));
 }
 
-cpu_result op_ld__RR_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_ld__RR_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   mmu_set(&fd->mmu, 0xFF00 + tgt->_, src->_);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LD", zasma_reg8(ZASM_HIMEM, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_ld__rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_ld__rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   tgt->_ = mmu_get(&fd->mmu, src->_);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_ld__ww_df(fundude* fd, cpu_reg16* tgt, uint16_t val) {
+static cpu_result op_ld__ww_df(fundude* fd, cpu_reg16* tgt, uint16_t val) {
   tgt->_ = val;
   return CPU_STEP(fd, 3, 12,
                   zasm2("LD", zasma_reg16(ZASM_PLAIN, fd, tgt), zasma_hex16(ZASM_PLAIN, val)));
 }
 
-cpu_result op_ld__WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
+static cpu_result op_ld__WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
   mmu_set(&fd->mmu, tgt->_, src->_);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LD", zasma_reg16(ZASM_PAREN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_ld__AF_ww(fundude* fd, uint16_t a16, cpu_reg16* src) {
+static cpu_result op_ld__AF_ww(fundude* fd, uint16_t a16, cpu_reg16* src) {
   mmu_set(&fd->mmu, a16, src->_);
   return CPU_STEP(fd, 3, 20,
                   zasm2("LD", zasma_hex16(ZASM_PAREN, a16), zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_ld__WW_d8(fundude* fd, cpu_reg16* tgt, uint8_t val) {
+static cpu_result op_ld__WW_d8(fundude* fd, cpu_reg16* tgt, uint8_t val) {
   mmu_set(&fd->mmu, tgt->_, val);
   return CPU_STEP(fd, 2, 12,
                   zasm2("LD", zasma_reg16(ZASM_PAREN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_ld__AF_rr(fundude* fd, uint16_t tgt, cpu_reg8* src) {
+static cpu_result op_ld__AF_rr(fundude* fd, uint16_t tgt, cpu_reg8* src) {
   mmu_set(&fd->mmu, tgt, src->_);
   return CPU_STEP(fd, 3, 16,
                   zasm2("LD", zasma_hex16(ZASM_PAREN, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_ld__rr_AF(fundude* fd, cpu_reg8* tgt, uint16_t val) {
+static cpu_result op_ld__rr_AF(fundude* fd, cpu_reg8* tgt, uint16_t val) {
   tgt->_ = mmu_get(&fd->mmu, val);
   return CPU_STEP(fd, 3, 16,
                   zasm2("LD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex16(ZASM_PAREN, val)));
 }
 
-cpu_result op_ld__ww_ww(fundude* fd, cpu_reg16* tgt, cpu_reg16* src) {
+static cpu_result op_ld__ww_ww(fundude* fd, cpu_reg16* tgt, cpu_reg16* src) {
   tgt->_ = src->_;
   return CPU_STEP(fd, 3, 16,
                   zasm2("LD", zasma_reg16(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_ldh_ww_R8(fundude* fd, cpu_reg16* src, uint8_t val) {
+static cpu_result op_ldh_ww_R8(fundude* fd, cpu_reg16* src, uint8_t val) {
   int offset = signed_offset(val);
   fd->cpu.HL._ = src->_ + offset;
   return CPU_STEP(fd, 3, 16,
                   zasm2("LDHL", zasma_reg16(ZASM_PLAIN, fd, src), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_ldi_WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
+static cpu_result op_ldi_WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
   mmu_set(&fd->mmu, tgt->_++, src->_);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LDI", zasma_reg16(ZASM_PAREN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_ldi_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_ldi_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   tgt->_ = mmu_get(&fd->mmu, src->_++);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LDI", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_ldd_WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
+static cpu_result op_ldd_WW_rr(fundude* fd, cpu_reg16* tgt, cpu_reg8* src) {
   mmu_set(&fd->mmu, tgt->_--, src->_);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LDD", zasma_reg16(ZASM_PAREN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_ldd_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_ldd_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   tgt->_ = mmu_get(&fd->mmu, src->_--);
   return CPU_STEP(fd, 1, 8,
                   zasm2("LDD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_ldh_A8_rr(fundude* fd, uint8_t tgt, cpu_reg8* src) {
+static cpu_result op_ldh_A8_rr(fundude* fd, uint8_t tgt, cpu_reg8* src) {
   mmu_set(&fd->mmu, 0xFF00 + tgt, src->_);
   return CPU_STEP(fd, 2, 12,
                   zasm2("LDH", zasma_hex8(ZASM_HIMEM, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_ldh_rr_A8(fundude* fd, cpu_reg8* tgt, uint8_t src) {
+static cpu_result op_ldh_rr_A8(fundude* fd, cpu_reg8* tgt, uint8_t src) {
   tgt->_ = mmu_get(&fd->mmu, 0xFF00 + src);
   return CPU_STEP(fd, 2, 12,
                   zasm2("LDH", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_HIMEM, src)));
 }
 
-cpu_result op_inc_ww___(fundude* fd, cpu_reg16* tgt) {
+static cpu_result op_inc_ww___(fundude* fd, cpu_reg16* tgt) {
   tgt->_++;
   return CPU_STEP(fd, 1, 8, zasm1("INC", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_inc_WW___(fundude* fd, cpu_reg16* tgt) {
+static cpu_result op_inc_WW___(fundude* fd, cpu_reg16* tgt) {
   uint8_t val = mmu_get(&fd->mmu, tgt->_);
 
   fd->cpu.FLAGS = (cpu_flags){
@@ -327,12 +324,12 @@ cpu_result op_inc_WW___(fundude* fd, cpu_reg16* tgt) {
   return CPU_STEP(fd, 1, 12, zasm1("INC", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
 
-cpu_result op_dec_ww___(fundude* fd, cpu_reg16* tgt) {
+static cpu_result op_dec_ww___(fundude* fd, cpu_reg16* tgt) {
   tgt->_--;
   return CPU_STEP(fd, 1, 8, zasm1("DEC", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_dec_WW___(fundude* fd, cpu_reg16* tgt) {
+static cpu_result op_dec_WW___(fundude* fd, cpu_reg16* tgt) {
   uint8_t val = mmu_get(&fd->mmu, tgt->_);
 
   fd->cpu.FLAGS = (cpu_flags){
@@ -345,25 +342,25 @@ cpu_result op_dec_WW___(fundude* fd, cpu_reg16* tgt) {
   return CPU_STEP(fd, 1, 12, zasm1("DEC", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
 
-cpu_result op_add_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_add_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   do_add_rr(fd, tgt, src->_);
   return CPU_STEP(fd, 1, 4,
                   zasm2("ADD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_add_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_add_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_add_rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
                   zasm2("ADD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_add_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
+static cpu_result op_add_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_add_rr(fd, tgt, val);
   return CPU_STEP(fd, 2, 8,
                   zasm2("ADD", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_add_ww_ww(fundude* fd, cpu_reg16* tgt, cpu_reg16* src) {
+static cpu_result op_add_ww_ww(fundude* fd, cpu_reg16* tgt, cpu_reg16* src) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = fd->cpu.FLAGS.Z,
       .N = false,
@@ -375,7 +372,7 @@ cpu_result op_add_ww_ww(fundude* fd, cpu_reg16* tgt, cpu_reg16* src) {
                   zasm2("ADD", zasma_reg16(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_add_ww_R8(fundude* fd, cpu_reg16* tgt, uint8_t val) {
+static cpu_result op_add_ww_R8(fundude* fd, cpu_reg16* tgt, uint8_t val) {
   int offset = signed_offset(val);
   fd->cpu.FLAGS = (cpu_flags){
       .Z = false,
@@ -388,133 +385,133 @@ cpu_result op_add_ww_R8(fundude* fd, cpu_reg16* tgt, uint8_t val) {
                   zasm2("ADD", zasma_reg16(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_adc_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_adc_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   do_add_rr(fd, tgt, fd->cpu.FLAGS.C + src->_);
   return CPU_STEP(fd, 1, 4,
                   zasm2("ADC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_adc_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_adc_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_add_rr(fd, tgt, fd->cpu.FLAGS.C + mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
                   zasm2("ADC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_adc_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
+static cpu_result op_adc_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_add_rr(fd, tgt, fd->cpu.FLAGS.C + val);
   return CPU_STEP(fd, 1, 4,
                   zasm2("ADC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_sub_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_sub_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   do_sub_rr(fd, tgt, src->_);
   return CPU_STEP(fd, 1, 4,
                   zasm2("SUB", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_sub_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_sub_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_sub_rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
                   zasm2("SUB", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_sub_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
+static cpu_result op_sub_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_sub_rr(fd, tgt, val);
   return CPU_STEP(fd, 2, 8,
                   zasm2("SUB", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_sbc_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_sbc_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   do_sub_rr(fd, tgt, fd->cpu.FLAGS.C + src->_);
   return CPU_STEP(fd, 1, 4,
                   zasm2("SBC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_sbc_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_sbc_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_sub_rr(fd, tgt, fd->cpu.FLAGS.C + mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
                   zasm2("SBC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_sbc_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
+static cpu_result op_sbc_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_sub_rr(fd, tgt, fd->cpu.FLAGS.C + val);
   return CPU_STEP(fd, 1, 8,
                   zasm2("SBC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_and_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_and_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   do_and_rr(fd, tgt, src->_);
   return CPU_STEP(fd, 1, 4,
                   zasm2("AND", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_and_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_and_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_and_rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
                   zasm2("AND", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_and_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
+static cpu_result op_and_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_and_rr(fd, tgt, val);
   return CPU_STEP(fd, 2, 8,
                   zasm2("AND", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_or__rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_or__rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   do_or__rr(fd, tgt, src->_);
   return CPU_STEP(fd, 1, 4,
                   zasm2("OR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_or__rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_or__rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_or__rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
                   zasm2("OR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_or__rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
+static cpu_result op_or__rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_or__rr(fd, tgt, val);
   return CPU_STEP(fd, 2, 8,
                   zasm2("OR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_xor_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_xor_rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   do_xor_rr(fd, tgt, src->_);
   return CPU_STEP(fd, 1, 4,
                   zasm2("XOR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_xor_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_xor_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_xor_rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
                   zasm2("XOR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_xor_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
+static cpu_result op_xor_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_xor_rr(fd, tgt, val);
   return CPU_STEP(fd, 2, 8,
                   zasm2("XOR", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_cp__rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
+static cpu_result op_cp__rr_rr(fundude* fd, cpu_reg8* tgt, cpu_reg8* src) {
   do_cp__rr(fd, tgt, src->_);
   return CPU_STEP(fd, 1, 4,
                   zasm2("CP", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg8(ZASM_PLAIN, fd, src)));
 }
 
-cpu_result op_cp__rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
+static cpu_result op_cp__rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
   do_cp__rr(fd, tgt, mmu_get(&fd->mmu, src->_));
   return CPU_STEP(fd, 1, 8,
                   zasm2("CP", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
-cpu_result op_cp__rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
+static cpu_result op_cp__rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_cp__rr(fd, tgt, val);
   return CPU_STEP(fd, 2, 8,
                   zasm2("CP", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
-cpu_result op_inc_rr___(fundude* fd, cpu_reg8* tgt) {
+static cpu_result op_inc_rr___(fundude* fd, cpu_reg8* tgt) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = is_uint8_zero(tgt->_ + 1),
       .N = false,
@@ -525,7 +522,7 @@ cpu_result op_inc_rr___(fundude* fd, cpu_reg8* tgt) {
   return CPU_STEP(fd, 1, 4, zasm1("INC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_dec_rr___(fundude* fd, cpu_reg8* tgt) {
+static cpu_result op_dec_rr___(fundude* fd, cpu_reg8* tgt) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = is_uint8_zero(tgt->_ - 1),
       .N = true,
@@ -536,7 +533,7 @@ cpu_result op_dec_rr___(fundude* fd, cpu_reg8* tgt) {
   return CPU_STEP(fd, 1, 4, zasm1("DEC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_cpl_rr___(fundude* fd, cpu_reg8* tgt) {
+static cpu_result op_cpl_rr___(fundude* fd, cpu_reg8* tgt) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = fd->cpu.FLAGS.Z,
       .N = true,
@@ -546,22 +543,22 @@ cpu_result op_cpl_rr___(fundude* fd, cpu_reg8* tgt) {
   return CPU_STEP(fd, 1, 4, zasm1("CPL", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_pop_ww___(fundude* fd, cpu_reg16* tgt) {
+static cpu_result op_pop_ww___(fundude* fd, cpu_reg16* tgt) {
   tgt->_ = do_pop16(fd);
   return CPU_STEP(fd, 1, 12, zasm1("POP", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_psh_ww___(fundude* fd, cpu_reg16* tgt) {
+static cpu_result op_psh_ww___(fundude* fd, cpu_reg16* tgt) {
   do_push16(fd, tgt->_);
   return CPU_STEP(fd, 1, 16, zasm1("PUSH", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
-cpu_result op_cal_AF___(fundude* fd, uint16_t val) {
+static cpu_result op_cal_AF___(fundude* fd, uint16_t val) {
   do_push16(fd, fd->cpu.PC._ + 3);
   return CPU_JUMP(val, 3, 12, zasm1("CALL", zasma_hex16(ZASM_PLAIN, val)));
 }
 
-cpu_result op_cal_if_AF(fundude* fd, cpu_cond c, uint16_t val) {
+static cpu_result op_cal_if_AF(fundude* fd, cpu_cond c, uint16_t val) {
   if (!cond_check(fd, c)) {
     return CPU_STEP(fd, 3, 12, zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
   }
@@ -569,7 +566,7 @@ cpu_result op_cal_if_AF(fundude* fd, cpu_cond c, uint16_t val) {
   return CPU_JUMP(val, 3, 12, zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
 }
 
-cpu_result op_cb(fundude* fd, uint8_t op) {
+static cpu_result op_cb(fundude* fd, uint8_t op) {
   cpu_reg8* tgt = cb_tgt(fd, op);
   if (tgt) {
     cb_result res = cb_run(fd, op, tgt->_);

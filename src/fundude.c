@@ -32,8 +32,9 @@ void fd_reset(fundude* fd) {
 }
 
 int fd_step(fundude* fd) {
-  int cycles = fd_step_cycles(fd, 1);
   // Reset tracking -- single step will always accrue negatives
+  fd->clock.cpu = 0;
+  int cycles = fd_step_cycles(fd, 1);
   fd->clock.cpu = 0;
   return cycles;
 }

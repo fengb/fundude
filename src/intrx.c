@@ -2,20 +2,25 @@
 
 #define OP_CALL 0xCD
 
-uint8_t intr_addr(fundude* fd) {
-  if (fd->mmu.io_ports.IF.vblank && fd->mmu.interrupt_enable.vblank) {
+static uint8_t intr_addr(fundude* fd) {
+  intr_flags cmp = {.raw = fd->mmu.io_ports.IF.raw & fd->mmu.interrupt_enable.raw};
+  if (!cmp.raw) {
+    return 0;
+  }
+
+  if (cmp.vblank) {
     fd->mmu.io_ports.IF.vblank = false;
     return 0x40;
-  } else if (fd->mmu.io_ports.IF.lcd_stat && fd->mmu.interrupt_enable.lcd_stat) {
+  } else if (cmp.lcd_stat) {
     fd->mmu.io_ports.IF.lcd_stat = false;
     return 0x48;
-  } else if (fd->mmu.io_ports.IF.timer && fd->mmu.interrupt_enable.timer) {
+  } else if (cmp.timer) {
     fd->mmu.io_ports.IF.timer = false;
     return 0x50;
-  } else if (fd->mmu.io_ports.IF.serial && fd->mmu.interrupt_enable.serial) {
+  } else if (cmp.serial) {
     fd->mmu.io_ports.IF.serial = false;
     return 0x58;
-  } else if (fd->mmu.io_ports.IF.joypad && fd->mmu.interrupt_enable.joypad) {
+  } else if (cmp.joypad) {
     fd->mmu.io_ports.IF.joypad = false;
     return 0x60;
   }

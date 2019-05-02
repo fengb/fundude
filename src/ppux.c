@@ -42,13 +42,7 @@ uint8_t color_from_uint16(uint16_t val, int bit) {
 }
 
 shade shade_from_color(uint8_t val, color_palette pal) {
-  switch (val) {
-    case 0: return pal.color0;
-    case 1: return pal.color1;
-    case 2: return pal.color2;
-    case 3: return pal.color3;
-    default: return 0xFF;
-  }
+  return (pal.raw >> (val * 2)) & 0b11;
 }
 
 void draw_tile(uint8_t tgt[][256], size_t r, size_t c, ppu_tile t, color_palette pal) {
@@ -114,7 +108,7 @@ void ppu_step(fundude* fd, uint8_t cycles) {
     fd->clock.ppu %= DOTS_PER_FRAME;
   }
 
-  fd->mmu.io_ports.LY = fd->clock.ppu / 456;
+  fd->mmu.io_ports.LY = fd->clock.ppu / DOTS_PER_LINE;
   fd->mmu.io_ports.STAT.coincidence = fd->mmu.io_ports.LY == fd->mmu.io_ports.LYC;
   if ((fd->mmu.io_ports.STAT.intr_coincidence && fd->mmu.io_ports.STAT.coincidence) ||
       (fd->mmu.io_ports.STAT.intr_hblank && fd->mmu.io_ports.STAT.mode == LCDC_HBLANK) ||
@@ -133,7 +127,7 @@ void ppu_step(fundude* fd, uint8_t cycles) {
     return;
   }
 
-  int offset = fd->clock.ppu % 456;
+  int offset = fd->clock.ppu % DOTS_PER_LINE;
   if (offset < 80) {
     fd->mmu.io_ports.STAT.mode = LCDC_SEARCHING;
   } else if (offset < 291) {
