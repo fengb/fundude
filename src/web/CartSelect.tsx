@@ -5,8 +5,13 @@ import FD from "../wasm/react";
 import { readAsArray } from "./promise";
 
 const CSS = {
-  root: style({}),
+  root: style({
+    display: "flex",
+    height: "18px",
+    alignItems: "flex-end"
+  }),
   loadCart: style({
+    position: "relative",
     display: "block",
     boxSizing: "content-box",
     width: "350px",
@@ -14,9 +19,16 @@ const CSS = {
     border: "none",
     padding: 0,
     background: "#d9d9d9",
-    borderRadius: "4px 4px 0 0",
+    borderRadius: "2px 2px 0 0",
     cursor: "pointer",
-    textAlign: "center"
+    textAlign: "center",
+    transition: "200ms ease-in-out padding-top",
+
+    $nest: {
+      "&:hover": {
+        paddingTop: "4px"
+      }
+    }
   })
 };
 

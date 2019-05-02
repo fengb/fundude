@@ -20,7 +20,7 @@ const CSS = {
   }),
 
   app: style({
-    marginTop: "8px",
+    marginTop: "4px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center"
