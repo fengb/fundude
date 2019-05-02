@@ -147,8 +147,7 @@ cpu_result op_jp__if_AF(fundude* fd, cpu_cond c, uint16_t target) {
 }
 
 cpu_result op_jp__WW___(fundude* fd, cpu_reg16* tgt) {
-  uint16_t target = mmu_get(&fd->mmu, tgt->_);
-  return CPU_JUMP(target, 1, 4, zasm1("JP", zasma_reg16(ZASM_PAREN, fd, tgt)));
+  return CPU_JUMP(tgt->_, 1, 4, zasm1("JP", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
 
 cpu_result op_ret______(fundude* fd) {
