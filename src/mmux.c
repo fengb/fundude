@@ -19,8 +19,8 @@ uint8_t* mmu_ptr(mmu* m, uint16_t addr) {
 }
 
 bool is_locked(mmu* m, uint16_t addr) {
-  return (0x8000 <= addr && addr < 0xA000 && m->io_ports.STAT.mode == LCDC_TRANSFERRING) ||
-         (0xFE00 <= addr && addr < 0xFEA0 && m->io_ports.STAT.mode >= LCDC_SEARCHING);
+  return (0x8000 <= addr && addr < 0xA000 && m->io_ports.ppu.STAT.mode == LCDC_TRANSFERRING) ||
+         (0xFE00 <= addr && addr < 0xFEA0 && m->io_ports.ppu.STAT.mode >= LCDC_SEARCHING);
 }
 
 uint8_t mmu_get(mmu* m, uint16_t addr) {

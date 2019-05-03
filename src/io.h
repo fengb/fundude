@@ -1,30 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "intr.h"
-
-typedef enum __attribute__((__packed__)) {
-  SHADE_WHITE = 0,
-  SHADE_LIGHT_GRAY = 1,
-  SHADE_DARK_GRAY = 2,
-  SHADE_BLACK = 3,
-} shade;
-
-typedef enum __attribute__((__packed__)) {
-  LCDC_HBLANK = 0,
-  LCDC_VBLANK = 1,
-  LCDC_SEARCHING = 2,
-  LCDC_TRANSFERRING = 3,
-} lcdc_mode;
-
-typedef union {
-  uint8_t raw;
-  struct __attribute__((__packed__)) {
-    shade color0 : 2;
-    shade color1 : 2;
-    shade color2 : 2;
-    shade color3 : 2;
-  };
-} color_palette;
+#include "ppu.h"
 
 typedef enum __attribute__((__packed__)) {
   IO_TIMER_SPEED_4096 = 0,
@@ -89,33 +66,6 @@ typedef union {
 
     uint8_t wave_pattern[0x10];  // $FF30 - FF3F
 
-    struct {
-      bool bg_enable : 1;
-      bool obj_enable : 1;
-      uint8_t obj_size : 1;
-      uint8_t bg_tile_map : 1;
-      uint8_t bg_window_tile_data : 1;
-      bool window_enable : 1;
-      uint8_t window_tile_map : 1;
-      bool lcd_enable : 1;
-    } LCDC;
-    struct {
-      lcdc_mode mode : 2;
-      bool coincidence : 1;
-      bool intr_hblank : 1;
-      bool intr_vblank : 1;
-      bool intr_oam : 1;
-      bool intr_coincidence : 1;
-    } STAT;
-    uint8_t SCY;         // $FF42
-    uint8_t SCX;         // $FF43
-    uint8_t LY;          // $FF44
-    uint8_t LYC;         // $FF45
-    uint8_t DMA;         // $FF46
-    color_palette BGP;   // $FF47
-    color_palette OBP0;  // $FF48
-    color_palette OBP1;  // $FF49
-    uint8_t WY;          // $FF4A
-    uint8_t WX;          // $FF4B
+    ppu_io ppu;
   };
 } io;

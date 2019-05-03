@@ -3,7 +3,7 @@
 #include "tap_eq.h"
 
 int main() {
-  plan(11);
+  plan(12);
 
   eqhex(sizeof(io), 0x4C);
 
@@ -18,10 +18,11 @@ int main() {
 
   eqhex(offsetof(io, wave_pattern), 0x30);
 
-  eqhex(offsetof(io, LCDC), 0x40);
+  eqhex(offsetof(io, ppu), 0x40);
 
-  eqhex(offsetof(io, OBP1), 0x49);
-  eqhex(offsetof(io, WY), 0x4A);
+  eqhex(offsetof(ppu_io, LCDC), 0x0);
+  eqhex(offsetof(ppu_io, OBP1), 0x9);
+  eqhex(offsetof(ppu_io, WY), 0xA);
 
   done_testing();
 }
