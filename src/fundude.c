@@ -114,8 +114,8 @@ void* fd_window_ptr(fundude* fd) {
   return &fd->window;
 }
 
-void* fd_tile_data_ptr(fundude* fd) {
-  return &fd->tile_data;
+void* fd_patterns_ptr(fundude* fd) {
+  return &fd->patterns;
 }
 
 void* fd_cpu_ptr(fundude* fd) {

@@ -23,7 +23,7 @@ typedef struct {
   uint8_t display[HEIGHT][WIDTH];
   uint8_t background[256][256];
   uint8_t window[256][256];
-  uint8_t tile_data[128][192];
+  uint8_t patterns[128][192];
 
   cpu cpu;
   mmu mmu;
@@ -55,7 +55,7 @@ int fd_step_cycles(fundude* fd, int cycles);
 char* fd_disassemble(fundude* fd);
 void* fd_background_ptr(fundude* fd);
 void* fd_window_ptr(fundude* fd);
-void* fd_tile_data_ptr(fundude* fd);
+void* fd_patterns_ptr(fundude* fd);
 void* fd_cpu_ptr(fundude* fd);
 void* fd_mmu_ptr(fundude* fd);
 void fd_set_breakpoint(fundude* fd, int breakpoint);

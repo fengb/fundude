@@ -101,8 +101,8 @@ export default class FundudeWasm {
     return PtrArray.matrix(WASM.fd_window_ptr(this.pointer), 256, 256);
   }
 
-  tileData() {
-    return PtrArray.matrix(WASM.fd_tile_data_ptr(this.pointer), 192, 128);
+  patterns() {
+    return PtrArray.matrix(WASM.fd_patterns_ptr(this.pointer), 192, 128);
   }
 
   cpu() {

@@ -2,7 +2,7 @@
 #include "array.h"
 #include "bit.h"
 
-#define PIXELS_PER_TILE 8
+#define PIXELS_PER_PATTERN 8
 #define BG_PIXELS 256
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
@@ -21,17 +21,17 @@ typedef enum {
   TILE_ADDRESSING_8000 = 1,
 } tile_addressing;
 
-ppu_tile tile_data(ppu_vram* vram, tile_addressing addressing, uint8_t index) {
+ppu_pattern tile_data(ppu_vram* vram, tile_addressing addressing, uint8_t index) {
   if (index >= 128) {
-    return vram->tile_data._8800[index - 128];
+    return vram->patterns._8800[index - 128];
   } else if (addressing == TILE_ADDRESSING_8000) {
-    return vram->tile_data._8000[index];
+    return vram->patterns._8000[index];
   } else {
-    return vram->tile_data._9000[index];
+    return vram->patterns._9000[index];
   }
 }
 
-ppu_tile sprite_data(ppu_vram* vram, uint8_t index) {
+ppu_pattern sprite_data(ppu_vram* vram, uint8_t index) {
   return tile_data(vram, TILE_ADDRESSING_8000, index);
 }
 
@@ -45,18 +45,18 @@ shade shade_from_color(uint8_t val, color_palette pal) {
   return (pal.raw >> (val * 2)) & 0b11;
 }
 
-void draw_tile(matrix tgt, size_t i, ppu_tile t, color_palette pal) {
-  int transform = tgt.width / PIXELS_PER_TILE;
+void draw_tile(matrix tgt, size_t i, ppu_pattern pattern, color_palette pal) {
+  int transform = tgt.width / PIXELS_PER_PATTERN;
   int tx = i % transform;
   int ty = i / transform;
 
-  for (size_t py = 0; py < PIXELS_PER_TILE; py++) {
-    uint16_t line = t._[py];
+  for (size_t py = 0; py < PIXELS_PER_PATTERN; py++) {
+    uint16_t line = pattern._[py];
 
-    for (size_t px = 0; px < PIXELS_PER_TILE; px++) {
-      uint8_t color = color_from_uint16(line, PIXELS_PER_TILE - px - 1);
-      int x = tx * PIXELS_PER_TILE + px;
-      int y = ty * PIXELS_PER_TILE + py;
+    for (size_t px = 0; px < PIXELS_PER_PATTERN; px++) {
+      uint8_t color = color_from_uint16(line, PIXELS_PER_PATTERN - px - 1);
+      int x = tx * PIXELS_PER_PATTERN + px;
+      int y = ty * PIXELS_PER_PATTERN + py;
       tgt._[y * tgt.width + x] = shade_from_color(color, pal);
     }
   }
@@ -65,20 +65,20 @@ void draw_tile(matrix tgt, size_t i, ppu_tile t, color_palette pal) {
 // TODO: optimize by "materializing" the background instead of this shenanigans
 void render_bg(fundude* fd, matrix tgt, uint8_t tile_map_flag) {
   uint8_t tile_addressing = fd->mmu.io_ports.LCDC.bg_window_tile_data;
-  ppu_tile_map* tm =
+  ppu_pattern_map* tm =
       tile_map_flag == TILE_MAP_9800 ? &fd->mmu.vram.tile_map_9800 : &fd->mmu.vram.tile_map_9C00;
 
   for (int i = 0; i < BG_TILES; i++) {
-    ppu_tile tile = tile_data(&fd->mmu.vram, tile_addressing, tm->_[i]);
+    ppu_pattern tile = tile_data(&fd->mmu.vram, tile_addressing, tm->_[i]);
     draw_tile(tgt, i, tile, fd->mmu.io_ports.BGP);
   }
 }
 
 // TODO: render over cycles instead of all at once
 void ppu_render(fundude* fd) {
-  for (int i = 0; i < ARRAY_LEN(fd->mmu.vram.tile_data.ALL); i++) {
-    ppu_tile t = fd->mmu.vram.tile_data.ALL[i];
-    draw_tile(MATRIX(fd->tile_data), i, t, NO_PALETTE);
+  for (int i = 0; i < ARRAY_LEN(fd->mmu.vram.patterns.ALL); i++) {
+    ppu_pattern p = fd->mmu.vram.patterns.ALL[i];
+    draw_tile(MATRIX(fd->patterns), i, p, NO_PALETTE);
   }
   render_bg(fd, MATRIX(fd->background), fd->mmu.io_ports.LCDC.bg_tile_map);
   render_bg(fd, MATRIX(fd->window), fd->mmu.io_ports.LCDC.window_tile_map);

@@ -5,24 +5,24 @@
 
 typedef struct {
   uint16_t _[8];
-} ppu_tile;
+} ppu_pattern;
 
 typedef struct {
   uint8_t _[BG_TILES];
-} ppu_tile_map;
+} ppu_pattern_map;
 
 typedef struct {
   union {
-    ppu_tile ALL[3 * 128];
+    ppu_pattern ALL[3 * 128];
     struct {
-      ppu_tile _8000[128];  // $8000-87FF
-      ppu_tile _8800[128];  // $8800-8FFF
-      ppu_tile _9000[128];  // $9000-97FF
+      ppu_pattern _8000[128];  // $8000-87FF
+      ppu_pattern _8800[128];  // $8800-8FFF
+      ppu_pattern _9000[128];  // $9000-97FF
     };
-  } tile_data;
+  } patterns;
 
-  ppu_tile_map tile_map_9800;  // $9800-9BFF
-  ppu_tile_map tile_map_9C00;  // $9C00-9FFF
+  ppu_pattern_map tile_map_9800;  // $9800-9BFF
+  ppu_pattern_map tile_map_9C00;  // $9C00-9FFF
 } ppu_vram;
 
 typedef struct {
