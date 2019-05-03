@@ -46,8 +46,7 @@ export function Right() {
     <div className={CSS.base}>
       <div>
         <Display pixels={fd.background()} />
-        {/* <Display pixels={fd.window()} /> */}
-        {/* <Display pixels={fd.tileData()} /> */}
+        <Display pixels={fd.tileData()} />
       </div>
       <Mmu fd={fd} />
     </div>

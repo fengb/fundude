@@ -58,7 +58,7 @@ void draw_tile(uint8_t tgt[][256], size_t r, size_t c, ppu_tile t, color_palette
 }
 
 // TODO: optimize by "materializing" the background instead of this shenanigans
-void render_bg(fundude* fd, uint8_t background[BG_PIXELS][BG_PIXELS], uint8_t tile_map_flag) {
+void render_bg(fundude* fd, uint8_t background[][BG_PIXELS], uint8_t tile_map_flag) {
   uint8_t tile_addressing = fd->mmu.io_ports.LCDC.bg_window_tile_data;
   ppu_tile_map* tm =
       tile_map_flag == TILE_MAP_9800 ? &fd->mmu.vram.tile_map_9800 : &fd->mmu.vram.tile_map_9C00;
