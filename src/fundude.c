@@ -27,8 +27,9 @@ void fd_reset(fundude* fd) {
   fd->mode = SYS_NORM;
   fd->clock.cpu = 0;
   fd->clock.ppu = 0;
-  fd->mmu.io_ports.ppu.STAT.mode = LCDC_VBLANK;
-  fd->mmu.io_ports.ppu.LCDC.lcd_enable = false;
+  fd->clock.timer = 0;
+
+  ppu_reset(fd);
 }
 
 int fd_step(fundude* fd) {
