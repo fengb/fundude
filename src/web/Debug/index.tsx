@@ -46,6 +46,7 @@ export function Right() {
     <div className={CSS.base}>
       <div>
         <Display pixels={fd.background()} />
+        <Display pixels={fd.sprites()} />
         <Display pixels={fd.patterns()} />
       </div>
       <Mmu fd={fd} />

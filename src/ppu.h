@@ -25,13 +25,18 @@ typedef struct {
   ppu_pattern_map tile_map_9C00;  // $9C00-9FFF
 } ppu_vram;
 
+typedef enum __attribute__((__packed__)) {
+  PPU_SPRITE_PALETTE_OBP0,
+  PPU_SPRITE_PALETTE_OBP1
+} ppu_sprite_palette;
+
 typedef struct {
   uint8_t y_pos;
   uint8_t x_pos;
   uint8_t pattern;
   struct {
     uint8_t _padding : 4;
-    bool palette : 1;
+    ppu_sprite_palette palette : 1;
     bool x_flip : 1;
     bool y_flip : 1;
     bool priority : 1;

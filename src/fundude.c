@@ -106,6 +106,10 @@ char* fd_disassemble(fundude* fd) {
   return fd->disassembly;
 }
 
+void* fd_patterns_ptr(fundude* fd) {
+  return &fd->patterns;
+}
+
 void* fd_background_ptr(fundude* fd) {
   return &fd->background;
 }
@@ -114,8 +118,8 @@ void* fd_window_ptr(fundude* fd) {
   return &fd->window;
 }
 
-void* fd_patterns_ptr(fundude* fd) {
-  return &fd->patterns;
+void* fd_sprites_ptr(fundude* fd) {
+  return &fd->sprites;
 }
 
 void* fd_cpu_ptr(fundude* fd) {

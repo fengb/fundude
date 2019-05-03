@@ -7,6 +7,9 @@ int main() {
   plan(11);
 
   mmu mmu;
+  mmu.cart = (void*)"Hello world";
+  mmu.cart_length = 10;
+
   mmu.boot_complete = false;
   eqptr(mmu_ptr(&mmu, 0x0000), BOOTLOADER);
 

@@ -2,12 +2,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+
 uint8_t* mmu_ptr(mmu* m, uint16_t addr) {
   if (!m->boot_complete && addr < BEYOND_BOOTLOADER) {
     return &BOOTLOADER[addr];
   }
   if (addr < BEYOND_CART) {
-    return m->cart + addr;
+    return m->cart + MIN(addr, m->cart_length);
   } else if (0xE000 <= addr && addr < 0xFE00) {
     // Echo of 8kB Internal RAM
     return &m->ram[addr - 0xE000];
