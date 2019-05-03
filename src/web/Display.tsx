@@ -6,8 +6,7 @@ import { Signal } from "micro-signals";
 
 const CSS = {
   root: style({
-    backgroundColor: "white",
-    maxWidth: "100vw"
+    backgroundColor: "white"
   }),
 
   grid: style({
@@ -39,6 +38,7 @@ function imageData(pixels: PtrMatrix) {
 }
 
 export default function Display(props: {
+  className?: string;
   pixels: PtrMatrix;
   scale?: number;
   signal?: Signal<any>;
@@ -69,7 +69,9 @@ export default function Display(props: {
 
   return (
     <canvas
-      className={classnames(CSS.root, scale === 1 && CSS.grid)}
+      className={classnames(CSS.root, props.className, {
+        [CSS.grid]: scale === 1
+      })}
       ref={ref}
       width={width}
       height={height}

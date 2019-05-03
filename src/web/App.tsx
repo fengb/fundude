@@ -39,6 +39,10 @@ const CSS = {
     borderRadius: "8px"
   }),
 
+  display: style({
+    maxWidth: "100vw"
+  }),
+
   title: style({
     position: "relative",
     textTransform: "uppercase",
@@ -78,7 +82,12 @@ export function App() {
       <CartSelect startName="Bootloader" />
       <div className={CSS.shell}>
         <div className={CSS.displayWrapper}>
-          <Display pixels={fd.display()} signal={fd.changed} scale={2} />
+          <Display
+            className={CSS.display}
+            pixels={fd.display()}
+            signal={fd.changed}
+            scale={2}
+          />
           <h1 className={CSS.title}>
             <Logo className={CSS.logo} />
             <span className={CSS.titleText}>

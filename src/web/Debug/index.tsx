@@ -16,6 +16,18 @@ const CSS = {
   controls: style({
     display: "flex",
     justifyContent: "space-between"
+  }),
+
+  displays: style({
+    position: "relative",
+    display: "flex",
+    alignItems: "flex-end"
+  }),
+
+  displaySprites: style({
+    position: "absolute",
+    top: 0,
+    right: 0
   })
 };
 
@@ -44,9 +56,9 @@ export function Right() {
   const { fd } = React.useContext(FD.Context);
   return (
     <div className={CSS.base}>
-      <div>
+      <div className={CSS.displays}>
         <Display pixels={fd.background()} />
-        <Display pixels={fd.sprites()} />
+        <Display className={CSS.displaySprites} pixels={fd.sprites()} />
         <Display pixels={fd.patterns()} />
       </div>
       <Mmu fd={fd} />
