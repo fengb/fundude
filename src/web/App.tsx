@@ -53,6 +53,11 @@ const CSS = {
     color: "transparent"
   }),
 
+  titleSymbol: style({
+    fontSize: "0.5em",
+    verticalAlign: "middle"
+  }),
+
   logo: style({
     position: "absolute",
     top: "20%",
@@ -76,7 +81,11 @@ export function App() {
           <Display pixels={fd.display()} signal={fd.changed} scale={2} />
           <h1 className={CSS.title}>
             <Logo className={CSS.logo} />
-            <span className={CSS.titleText}>FUN DUDE</span>
+            <span className={CSS.titleText}>
+              FUN
+              <i className={CSS.titleSymbol}>&#10012;</i>
+              DUDE
+            </span>
           </h1>
         </div>
         <div className={CSS.controls} />
