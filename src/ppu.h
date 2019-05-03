@@ -1,14 +1,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define BACKGROUND_TILES 32
+#define BG_TILES (32 * 32)
 
 typedef struct {
   uint16_t _[8];
 } ppu_tile;
 
 typedef struct {
-  uint8_t _[BACKGROUND_TILES][BACKGROUND_TILES];
+  uint8_t _[BG_TILES];
 } ppu_tile_map;
 
 typedef struct {

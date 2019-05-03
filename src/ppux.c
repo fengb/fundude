@@ -2,7 +2,6 @@
 #include "bit.h"
 
 #define PIXELS_PER_TILE 8
-#define BG_TILES 32
 #define BG_PIXELS 256
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define ARRAYLEN(x) (sizeof(x) / sizeof(x[0]))
@@ -46,30 +45,33 @@ shade shade_from_color(uint8_t val, color_palette pal) {
   return (pal.raw >> (val * 2)) & 0b11;
 }
 
-void draw_tile(uint8_t tgt[][256], size_t r, size_t c, ppu_tile t, color_palette pal) {
-  for (size_t y = 0; y < PIXELS_PER_TILE; y++) {
-    uint16_t line = t._[y];
+void draw_tile(uint8_t* tgt, size_t tgt_width, size_t i, ppu_tile t, color_palette pal) {
+  int transform = tgt_width / PIXELS_PER_TILE;
+  int tx = i % transform;
+  int ty = i / transform;
 
-    for (size_t x = 0; x < PIXELS_PER_TILE; x++) {
-      uint8_t color = color_from_uint16(line, PIXELS_PER_TILE - x - 1);
-      tgt[r * PIXELS_PER_TILE + y][c * PIXELS_PER_TILE + x] = shade_from_color(color, pal);
+  for (size_t py = 0; py < PIXELS_PER_TILE; py++) {
+    uint16_t line = t._[py];
+
+    for (size_t px = 0; px < PIXELS_PER_TILE; px++) {
+      uint8_t color = color_from_uint16(line, PIXELS_PER_TILE - px - 1);
+      int x = tx * PIXELS_PER_TILE + px;
+      int y = ty * PIXELS_PER_TILE + py;
+      tgt[y * tgt_width + x] = shade_from_color(color, pal);
     }
   }
 }
 
 // TODO: optimize by "materializing" the background instead of this shenanigans
-void render_bg(fundude* fd, uint8_t background[][BG_PIXELS], uint8_t tile_map_flag) {
+void render_bg(fundude* fd, uint8_t tgt[][256], uint8_t tile_map_flag) {
   uint8_t tile_addressing = fd->mmu.io_ports.LCDC.bg_window_tile_data;
   ppu_tile_map* tm =
       tile_map_flag == TILE_MAP_9800 ? &fd->mmu.vram.tile_map_9800 : &fd->mmu.vram.tile_map_9C00;
 
-  for (int r = 0; r < BG_TILES; r++) {
-    for (int c = 0; c < BG_TILES; c++) {
-      int tile_index = tm->_[r][c];
-      ppu_tile tile = tile_data(&fd->mmu.vram, tile_addressing, tile_index);
-
-      draw_tile(background, r, c, tile, fd->mmu.io_ports.BGP);
-    }
+  for (int i = 0; i < BG_TILES; i++) {
+    int tile_index = tm->_[i];
+    ppu_tile tile = tile_data(&fd->mmu.vram, tile_addressing, tile_index);
+    draw_tile(&tgt[0][0], 256, i, tile, fd->mmu.io_ports.BGP);
   }
 }
 
@@ -77,10 +79,7 @@ void render_bg(fundude* fd, uint8_t background[][BG_PIXELS], uint8_t tile_map_fl
 void ppu_render(fundude* fd) {
   for (int i = 0; i < ARRAYLEN(fd->mmu.vram.tile_data.ALL); i++) {
     ppu_tile t = fd->mmu.vram.tile_data.ALL[i];
-    int c = i % BG_TILES;
-    int r = i / BG_TILES;
-
-    draw_tile(fd->tile_data, r, c, t, NO_PALETTE);
+    draw_tile(&fd->tile_data[0][0], 256, i, t, NO_PALETTE);
   }
   render_bg(fd, fd->background, fd->mmu.io_ports.LCDC.bg_tile_map);
   render_bg(fd, fd->window, fd->mmu.io_ports.LCDC.window_tile_map);
