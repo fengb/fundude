@@ -23,7 +23,7 @@ typedef struct {
   uint8_t display[HEIGHT][WIDTH];
   uint8_t background[256][256];
   uint8_t window[256][256];
-  uint8_t tile_data[96][256];
+  uint8_t tile_data[128][192];
 
   cpu cpu;
   mmu mmu;
