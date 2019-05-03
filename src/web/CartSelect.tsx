@@ -1,39 +1,21 @@
 import React from "react";
 import classnames from "classnames";
 import { style } from "typestyle";
-import { useDropzone } from "react-dropzone";
 import FD from "../wasm/react";
 import { readAsArray } from "./promise";
+import UploadBackdrop from "./UploadBackdrop";
 
 const CSS = {
   root: style({
     position: "relative",
+    zIndex: 1,
     width: "350px",
-    height: "18px",
-    zIndex: 1
-  }),
-
-  backdrop: style({
-    position: "fixed",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    background: "#000000",
-    opacity: 0,
-    transition: "300ms ease-in opacity",
-    pointerEvents: "none",
-
-    $nest: {
-      "&.active": {
-        pointerEvents: "initial",
-        opacity: 0.8
-      }
-    }
+    height: "18px"
   }),
 
   toggler: style({
     position: "absolute",
+    zIndex: 1,
     boxSizing: "content-box",
     height: "14px",
     width: "100%",
@@ -70,54 +52,43 @@ const CSS = {
   })
 };
 
-function FileSelect(props: {
-  className: string;
-  onSelect: (name: string, data: Uint8Array) => any;
-}) {
-  const filePickerRef = React.useRef<HTMLInputElement>(null);
-
-  const onDrop = React.useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    const data = new Uint8Array(await readAsArray(file));
-    props.onSelect(file.name, data);
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
-
-  return (
-    <div className={props.className} {...getRootProps()}>
-      <input {...getInputProps()} ref={filePickerRef} />
-      <button onClick={() => filePickerRef.current!.click()}>Upload</button>
-      {isDragActive && <div>Drop file here!</div>}
-    </div>
-  );
-}
-
 export default function CartSelect(props: { startName: string }) {
   const { fd } = React.useContext(FD.Context);
   const [choosing, setChoosing] = React.useState(false);
   const [name, setName] = React.useState(props.startName);
 
-  function handleSelect(name: string, data: Uint8Array) {
-    fd.init(data);
-    setName(name);
-    setChoosing(false);
-  }
+  const selectCart = React.useCallback(
+    (name: string, data: Uint8Array) => {
+      fd.init(data);
+      setName(name);
+      setChoosing(false);
+    },
+    [fd]
+  );
+
+  const onDrop = React.useCallback(async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    const data = new Uint8Array(await readAsArray(file));
+    selectCart(file.name, data);
+  }, []);
 
   return (
     <div className={CSS.root}>
-      <div
-        className={classnames(CSS.backdrop, choosing && "active")}
-        onClick={() => setChoosing(false)}
-      />
       <button className={CSS.toggler} onClick={() => setChoosing(!choosing)}>
         {name}
       </button>
 
-      <FileSelect
-        className={classnames(CSS.selector, choosing && "active")}
-        onSelect={handleSelect}
-      />
+      <UploadBackdrop
+        dropzone={{ onDrop, multiple: false }}
+        clickBackdrop={() => setChoosing(false)}
+        active={choosing}
+      >
+        {({ inputRef }) => (
+          <div className={classnames(CSS.selector, choosing && "active")}>
+            <button onClick={() => inputRef.current!.click()}>Upload</button>
+          </div>
+        )}
+      </UploadBackdrop>
     </div>
   );
 }
