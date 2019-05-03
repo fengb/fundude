@@ -85,13 +85,26 @@ void ppu_render(fundude* fd) {
   render_bg(fd, fd->background, fd->mmu.io_ports.LCDC.bg_tile_map);
   render_bg(fd, fd->window, fd->mmu.io_ports.LCDC.window_tile_map);
 
-  uint8_t scx = fd->mmu.io_ports.SCX;
-  uint8_t scy = fd->mmu.io_ports.SCY;
-
   // TODO: use memcpy
-  for (int y = 0; y < HEIGHT; y++) {
-    for (int x = 0; x < WIDTH; x++) {
-      fd->display[y][x] = fd->background[(scy + y) % BG_PIXELS][(scx + x) % BG_PIXELS];
+  if (fd->mmu.io_ports.LCDC.bg_enable) {
+    uint8_t scx = fd->mmu.io_ports.SCX;
+    uint8_t scy = fd->mmu.io_ports.SCY;
+
+    for (int y = 0; y < HEIGHT; y++) {
+      for (int x = 0; x < WIDTH; x++) {
+        fd->display[y][x] = fd->background[(scy + y) % BG_PIXELS][(scx + x) % BG_PIXELS];
+      }
+    }
+  }
+
+  if (fd->mmu.io_ports.LCDC.window_enable) {
+    uint8_t wx = fd->mmu.io_ports.WX;
+    uint8_t wy = fd->mmu.io_ports.WY;
+
+    for (int y = wy; y < HEIGHT; y++) {
+      for (int x = wx - 7; x < WIDTH; x++) {
+        fd->display[y][x] = fd->window[wy - y][x - (wx - 7)];
+      }
     }
   }
 }
