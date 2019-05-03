@@ -47,21 +47,29 @@ static shade shade_from_color(uint8_t val, color_palette pal) {
   return (pal.raw >> (val * 2)) & 0b11;
 }
 
-static void draw_tile(matrix tgt, size_t i, ppu_pattern pattern, color_palette pal) {
-  int transform = tgt.width / PIXELS_PER_PATTERN;
-  int tx = i % transform;
-  int ty = i / transform;
-
+static void draw_pattern_xy(matrix tgt,
+                            size_t x0,
+                            size_t y0,
+                            ppu_pattern pattern,
+                            color_palette pal) {
   for (size_t py = 0; py < PIXELS_PER_PATTERN; py++) {
     uint16_t line = pattern._[py];
 
     for (size_t px = 0; px < PIXELS_PER_PATTERN; px++) {
       uint8_t color = color_from_uint16(line, PIXELS_PER_PATTERN - px - 1);
-      int x = tx * PIXELS_PER_PATTERN + px;
-      int y = ty * PIXELS_PER_PATTERN + py;
+      int x = x0 + px;
+      int y = y0 + py;
       tgt._[y * tgt.width + x] = shade_from_color(color, pal);
     }
   }
+}
+
+static void draw_pattern(matrix tgt, size_t i, ppu_pattern pattern, color_palette pal) {
+  int transform = tgt.width / PIXELS_PER_PATTERN;
+  int tx = i % transform;
+  int ty = i / transform;
+
+  draw_pattern_xy(tgt, tx * PIXELS_PER_PATTERN, ty * PIXELS_PER_PATTERN, pattern, pal);
 }
 
 // TODO: optimize by "materializing" the background instead of this shenanigans
@@ -72,7 +80,7 @@ static void render_bg(fundude* fd, matrix tgt, uint8_t tile_map_flag) {
 
   for (int i = 0; i < BG_TILES; i++) {
     ppu_pattern tile = tile_data(&fd->mmu.vram, tile_addressing, tm->_[i]);
-    draw_tile(tgt, i, tile, fd->mmu.io_ports.ppu.BGP);
+    draw_pattern(tgt, i, tile, fd->mmu.io_ports.ppu.BGP);
   }
 }
 
@@ -80,7 +88,7 @@ static void render_bg(fundude* fd, matrix tgt, uint8_t tile_map_flag) {
 static void ppu_render(fundude* fd) {
   for (int i = 0; i < ARRAY_LEN(fd->mmu.vram.patterns.ALL); i++) {
     ppu_pattern p = fd->mmu.vram.patterns.ALL[i];
-    draw_tile(MATRIX(fd->patterns), i, p, NO_PALETTE);
+    draw_pattern(MATRIX(fd->patterns), i, p, NO_PALETTE);
   }
   render_bg(fd, MATRIX(fd->background), fd->mmu.io_ports.ppu.LCDC.bg_tile_map);
   render_bg(fd, MATRIX(fd->window), fd->mmu.io_ports.ppu.LCDC.window_tile_map);
@@ -93,7 +101,7 @@ static void ppu_render(fundude* fd) {
     color_palette palette = s.flags.palette == PPU_SPRITE_PALETTE_OBP0  //
                                 ? fd->mmu.io_ports.ppu.OBP0
                                 : fd->mmu.io_ports.ppu.OBP1;
-    draw_tile(MATRIX(fd->sprites), i, pattern, palette);
+    draw_pattern(MATRIX(fd->sprites), i, pattern, palette);
   }
 
   // TODO: use memcpy
@@ -117,6 +125,18 @@ static void ppu_render(fundude* fd) {
         fd->display[y][x] = fd->window[wy - y][x - (wx - 7)];
       }
     }
+  }
+
+  for (int i = 0; i < ARRAY_LEN(fd->mmu.oam); i++) {
+    ppu_sprite_attr s = fd->mmu.oam[i];
+    if (!s.x_pos && !s.y_pos) {
+      continue;
+    }
+    ppu_pattern pattern = sprite_data(&fd->mmu.vram, s.pattern);
+    color_palette palette = s.flags.palette == PPU_SPRITE_PALETTE_OBP0  //
+                                ? fd->mmu.io_ports.ppu.OBP0
+                                : fd->mmu.io_ports.ppu.OBP1;
+    draw_pattern_xy(MATRIX(fd->display), s.x_pos - 8, s.y_pos - 16, pattern, palette);
   }
 }
 
