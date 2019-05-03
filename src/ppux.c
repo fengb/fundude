@@ -1,6 +1,8 @@
 #include "ppux.h"
+#include <string.h>
 #include "array.h"
 #include "bit.h"
+#include "mmux.h"
 
 #define PIXELS_PER_PATTERN 8
 #define BG_PIXELS 256
@@ -116,6 +118,13 @@ static void ppu_render(fundude* fd) {
 }
 
 void ppu_step(fundude* fd, uint8_t cycles) {
+  // FIXME: this isn't how DMA works
+  if (fd->mmu.io_ports.ppu.DMA) {
+    uint16_t addr = fd->mmu.io_ports.ppu.DMA << 8;
+    memcpy(&fd->mmu.oam, mmu_ptr(&fd->mmu, addr), 160);
+    fd->mmu.io_ports.ppu.DMA = 0;
+  }
+
   if (!fd->mmu.io_ports.ppu.LCDC.lcd_enable) {
     fd->clock.ppu = 0;
     fd->mmu.io_ports.ppu.STAT.mode = LCDC_VBLANK;
