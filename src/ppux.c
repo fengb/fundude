@@ -86,6 +86,9 @@ static void ppu_render(fundude* fd) {
   render_bg(fd, MATRIX(fd->window), fd->mmu.io_ports.ppu.LCDC.window_tile_map);
   for (int i = 0; i < ARRAY_LEN(fd->mmu.oam); i++) {
     ppu_sprite_attr s = fd->mmu.oam[i];
+    if (!s.x_pos && !s.y_pos && !s.pattern) {
+      continue;
+    }
     ppu_pattern pattern = sprite_data(&fd->mmu.vram, s.pattern);
     color_palette palette = s.flags.palette == PPU_SPRITE_PALETTE_OBP0  //
                                 ? fd->mmu.io_ports.ppu.OBP0
