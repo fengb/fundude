@@ -15,5 +15,5 @@
     "esModuleInterop": true
   },
 
-  "include": ["src/web/index.d.ts"]
+  "include": ["src/roms/*.gb"]
 }

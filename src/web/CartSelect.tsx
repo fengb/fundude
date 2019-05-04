@@ -5,6 +5,8 @@ import FD from "../wasm/react";
 import { readAsArray } from "./promise";
 import UploadBackdrop from "./UploadBackdrop";
 
+import DEBUG_ROMS from "../roms/debug";
+
 const CSS = {
   root: style({
     position: "relative",
@@ -49,10 +51,18 @@ const CSS = {
         height: "350px"
       }
     }
+  }),
+
+  selectorList: style({
+    display: "flex",
+    flexDirection: "column"
   })
 };
 
-export default function CartSelect(props: { startName: string }) {
+export default function CartSelect(props: {
+  startName: string;
+  debug?: boolean;
+}) {
   const { fd } = React.useContext(FD.Context);
   const [choosing, setChoosing] = React.useState(false);
   const [name, setName] = React.useState(props.startName);
@@ -65,6 +75,19 @@ export default function CartSelect(props: { startName: string }) {
     },
     [fd]
   );
+
+  type LinkClicked = React.MouseEventHandler<HTMLAnchorElement>;
+  const downloadCart = React.useCallback<LinkClicked>(async event => {
+    event.preventDefault();
+    const link = event.currentTarget;
+    const resp = await fetch(link.href);
+    if (!resp.ok) {
+      throw resp;
+    }
+
+    const data = new Uint8Array(await resp.arrayBuffer());
+    selectCart(link.text, data);
+  }, []);
 
   const onDrop = React.useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -85,6 +108,18 @@ export default function CartSelect(props: { startName: string }) {
       >
         {({ inputRef }) => (
           <div className={classnames(CSS.selector, choosing && "active")}>
+            <div className={classnames(CSS.selectorList, choosing && "active")}>
+              {props.debug &&
+                Object.keys(DEBUG_ROMS.blargg).map(name => (
+                  <a
+                    key={name}
+                    href={DEBUG_ROMS.blargg[name]}
+                    onClick={downloadCart}
+                  >
+                    {name}
+                  </a>
+                ))}
+            </div>
             <button onClick={() => inputRef.current!.click()}>Upload</button>
           </div>
         )}
