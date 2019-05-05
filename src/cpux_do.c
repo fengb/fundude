@@ -48,20 +48,20 @@ uint16_t do_pop16(fundude* fd) {
 
 void do_and_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ && val),
+      .Z = is_uint8_zero(tgt->_ & val),
       .N = false,
       .H = true,
       .C = false,
   };
-  tgt->_ = tgt->_ && val;
+  tgt->_ = tgt->_ & val;
 }
 
 void do_or__rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
-  tgt->_ = flag_shift(fd, tgt->_ || val, false);
+  tgt->_ = flag_shift(fd, tgt->_ | val, false);
 }
 
 void do_xor_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
-  tgt->_ = flag_shift(fd, !tgt->_ != !val, false);
+  tgt->_ = flag_shift(fd, tgt->_ ^ val, false);
 }
 
 void do_cp__rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
