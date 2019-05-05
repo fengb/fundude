@@ -32,8 +32,8 @@ static void do_push8(fundude* fd, uint8_t val) {
 }
 
 void do_push16(fundude* fd, uint16_t val) {
-  do_push8(fd, BYTE_LO(val));
   do_push8(fd, BYTE_HI(val));
+  do_push8(fd, BYTE_LO(val));
 }
 
 static uint8_t do_pop8(fundude* fd) {
@@ -41,27 +41,27 @@ static uint8_t do_pop8(fundude* fd) {
 }
 
 uint16_t do_pop16(fundude* fd) {
-  uint8_t hb = do_pop8(fd);
   uint8_t lb = do_pop8(fd);
+  uint8_t hb = do_pop8(fd);
   return (hb << 8) | lb;
 }
 
 void do_and_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ && val),
+      .Z = is_uint8_zero(tgt->_ & val),
       .N = false,
       .H = true,
       .C = false,
   };
-  tgt->_ = tgt->_ && val;
+  tgt->_ = tgt->_ & val;
 }
 
 void do_or__rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
-  tgt->_ = flag_shift(fd, tgt->_ || val, false);
+  tgt->_ = flag_shift(fd, tgt->_ | val, false);
 }
 
 void do_xor_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
-  tgt->_ = flag_shift(fd, !tgt->_ != !val, false);
+  tgt->_ = flag_shift(fd, tgt->_ ^ val, false);
 }
 
 void do_cp__rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {

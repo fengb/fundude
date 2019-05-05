@@ -74,12 +74,12 @@ const CSS = {
   })
 };
 
-export function App() {
+export function App(props: { debug?: boolean }) {
   const { fd } = React.useContext(FD.Context);
 
   return (
     <div className={CSS.app}>
-      <CartSelect startName="Bootloader" />
+      <CartSelect startName="Bootloader" debug={props.debug} />
       <div className={CSS.shell}>
         <div className={CSS.displayWrapper}>
           <Display
@@ -114,7 +114,7 @@ export default function(props: { debug?: boolean }) {
     <FD.Provider bootCart={BOOTLOADER}>
       <div className={CSS.root}>
         {debug && <Debug.Left />}
-        <App />
+        <App debug={props.debug} />
         {debug && <Debug.Right />}
       </div>
     </FD.Provider>
