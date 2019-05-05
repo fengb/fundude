@@ -32,8 +32,8 @@ static void do_push8(fundude* fd, uint8_t val) {
 }
 
 void do_push16(fundude* fd, uint16_t val) {
-  do_push8(fd, BYTE_LO(val));
   do_push8(fd, BYTE_HI(val));
+  do_push8(fd, BYTE_LO(val));
 }
 
 static uint8_t do_pop8(fundude* fd) {
@@ -41,8 +41,8 @@ static uint8_t do_pop8(fundude* fd) {
 }
 
 uint16_t do_pop16(fundude* fd) {
-  uint8_t hb = do_pop8(fd);
   uint8_t lb = do_pop8(fd);
+  uint8_t hb = do_pop8(fd);
   return (hb << 8) | lb;
 }
 
