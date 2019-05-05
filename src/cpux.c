@@ -120,28 +120,32 @@ static cpu_result op_daa_rr___(fundude* fd, cpu_reg8* dst) {
 static cpu_result op_jr__R8___(fundude* fd, uint8_t val) {
   static const int INST_LENGTH = 2;
   int offset = signed_offset(val);
-  return CPU_JUMP(fd->cpu.PC._ + offset + INST_LENGTH, INST_LENGTH, 8,
+  return CPU_JUMP(fd->cpu.PC._ + offset + INST_LENGTH, INST_LENGTH, 12,
                   zasm1("JR", zasma_hex8(ZASM_PLAIN, val)));
 }
 
 static cpu_result op_jr__if_R8(fundude* fd, cpu_cond c, uint8_t val) {
   static const int INST_LENGTH = 2;
-  int offset = cond_check(fd, c) ? signed_offset(val) : 0;
-  return CPU_JUMP(fd->cpu.PC._ + offset + INST_LENGTH, INST_LENGTH, 8,
-                  zasm2("JR", zasma_cond(c), zasma_hex8(ZASM_PLAIN, val)));
+  zasm z = zasm2("JR", zasma_cond(c), zasma_hex8(ZASM_PLAIN, val));
+  if (cond_check(fd, c)) {
+    return CPU_JUMP(fd->cpu.PC._ + signed_offset(val) + INST_LENGTH, INST_LENGTH, 12, z);
+  } else {
+    return CPU_STEP(fd, INST_LENGTH, 12, z);
+  }
 }
 
 static cpu_result op_jp__AF___(fundude* fd, uint16_t target) {
-  return CPU_JUMP(target, 3, 12, zasm1("JP", zasma_hex16(ZASM_PLAIN, target)));
+  return CPU_JUMP(target, 3, 16, zasm1("JP", zasma_hex16(ZASM_PLAIN, target)));
 }
 
 static cpu_result op_jp__if_AF(fundude* fd, cpu_cond c, uint16_t target) {
   static const int INST_LENGTH = 3;
-  if (!cond_check(fd, c)) {
-    target = fd->cpu.PC._ + INST_LENGTH;
+  zasm z = zasm2("JP", zasma_cond(c), zasma_hex16(ZASM_PLAIN, target));
+  if (cond_check(fd, c)) {
+    return CPU_JUMP(target, INST_LENGTH, 16, z);
+  } else {
+    return CPU_STEP(fd, INST_LENGTH, 12, z);
   }
-  return CPU_JUMP(target, INST_LENGTH, 12,
-                  zasm2("JP", zasma_cond(c), zasma_hex16(ZASM_PLAIN, target)));
 }
 
 static cpu_result op_jp__WW___(fundude* fd, cpu_reg16* tgt) {
@@ -150,13 +154,13 @@ static cpu_result op_jp__WW___(fundude* fd, cpu_reg16* tgt) {
 
 static cpu_result op_ret______(fundude* fd) {
   uint16_t val = do_pop16(fd);
-  return CPU_JUMP(val, 1, 8, zasm0("RET"));
+  return CPU_JUMP(val, 1, 16, zasm0("RET"));
 }
 
 static cpu_result op_rti______(fundude* fd) {
   uint16_t val = do_pop16(fd);
   fd->interrupt_master = true;
-  return CPU_JUMP(val, 1, 8, zasm0("RETI"));
+  return CPU_JUMP(val, 1, 16, zasm0("RETI"));
 }
 
 static cpu_result op_ret_if___(fundude* fd, cpu_cond c) {
@@ -164,12 +168,26 @@ static cpu_result op_ret_if___(fundude* fd, cpu_cond c) {
     return CPU_STEP(fd, 1, 8, zasm1("RET", zasma_cond(c)));
   }
   uint16_t val = do_pop16(fd);
-  return CPU_JUMP(val, 1, 8, zasm1("RET", zasma_cond(c)));
+  return CPU_JUMP(val, 1, 20, zasm1("RET", zasma_cond(c)));
 }
 
 static cpu_result op_rst_d8___(fundude* fd, uint8_t val) {
   do_push16(fd, fd->cpu.PC._ + 1);
-  return CPU_JUMP(val, 1, 32, zasm1("RST", zasma_hex8(ZASM_PLAIN, val)));
+  return CPU_JUMP(val, 1, 16, zasm1("RST", zasma_hex8(ZASM_PLAIN, val)));
+}
+
+static cpu_result op_cal_AF___(fundude* fd, uint16_t val) {
+  do_push16(fd, fd->cpu.PC._ + 3);
+  return CPU_JUMP(val, 3, 24, zasm1("CALL", zasma_hex16(ZASM_PLAIN, val)));
+}
+
+static cpu_result op_cal_if_AF(fundude* fd, cpu_cond c, uint16_t val) {
+  zasm z = zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val));
+  if (!cond_check(fd, c)) {
+    return CPU_STEP(fd, 3, 12, z);
+  }
+  do_push16(fd, fd->cpu.PC._ + 3);
+  return CPU_JUMP(val, 3, 24, z);
 }
 
 static cpu_result op_rlc_rr___(fundude* fd, cpu_reg8* tgt) {
@@ -552,19 +570,6 @@ static cpu_result op_pop_ww___(fundude* fd, cpu_reg16* tgt) {
 static cpu_result op_psh_ww___(fundude* fd, cpu_reg16* tgt) {
   do_push16(fd, tgt->_);
   return CPU_STEP(fd, 1, 16, zasm1("PUSH", zasma_reg16(ZASM_PLAIN, fd, tgt)));
-}
-
-static cpu_result op_cal_AF___(fundude* fd, uint16_t val) {
-  do_push16(fd, fd->cpu.PC._ + 3);
-  return CPU_JUMP(val, 3, 12, zasm1("CALL", zasma_hex16(ZASM_PLAIN, val)));
-}
-
-static cpu_result op_cal_if_AF(fundude* fd, cpu_cond c, uint16_t val) {
-  if (!cond_check(fd, c)) {
-    return CPU_STEP(fd, 3, 12, zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
-  }
-  do_push16(fd, fd->cpu.PC._ + 3);
-  return CPU_JUMP(val, 3, 12, zasm2("CALL", zasma_cond(c), zasma_hex16(ZASM_PLAIN, val)));
 }
 
 static cpu_result op_cb(fundude* fd, uint8_t op) {
