@@ -192,21 +192,25 @@ static cpu_result op_cal_if_AF(fundude* fd, cpu_cond c, uint16_t val) {
 
 static cpu_result op_rlc_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rlc(fd, tgt->_);
+  fd->cpu.FLAGS.Z = false;
   return CPU_STEP(fd, 1, 4, zasm1("RLCA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 static cpu_result op_rla_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rl(fd, tgt->_);
+  fd->cpu.FLAGS.Z = false;
   return CPU_STEP(fd, 1, 4, zasm1("RLA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 static cpu_result op_rrc_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rrc(fd, tgt->_);
+  fd->cpu.FLAGS.Z = false;
   return CPU_STEP(fd, 1, 4, zasm1("RRC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 static cpu_result op_rra_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rr(fd, tgt->_);
+  fd->cpu.FLAGS.Z = false;
   return CPU_STEP(fd, 1, 4, zasm1("RRA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
@@ -545,7 +549,7 @@ static cpu_result op_dec_rr___(fundude* fd, cpu_reg8* tgt) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = is_uint8_zero(tgt->_ - 1),
       .N = true,
-      .H = will_carry_from(3, tgt->_, 1),
+      .H = will_borrow_from(4, tgt->_, 1),
       .C = fd->cpu.FLAGS.C,
   };
   tgt->_--;
