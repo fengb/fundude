@@ -563,6 +563,7 @@ static cpu_result op_cpl_rr___(fundude* fd, cpu_reg8* tgt) {
       .H = true,
       .C = fd->cpu.FLAGS.C,
   };
+  tgt->_ = ~tgt->_;
   return CPU_STEP(fd, 1, 4, zasm1("CPL", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
