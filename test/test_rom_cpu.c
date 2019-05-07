@@ -15,7 +15,9 @@ int main() {
   fclose(rom);
 
   fd_init(&fd, rom_length, cart);
-  fd_step_frames(&fd, 10 * 60);
+  while (fd.cpu.PC._ < 0x7FFD) {
+    fd_step_frames(&fd, 60);
+  }
 
   uint8_t* cart_data = &cart[0x4000];
   uint8_t* results = mmu_ptr(&fd.mmu, fd.cpu.SP._);
