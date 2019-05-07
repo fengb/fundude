@@ -282,14 +282,14 @@ static cpu_result op_ld__rr_AF(fundude* fd, cpu_reg8* tgt, uint16_t val) {
 
 static cpu_result op_ld__ww_ww(fundude* fd, cpu_reg16* tgt, cpu_reg16* src) {
   tgt->_ = src->_;
-  return CPU_STEP(fd, 3, 16,
+  return CPU_STEP(fd, 1, 8,
                   zasm2("LD", zasma_reg16(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PAREN, fd, src)));
 }
 
 static cpu_result op_ldh_ww_R8(fundude* fd, cpu_reg16* src, uint8_t val) {
   int offset = signed_offset(val);
   fd->cpu.HL._ = src->_ + offset;
-  return CPU_STEP(fd, 3, 16,
+  return CPU_STEP(fd, 2, 16,
                   zasm2("LDHL", zasma_reg16(ZASM_PLAIN, fd, src), zasma_hex8(ZASM_PLAIN, val)));
 }
 
@@ -422,7 +422,7 @@ static cpu_result op_adc_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
 
 static cpu_result op_adc_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_add_rr(fd, tgt, fd->cpu.FLAGS.C + val);
-  return CPU_STEP(fd, 1, 4,
+  return CPU_STEP(fd, 2, 8,
                   zasm2("ADC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
@@ -458,7 +458,7 @@ static cpu_result op_sbc_rr_WW(fundude* fd, cpu_reg8* tgt, cpu_reg16* src) {
 
 static cpu_result op_sbc_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   do_sub_rr(fd, tgt, fd->cpu.FLAGS.C + val);
-  return CPU_STEP(fd, 1, 8,
+  return CPU_STEP(fd, 2, 8,
                   zasm2("SBC", zasma_reg8(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
 }
 
