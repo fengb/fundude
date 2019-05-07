@@ -63,11 +63,11 @@ function tuple<T1, T2>(t1: T1, t2: T2): [T1, T2] {
 export const MMU_OFFSETS = {
   shift: 0x8000,
   segments: {
-    vram: tuple(0x8000, 0xa000),
-    ram: tuple(0xc000, 0xe000),
-    oam: tuple(0xfe00, 0xfea0),
-    ioPorts: tuple(0xff00, 0xff4c),
-    himem: tuple(0xff80, 0xffff)
+    vram: tuple(0x8000, 0xa000 - 1),
+    ram: tuple(0xc000, 0xe000 - 1),
+    oam: tuple(0xfe00, 0xfea0 - 1),
+    io: tuple(0xff00, 0xff4c),
+    himem: tuple(0xff80, 0xffff - 1)
   }
 };
 

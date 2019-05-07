@@ -16,7 +16,12 @@ const CSS = {
   }),
   controls: style({
     display: "flex",
-    alignItems: "flex-end"
+    fontFamily: "monospace",
+    textAlign: "center"
+  }),
+  custom: style({
+    display: "flex",
+    width: "50px"
   }),
 
   row: style({
@@ -46,13 +51,13 @@ const REGION_CSS: Record<string, string> = {
   vram: style({ backgroundColor: "#ffaaaa" }),
   ram: style({ backgroundColor: "#ffffaa" }),
   oam: style({ backgroundColor: "#aaffaa" }),
-  ioPorts: style({ backgroundColor: "#aaffff" }),
+  io: style({ backgroundColor: "#aaffff" }),
   himem: style({ backgroundColor: "#aaaaff" })
 };
 
 const MEMLOC_CSS: Record<number, string> = {};
 for (const [key, tuple] of Object.entries(MMU_OFFSETS.segments)) {
-  for (let loc = tuple[0]; loc < tuple[1]; loc++) {
+  for (let loc = tuple[0]; loc <= tuple[1]; loc++) {
     MEMLOC_CSS[loc] = REGION_CSS[key];
   }
 }
@@ -107,16 +112,21 @@ export default function Mmu(props: { fd: FundudeWasm }) {
     <div className={CSS.root}>
       <div className={CSS.controls}>
         {map(MMU_OFFSETS.segments, (tuple, key) => (
-          <button
-            key={key}
-            className={REGION_CSS[key]}
-            onClick={() => setFocus(tuple[0])}
-          >
-            {key} <br />${hex4(tuple[0])}
-          </button>
+          <div key={key} className={REGION_CSS[key]}>
+            <div>{key}</div>
+            <button onClick={() => setFocus(tuple[0])}>
+              {hex4(tuple[0])}
+            </button>
+            <button onClick={() => setFocus(tuple[1])}>
+              {hex4(tuple[1])}
+            </button>
+          </div>
         ))}
-        <Form onSubmit={({ search }) => setFocus(parseInt(String(search), 16))}>
-          <input name="search" pattern="[0-9a-fA-F]*" />
+        <Form
+          className={CSS.custom}
+          onSubmit={({ search }) => setFocus(parseInt(String(search), 16))}
+        >
+          <input name="search" pattern="[0-9a-fA-F]*" placeholder="Addr" />
         </Form>
       </div>
       <MmuOutput

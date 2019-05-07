@@ -23,6 +23,7 @@ const CSS = {
   displays: style({
     position: "relative",
     display: "flex",
+    justifyContent: "space-between",
     alignItems: "flex-end"
   }),
 
