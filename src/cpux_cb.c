@@ -23,7 +23,8 @@ cb_result cb_sla(fundude* fd, uint8_t val) {
 }
 
 cb_result cb_sra(fundude* fd, uint8_t val) {
-  return (cb_result){"SRA", flag_shift(fd, val >> 1, val & 1)};
+  uint8_t msb = BIT_GET(val, 7);
+  return (cb_result){"SRA", flag_shift(fd, msb | val >> 1, val & 1)};
 }
 
 cb_result cb_swap(fundude* fd, uint8_t val) {
@@ -33,8 +34,7 @@ cb_result cb_swap(fundude* fd, uint8_t val) {
 }
 
 cb_result cb_srl(fundude* fd, uint8_t val) {
-  uint8_t msb = val & 0x80;
-  return (cb_result){"SRA", flag_shift(fd, msb & val >> 1, val & 1)};
+  return (cb_result){"SRL", flag_shift(fd, val >> 1, val & 1)};
 }
 
 #define NAME_GLUE(prefix, var)          \

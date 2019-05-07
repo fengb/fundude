@@ -29,6 +29,8 @@ export class Provider extends React.Component<Props, State> {
       isRunning: false
     };
 
+    Object.assign(window, { fd: this.state.fd });
+
     this.handleChange = this.handleChange.bind(this);
     this.run = this.run.bind(this);
     this.pause = this.pause.bind(this);
