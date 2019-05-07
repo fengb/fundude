@@ -6,6 +6,8 @@ import Disassembler from "./Disassembler";
 import Cpu from "./Cpu";
 import Mmu from "./Mmu";
 
+const TURBO_FRAMES = 60 * 250;
+
 const CSS = {
   base: style({
     display: "flex",
@@ -31,6 +33,15 @@ const CSS = {
   })
 };
 
+function timed<T, R>(fn: (T) => R): (T) => R {
+  return function(t: T) {
+    const start = Date.now();
+    const val = fn(t);
+    console.log(`${(Date.now() - start) / 1000}s`);
+    return val;
+  };
+}
+
 export function Left() {
   const { fd, run, pause } = React.useContext(FD.Context);
   return (
@@ -43,7 +54,10 @@ export function Left() {
         <div>
           <button onClick={() => fd.step() && pause()}>Step</button>
           <button onClick={() => fd.stepFrame() && pause()}>Frame</button>
-          <button onClick={() => fd.stepFrame(60) && pause()}>Second</button>
+          <button onClick={() => fd.stepFrame(60) && pause()}>Sec</button>
+          <button onClick={timed(() => fd.stepFrame(TURBO_FRAMES) && pause())}>
+            &#9992;
+          </button>
         </div>
       </div>
       <Cpu reg={fd.cpu()} />
