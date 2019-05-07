@@ -568,6 +568,7 @@ static cpu_result op_cpl_rr___(fundude* fd, cpu_reg8* tgt) {
 
 static cpu_result op_pop_ww___(fundude* fd, cpu_reg16* tgt) {
   tgt->_ = do_pop16(fd);
+  fd->cpu.FLAGS._padding = 0;
   return CPU_STEP(fd, 1, 12, zasm1("POP", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
