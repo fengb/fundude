@@ -14,7 +14,9 @@ void do_or__rr(fundude* fd, cpu_reg8* tgt, uint8_t val);
 void do_xor_rr(fundude* fd, cpu_reg8* tgt, uint8_t val);
 void do_cp__rr(fundude* fd, cpu_reg8* tgt, uint8_t val);
 void do_add_rr(fundude* fd, cpu_reg8* tgt, uint8_t val);
+void do_adc_rr(fundude* fd, cpu_reg8* tgt, uint8_t val);
 void do_sub_rr(fundude* fd, cpu_reg8* tgt, uint8_t val);
+void do_sbc_rr(fundude* fd, cpu_reg8* tgt, uint8_t val);
 
 uint8_t do_rlc(fundude* fd, uint8_t val);
 uint8_t do_rrc(fundude* fd, uint8_t val);
