@@ -84,30 +84,49 @@ static cpu_result op_int______(fundude* fd, bool set) {
 }
 
 static cpu_result op_daa_rr___(fundude* fd, cpu_reg8* dst) {
-  uint8_t lo = NIBBLE_LO(dst->_);
-  uint8_t hi = NIBBLE_HI(dst->_);
+  // https://www.reddit.com/r/EmuDev/comments/4ycoix/a_guide_to_the_gameboys_halfcarry_flag/d6p3rtl?utm_source=share&utm_medium=web2x
+  // On the Z80:
+  // If C is set OR a > 0x99, add or subtract 0x60 depending on N, and set C
+  // If H is set OR (a & 0xf) > 9, add or subtract 6 depending on N
+
+  // On the GB:
+  // DAA after an add (N flag clear) works the same way as on the Z80
+  // DAA after a subtract (N flag set) only tests the C and H flags, and not the previous value of a
+  // H is always cleared (for both add and subtract)
+  // N is preserved, Z is set the usual way, and the rest of the Z80 flags don't exist
+
+  uint8_t val = dst->_;
   bool carry = fd->cpu.FLAGS.C;
 
   if (fd->cpu.FLAGS.N) {
-    if (lo >= 10) {
-      lo -= 6;
+    // SUB -> DAA
+    if (fd->cpu.FLAGS.H) {
+      val -= 0x6;
     }
-    if (hi >= 10) {
-      hi -= 10;
+
+    if (fd->cpu.FLAGS.C) {
+      val -= 0x60;
+    }
+
+    if (val > dst->_) {
       carry = true;
     }
   } else {
-    if (lo >= 10) {
-      lo -= 10;
-      hi++;
+    // ADD -> DAA
+    if (fd->cpu.FLAGS.H || NIBBLE_LO(dst->_) > 0x9) {
+      val += 0x6;
     }
-    if (hi >= 10) {
-      hi -= 10;
+
+    if (fd->cpu.FLAGS.C || NIBBLE_HI(dst->_) > 0x9) {
+      val += 0x60;
+    }
+
+    if (val < dst->_) {
       carry = true;
     }
   }
 
-  dst->_ = (hi << 4) | lo;
+  dst->_ = val;
   fd->cpu.FLAGS = (cpu_flags){
       .Z = is_uint8_zero(dst->_),
       .N = fd->cpu.FLAGS.N,

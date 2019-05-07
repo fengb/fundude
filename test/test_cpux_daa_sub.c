@@ -27,7 +27,7 @@ int main() {
   eqhex(fd.cpu.A._, 0xA7);
   eqbool(fd.cpu.FLAGS.C, true);
   cpu_step(&fd, (uint8_t[]){OP_DAA});
-  eqhex(fd.cpu.A._, 0x07);
+  eqhex(fd.cpu.A._, 0x47);
   eqbool(fd.cpu.FLAGS.C, true);
 
   done_testing();
