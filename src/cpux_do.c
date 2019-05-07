@@ -102,10 +102,10 @@ void do_sub_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
 void do_sbc_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   int carry = fd->cpu.FLAGS.C;
   fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ - val),
+      .Z = is_uint8_zero(tgt->_ - val - carry),
       .N = true,
-      .H = will_borrow_from(4, tgt->_, val) || will_borrow_from(4, tgt->_, val + carry),
-      .C = will_borrow_from(8, tgt->_, val) || will_borrow_from(8, tgt->_, val + carry),
+      .H = will_borrow_from(4, tgt->_, val) || will_borrow_from(4, tgt->_ - val, carry),
+      .C = will_borrow_from(8, tgt->_, val) || will_borrow_from(8, tgt->_ - val, carry),
   };
   tgt->_ -= (val + carry);
 }
