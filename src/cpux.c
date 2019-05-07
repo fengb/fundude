@@ -340,7 +340,7 @@ static cpu_result op_inc_WW___(fundude* fd, cpu_reg16* tgt) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = is_uint8_zero(val + 1),
       .N = false,
-      .H = will_carry_from(3, val, 1),
+      .H = will_carry_into(4, val, 1),
       .C = fd->cpu.FLAGS.C,
   };
   mmu_set(&fd->mmu, tgt->_, val + 1);
@@ -387,8 +387,8 @@ static cpu_result op_add_ww_ww(fundude* fd, cpu_reg16* tgt, cpu_reg16* src) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = fd->cpu.FLAGS.Z,
       .N = false,
-      .H = will_carry_from(11, tgt->_, src->_),
-      .C = will_carry_from(15, tgt->_, src->_),
+      .H = will_carry_into(12, tgt->_, src->_),
+      .C = will_carry_into(16, tgt->_, src->_),
   };
   tgt->_ += src->_;
   return CPU_STEP(fd, 1, 8,
@@ -400,8 +400,8 @@ static cpu_result op_add_ww_R8(fundude* fd, cpu_reg16* tgt, uint8_t val) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = false,
       .N = false,
-      .H = will_carry_from(11, tgt->_, offset),
-      .C = will_carry_from(15, tgt->_, offset),
+      .H = will_carry_into(12, tgt->_, offset),
+      .C = will_carry_into(16, tgt->_, offset),
   };
   tgt->_ += offset;
   return CPU_STEP(fd, 2, 16,
@@ -538,7 +538,7 @@ static cpu_result op_inc_rr___(fundude* fd, cpu_reg8* tgt) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = is_uint8_zero(tgt->_ + 1),
       .N = false,
-      .H = will_carry_from(3, tgt->_, 1),
+      .H = will_carry_into(4, tgt->_, 1),
       .C = fd->cpu.FLAGS.C,
   };
   tgt->_++;

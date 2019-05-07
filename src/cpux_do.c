@@ -6,8 +6,8 @@ bool is_uint8_zero(int val) {
   return (val & 0xFF) == 0;
 }
 
-bool will_carry_from(int bit, int a, int b) {
-  int mask = (1 << (bit + 1)) - 1;
+bool will_carry_into(int bit, int a, int b) {
+  int mask = (1 << bit) - 1;
   return (a & mask) + (b & mask) > mask;
 }
 
@@ -77,8 +77,8 @@ void do_add_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = is_uint8_zero(tgt->_ + val),
       .N = false,
-      .H = will_carry_from(3, tgt->_, val),
-      .C = will_carry_from(7, tgt->_, val),
+      .H = will_carry_into(4, tgt->_, val),
+      .C = will_carry_into(8, tgt->_, val),
   };
   tgt->_ += val;
 }
@@ -88,8 +88,8 @@ void do_adc_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
   fd->cpu.FLAGS = (cpu_flags){
       .Z = is_uint8_zero(tgt->_ + val + carry),
       .N = false,
-      .H = will_carry_from(3, tgt->_, val) || will_carry_from(3, tgt->_, val + carry),
-      .C = will_carry_from(7, tgt->_, val) || will_carry_from(7, tgt->_, val + carry),
+      .H = will_carry_into(4, tgt->_, val) || will_carry_into(4, tgt->_, val + carry),
+      .C = will_carry_into(8, tgt->_, val) || will_carry_into(8, tgt->_, val + carry),
   };
   tgt->_ += val + carry;
 }

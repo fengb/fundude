@@ -1,7 +1,7 @@
 #include "fundude.h"
 
 bool is_uint8_zero(int val);
-bool will_carry_from(int bit, int a, int b);
+bool will_carry_into(int bit, int a, int b);
 bool will_borrow_from(int bit, int a, int b);
 
 uint8_t flag_shift(fundude* fd, uint8_t val, bool C);
