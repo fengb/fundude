@@ -7,7 +7,7 @@ int main() {
   fundude fd;
   uint8_t cart[0x8000];
 
-  FILE* rom = fopen("vendor/fundude-test/cpu.gb", "rb");
+  FILE* rom = fopen("vendor/fundude-test/op_logic.gb", "rb");
   fseek(rom, 0L, SEEK_END);
   size_t rom_length = ftell(rom);
   rewind(rom);
