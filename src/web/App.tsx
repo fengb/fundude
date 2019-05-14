@@ -72,9 +72,11 @@ const CSS = {
 
   controls: style({
     height: "300px",
+    width: "324px",
+    margin: "0 auto",
     display: "flex",
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
   })
 };
 
