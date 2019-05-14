@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { style } from "typestyle";
 import FD from "../wasm/react";
 import Display from "./Display";
 import CartSelect from "./CartSelect";
+import Controller from "./Controller";
 import { BOOTLOADER } from "./data";
 import Debug from "./Debug";
 //@ts-ignore
@@ -70,7 +71,10 @@ const CSS = {
   }),
 
   controls: style({
-    height: "300px"
+    height: "300px",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center"
   })
 };
 
@@ -97,14 +101,16 @@ export function App(props: { debug?: boolean }) {
             </span>
           </h1>
         </div>
-        <div className={CSS.controls} />
+        <div className={CSS.controls}>
+          <Controller />
+        </div>
       </div>
     </div>
   );
 }
 
 export default function(props: { debug?: boolean }) {
-  const [debug, setDebug] = useState(props.debug);
+  const [debug, setDebug] = React.useState(props.debug);
   useEvent(
     "hashchange",
     () => setDebug(window.location.hash.includes("debug")),
@@ -114,7 +120,7 @@ export default function(props: { debug?: boolean }) {
     <FD.Provider bootCart={BOOTLOADER}>
       <div className={CSS.root}>
         {debug && <Debug.Left />}
-        <App debug={props.debug} />
+        <App debug={debug} />
         {debug && <Debug.Right />}
       </div>
     </FD.Provider>
