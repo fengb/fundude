@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cpux.h"
-#include "intrx.h"
+#include "irqx.h"
 #include "mmux.h"
 #include "ppux.h"
 #include "timerx.h"
@@ -46,7 +46,7 @@ short fd_step_frames(fundude* fd, short frames) {
 }
 
 static cpu_result exec_step(fundude* fd) {
-  cpu_result res = intr_step(fd);
+  cpu_result res = irq_step(fd);
   if (res.duration > 0) {
     return res;
   }

@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "intr.h"
+#include "irq.h"
 #include "io.h"
 #include "ppu.h"
 
@@ -23,7 +23,7 @@ typedef struct {
       uint8_t boot_complete;           // 0xFF50 Bootloader sets this on 0xFE
       uint8_t _pad_ff51_80[0x002F];    // 0xFF51 - 0xFF80
       uint8_t high_ram[0x007F];        // 0xFF80 - 0xFFFF
-      intr_flags interrupt_enable;     // 0xFFFF
+      irq_flags interrupt_enable;     // 0xFFFF
     };
   };
 

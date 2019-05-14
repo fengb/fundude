@@ -1,9 +1,9 @@
-#include "intrx.h"
+#include "irqx.h"
 
 #define OP_CALL 0xCD
 
-static uint8_t intr_addr(fundude* fd) {
-  intr_flags cmp = {.raw = fd->mmu.io_ports.IF.raw & fd->mmu.interrupt_enable.raw};
+static uint8_t irq_addr(fundude* fd) {
+  irq_flags cmp = {.raw = fd->mmu.io_ports.IF.raw & fd->mmu.interrupt_enable.raw};
   if (!cmp.raw) {
     return 0;
   }
@@ -28,14 +28,14 @@ static uint8_t intr_addr(fundude* fd) {
   return 0;
 }
 
-cpu_result intr_step(fundude* fd) {
+cpu_result irq_step(fundude* fd) {
   static uint8_t synth_op[3] = {OP_CALL, 0, 0};
 
   if (!fd->interrupt_master) {
     return (cpu_result){0, 0, 0, 0};
   }
 
-  synth_op[1] = intr_addr(fd);
+  synth_op[1] = irq_addr(fd);
   if (!synth_op[1]) {
     return (cpu_result){0, 0, 0, 0};
   }

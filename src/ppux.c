@@ -168,10 +168,10 @@ void ppu_step(fundude* fd, uint8_t cycles) {
 
   fd->mmu.io_ports.ppu.LY = fd->clock.ppu / DOTS_PER_LINE;
   fd->mmu.io_ports.ppu.STAT.coincidence = fd->mmu.io_ports.ppu.LY == fd->mmu.io_ports.ppu.LYC;
-  if ((fd->mmu.io_ports.ppu.STAT.intr_coincidence && fd->mmu.io_ports.ppu.STAT.coincidence) ||
-      (fd->mmu.io_ports.ppu.STAT.intr_hblank && fd->mmu.io_ports.ppu.STAT.mode == LCDC_HBLANK) ||
-      (fd->mmu.io_ports.ppu.STAT.intr_vblank && fd->mmu.io_ports.ppu.STAT.mode == LCDC_VBLANK) ||
-      (fd->mmu.io_ports.ppu.STAT.intr_oam && fd->mmu.io_ports.ppu.STAT.mode == LCDC_SEARCHING)) {
+  if ((fd->mmu.io_ports.ppu.STAT.irq_coincidence && fd->mmu.io_ports.ppu.STAT.coincidence) ||
+      (fd->mmu.io_ports.ppu.STAT.irq_hblank && fd->mmu.io_ports.ppu.STAT.mode == LCDC_HBLANK) ||
+      (fd->mmu.io_ports.ppu.STAT.irq_vblank && fd->mmu.io_ports.ppu.STAT.mode == LCDC_VBLANK) ||
+      (fd->mmu.io_ports.ppu.STAT.irq_oam && fd->mmu.io_ports.ppu.STAT.mode == LCDC_SEARCHING)) {
     fd->mmu.io_ports.IF.lcd_stat = true;
   }
 

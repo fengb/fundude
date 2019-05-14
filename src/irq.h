@@ -1,5 +1,5 @@
-#ifndef __INTR_H
-#define __INTR_H
+#ifndef __IRQ_H
+#define __IRQ_H
 
 typedef union {
   uint8_t raw;
@@ -10,6 +10,6 @@ typedef union {
     bool serial : 1;
     bool joypad : 1;
   };
-} intr_flags;
+} irq_flags;
 
 #endif

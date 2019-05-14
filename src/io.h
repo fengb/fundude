@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "apu.h"
-#include "intr.h"
+#include "irq.h"
 #include "ppu.h"
 #include "timer.h"
 
@@ -25,7 +25,7 @@ typedef union {
     uint8_t _pad_ff03;
     timer_io timer;
     uint8_t _pad_ff08_0e[7];
-    intr_flags IF;  // FF0F
+    irq_flags IF;  // FF0F
 
     apu_io apu;
     ppu_io ppu;
