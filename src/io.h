@@ -2,13 +2,7 @@
 #include <stdint.h>
 #include "intr.h"
 #include "ppu.h"
-
-typedef enum __attribute__((__packed__)) {
-  IO_TIMER_SPEED_4096 = 0,
-  IO_TIMER_SPEED_262144 = 1,
-  IO_TIMER_SPEED_65536 = 2,
-  IO_TIMER_SPEED_16384 = 3,
-} io_timer_speed;
+#include "timer.h"
 
 typedef union {
   uint8_t RAW[0x4C];
@@ -28,13 +22,7 @@ typedef union {
     uint8_t SB;  // $FF01
     uint8_t SC;  // $FF02
     uint8_t _pad_ff03;
-    uint8_t DIV;   // $FF04
-    uint8_t TIMA;  // $FF05
-    uint8_t TMA;   // $FF06
-    struct {
-      io_timer_speed speed : 2;
-      bool active : 1;
-    } TAC;
+    timer_io timer;
     uint8_t _pad_ff08_0e[7];
     intr_flags IF;  // FF0F
 

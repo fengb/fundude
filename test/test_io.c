@@ -7,7 +7,7 @@ int main() {
 
   eqhex(sizeof(io), 0x4C);
 
-  eqhex(offsetof(io, TAC), 0x07);
+  eqhex(offsetof(io, timer), 0x04);
   eqhex(offsetof(io, IF), 0x0F);
 
   eqhex(offsetof(io, NR10), 0x10);
