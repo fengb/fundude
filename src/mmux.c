@@ -1,6 +1,7 @@
 #include "mmux.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include "ggpx.h"
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
@@ -31,15 +32,20 @@ uint8_t mmu_get(mmu* m, uint16_t addr) {
   return *ptr;
 }
 
-void mmu_set(mmu* m, uint16_t addr, uint8_t val) {
+void mmu_set(fundude* fd, uint16_t addr, uint8_t val) {
   // Can't update cart data
   if (addr < BEYOND_CART) {
     return;
   }
-  if (is_locked(m, addr)) {
+  if (is_locked(&fd->mmu, addr)) {
     return;
   }
-  uint8_t* ptr = mmu_ptr(m, addr);
+  if (addr == 0xFF00) {
+    // Joypad
+    ggp_set(fd, val);
+    return;
+  }
+  uint8_t* ptr = mmu_ptr(&fd->mmu, addr);
   *ptr = val;
 }
 

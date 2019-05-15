@@ -5,17 +5,17 @@
 int main() {
   plan(3);
 
-  mmu mem;
-  memset(&mem, 0, sizeof(mem));
+  fundude fd;
+  memset(&fd.mmu, 0, sizeof(fd.mmu));
 
-  mmu_set(&mem, 0xC000, 'A');
-  eqchar('A', mmu_get(&mem, 0xE000));
+  mmu_set(&fd, 0xC000, 'A');
+  eqchar('A', mmu_get(&fd.mmu, 0xE000));
 
-  mmu_set(&mem, 0xE000, 'z');
-  eqchar('z', mmu_get(&mem, 0xC000));
+  mmu_set(&fd, 0xE000, 'z');
+  eqchar('z', mmu_get(&fd.mmu, 0xC000));
 
-  mmu_set(&mem, 0xC777, '?');
-  eqchar('?', mmu_get(&mem, 0xE777));
+  mmu_set(&fd, 0xC777, '?');
+  eqchar('?', mmu_get(&fd.mmu, 0xE777));
 
   done_testing();
 }

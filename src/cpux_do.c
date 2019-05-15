@@ -28,7 +28,7 @@ uint8_t flag_shift(fundude* fd, uint8_t val, bool C) {
 }
 
 static void do_push8(fundude* fd, uint8_t val) {
-  mmu_set(&fd->mmu, --fd->cpu.SP._, val);
+  mmu_set(fd, --fd->cpu.SP._, val);
 }
 
 void do_push16(fundude* fd, uint16_t val) {
