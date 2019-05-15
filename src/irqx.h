@@ -1,4 +1,4 @@
 #include "fundude.h"
 #include "cpux.h"
 
-cpu_result intr_step(fundude* fd);
+cpu_result irq_step(fundude* fd);

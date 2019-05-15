@@ -20,7 +20,7 @@ int main() {
   eqptr(mmu_ptr(&mmu, 0xC000), mmu.ram);
   eqptr(mmu_ptr(&mmu, 0xE000), mmu.ram);  // echo of RAM
   eqptr(mmu_ptr(&mmu, 0xFE00), mmu.oam);
-  eqptr(mmu_ptr(&mmu, 0xFF00), mmu.io_ports.RAW);
+  eqptr(mmu_ptr(&mmu, 0xFF00), &mmu.io);
   eqptr(mmu_ptr(&mmu, 0xFF50), &mmu.boot_complete);
   eqptr(mmu_ptr(&mmu, 0xFF80), mmu.high_ram);
   eqptr(mmu_ptr(&mmu, 0xFFFF), &mmu.interrupt_enable);

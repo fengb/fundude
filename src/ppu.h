@@ -84,10 +84,10 @@ typedef struct {
   struct {
     lcdc_mode mode : 2;
     bool coincidence : 1;
-    bool intr_hblank : 1;
-    bool intr_vblank : 1;
-    bool intr_oam : 1;
-    bool intr_coincidence : 1;
+    bool irq_hblank : 1;
+    bool irq_vblank : 1;
+    bool irq_oam : 1;
+    bool irq_coincidence : 1;
   } STAT;
   uint8_t SCY;         // $FF42
   uint8_t SCX;         // $FF43
