@@ -1,0 +1,1 @@
+{"version":3,"sources":["page.css"],"names":[],"mappings":"AAAA,EACE,qBAAsB,CACtB,QACF,CAEA,MACE,cACF,CAEA,OACE,mBAAoB,CACpB,cACF","file":"page.f9a511da.css","sourceRoot":"../src/web","sourcesContent":["* {\n  box-sizing: border-box;\n  margin: 0;\n}\n\ninput {\n  max-width: 100%;\n}\n\nbutton {\n  font-family: inherit;\n  cursor: pointer;\n}\n"]}
