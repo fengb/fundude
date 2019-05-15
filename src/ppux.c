@@ -156,18 +156,22 @@ void ppu_step(fundude* fd, uint8_t cycles) {
 
   if (!fd->mmu.io.ppu.LCDC.lcd_enable) {
     fd->clock.ppu = 0;
-    fd->mmu.io.ppu.STAT.mode = LCDC_VBLANK;
+    fd->mmu.io.ppu.STAT.mode = LCDC_HBLANK;
     return;
   }
 
   fd->clock.ppu += cycles;
 
-  if (fd->clock.ppu > DOTS_PER_FRAME) {
-    fd->clock.ppu %= DOTS_PER_FRAME;
+  while (fd->clock.ppu > DOTS_PER_FRAME) {
+    fd->clock.ppu -= DOTS_PER_FRAME;
   }
 
-  fd->mmu.io.ppu.LY = fd->clock.ppu / DOTS_PER_LINE;
-  fd->mmu.io.ppu.STAT.coincidence = fd->mmu.io.ppu.LY == fd->mmu.io.ppu.LYC;
+  uint8_t new_ly = fd->clock.ppu / DOTS_PER_LINE;
+  if (fd->mmu.io.ppu.LY != new_ly) {
+    fd->mmu.io.ppu.LY = new_ly;
+    fd->mmu.io.ppu.STAT.coincidence = new_ly == fd->mmu.io.ppu.LYC;
+  }
+
   if ((fd->mmu.io.ppu.STAT.irq_coincidence && fd->mmu.io.ppu.STAT.coincidence) ||
       (fd->mmu.io.ppu.STAT.irq_hblank && fd->mmu.io.ppu.STAT.mode == LCDC_HBLANK) ||
       (fd->mmu.io.ppu.STAT.irq_vblank && fd->mmu.io.ppu.STAT.mode == LCDC_VBLANK) ||
