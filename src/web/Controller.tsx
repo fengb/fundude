@@ -2,7 +2,7 @@ import React from "react";
 import cx from "classnames";
 import { style } from "typestyle";
 import useEvent from "react-use/lib/useEvent";
-import FundudeWasm, { Button } from "../wasm";
+import FundudeWasm, { Input } from "../wasm";
 
 const CSS = {
   root: style({
@@ -67,7 +67,7 @@ const INITIAL_STATE = {
   b: false
 };
 
-const KEY_MAP: Record<string, Button> = {
+const KEY_MAP: Record<string, Input> = {
   KeyW: "up",
   ArrowUp: "up",
   KeyD: "right",
@@ -84,18 +84,18 @@ const KEY_MAP: Record<string, Button> = {
 };
 
 export default function Controller(props: { fd: FundudeWasm }) {
-  const [buttons, setButtons] = React.useState(INITIAL_STATE);
+  const [inputs, setInputs] = React.useState(INITIAL_STATE);
 
   useEvent("keydown", (event: KeyboardEvent) => {
-    const button = KEY_MAP[event.code];
-    if (button) {
-      setButtons(props.fd.buttonPress(button));
+    const input = KEY_MAP[event.code];
+    if (input) {
+      setInputs(props.fd.inputPress(input));
     }
   });
   useEvent("keyup", (event: KeyboardEvent) => {
-    const button = KEY_MAP[event.code];
-    if (button) {
-      setButtons(props.fd.buttonRelease(button));
+    const input = KEY_MAP[event.code];
+    if (input) {
+      setInputs(props.fd.inputRelease(input));
     }
   });
 
@@ -104,22 +104,22 @@ export default function Controller(props: { fd: FundudeWasm }) {
       <div className={CSS.dpad.base}>
         <button
           className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.up, {
-            pressed: buttons.up
+            pressed: inputs.up
           })}
         />
         <button
           className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.down, {
-            pressed: buttons.down
+            pressed: inputs.down
           })}
         />
         <button
           className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.left, {
-            pressed: buttons.left
+            pressed: inputs.left
           })}
         />
         <button
           className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.right, {
-            pressed: buttons.right
+            pressed: inputs.right
           })}
         />
       </div>
@@ -127,14 +127,14 @@ export default function Controller(props: { fd: FundudeWasm }) {
       <div className={CSS.buttons.base}>
         <button
           className={cx(CSS.button, CSS.buttons.select, {
-            pressed: buttons.select
+            pressed: inputs.select
           })}
         >
           Select
         </button>
         <button
           className={cx(CSS.button, CSS.buttons.start, {
-            pressed: buttons.start
+            pressed: inputs.start
           })}
         >
           Start
@@ -143,12 +143,12 @@ export default function Controller(props: { fd: FundudeWasm }) {
 
       <div className={CSS.buttons.base}>
         <button
-          className={cx(CSS.button, CSS.buttons.b, { pressed: buttons.b })}
+          className={cx(CSS.button, CSS.buttons.b, { pressed: inputs.b })}
         >
           B
         </button>
         <button
-          className={cx(CSS.button, CSS.buttons.a, { pressed: buttons.a })}
+          className={cx(CSS.button, CSS.buttons.a, { pressed: inputs.a })}
         >
           A
         </button>

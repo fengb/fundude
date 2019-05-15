@@ -6,6 +6,7 @@
 
 #define NIBBLE_HI(data) ((data >> 4) & 0xF)
 #define NIBBLE_LO(data) ((data >> 0) & 0xF)
+#define NIBBLE_INVERT(data) ((data >> 0) & 0xF)
 
 #define BYTE_HI(data) ((data >> 8) & 0xFF)
 #define BYTE_LO(data) ((data >> 0) & 0xFF)

@@ -17,12 +17,12 @@ typedef union {
 } ggp_io;
 
 typedef enum __attribute__((__packed__)) {
-  GGP_BUTTON_RIGHT = 1,
-  GGP_BUTTON_LEFT = 2,
-  GGP_BUTTON_UP = 4,
-  GGP_BUTTON_DOWN = 8,
-  GGP_BUTTON_A = 16,
-  GGP_BUTTON_B = 32,
-  GGP_BUTTON_SELECT = 64,
-  GGP_BUTTON_START = 128,
-} ggp_button;
+  GGP_INPUT_RIGHT = 1,
+  GGP_INPUT_LEFT = 2,
+  GGP_INPUT_UP = 4,
+  GGP_INPUT_DOWN = 8,
+  GGP_INPUT_A = 16,
+  GGP_INPUT_B = 32,
+  GGP_INPUT_SELECT = 64,
+  GGP_INPUT_START = 128,
+} ggp_input;

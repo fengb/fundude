@@ -71,7 +71,7 @@ export const MMU_OFFSETS = {
   }
 };
 
-enum ButtonBitMapping {
+enum InputBitMapping {
   right = 1,
   left = 2,
   up = 4,
@@ -83,7 +83,7 @@ enum ButtonBitMapping {
   start = 128
 }
 
-export type Button = keyof typeof ButtonBitMapping;
+export type Input = keyof typeof InputBitMapping;
 
 export default class FundudeWasm {
   public changed = new Signal<void>();
@@ -177,25 +177,25 @@ export default class FundudeWasm {
     return cycles;
   }
 
-  _buttonStatus(raw: number): Record<Button, boolean> {
-    const mapping = {} as Record<Button, boolean>;
+  _inputStatus(raw: number): Record<Input, boolean> {
+    const mapping = {} as Record<Input, boolean>;
     for (let bit = 0; bit < 8; bit++) {
       const mask = 1 << bit;
-      const button = ButtonBitMapping[mask];
+      const input = InputBitMapping[mask];
       const value = Boolean(raw & mask);
-      mapping[button] = value;
+      mapping[input] = value;
     }
     return mapping;
   }
 
-  buttonPress(button: Button) {
-    const val = ButtonBitMapping[button];
-    return this._buttonStatus(WASM.fd_button_press(this.pointer, val));
+  inputPress(input: Input) {
+    const val = InputBitMapping[input];
+    return this._inputStatus(WASM.fd_input_press(this.pointer, val));
   }
 
-  buttonRelease(button: Button) {
-    const val = ButtonBitMapping[button];
-    return this._buttonStatus(WASM.fd_button_release(this.pointer, val));
+  inputRelease(input: Input) {
+    const val = InputBitMapping[input];
+    return this._inputStatus(WASM.fd_input_release(this.pointer, val));
   }
 
   static *disassemble(cart: Uint8Array): IterableIterator<GBInstruction> {
