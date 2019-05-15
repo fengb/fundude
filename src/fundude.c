@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cpux.h"
+#include "ggpx.h"
 #include "irqx.h"
 #include "mmux.h"
 #include "ppux.h"
@@ -89,12 +90,21 @@ int fd_step_cycles(fundude* fd, int cycles) {
 }
 
 ggp_input fd_input_press(fundude* fd, ggp_input input) {
-  fd->inputs |= input;
+  ggp_input changed_to_true = (input ^ fd->inputs) ^ (~fd->inputs);
+  if (changed_to_true) {
+    if (fd->mode == SYS_STOP) {
+      fd->mode = SYS_NORM;
+    }
+    fd->mmu.io.IF.joypad = true;
+    fd->inputs |= input;
+    ggp_sync(fd);
+  }
   return fd->inputs;
 }
 
 ggp_input fd_input_release(fundude* fd, ggp_input input) {
   fd->inputs &= ~input;
+  ggp_sync(fd);
   return fd->inputs;
 }
 
