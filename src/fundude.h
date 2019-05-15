@@ -32,6 +32,8 @@ typedef struct {
 
   bool interrupt_master;
 
+  ggp_button buttons;
+
   struct {
     int cpu;
     int ppu;
@@ -51,6 +53,9 @@ void fd_reset(fundude* fd);
 int fd_step(fundude* fd);
 short fd_step_frames(fundude* fd, short frames);
 int fd_step_cycles(fundude* fd, int cycles);
+
+ggp_button fd_button_press(fundude* fd, ggp_button button);
+ggp_button fd_button_release(fundude* fd, ggp_button button);
 
 #pragma mark debugging tools
 

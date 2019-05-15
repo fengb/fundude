@@ -71,6 +71,20 @@ export const MMU_OFFSETS = {
   }
 };
 
+enum ButtonBitMapping {
+  right = 1,
+  left = 2,
+  up = 4,
+  down = 8,
+
+  a = 16,
+  b = 32,
+  select = 64,
+  start = 128
+}
+
+export type Button = keyof typeof ButtonBitMapping;
+
 export default class FundudeWasm {
   public changed = new Signal<void>();
 
@@ -161,6 +175,27 @@ export default class FundudeWasm {
     const cycles = WASM.fd_step_frames(this.pointer, frames);
     this.changed.dispatch();
     return cycles;
+  }
+
+  _buttonStatus(raw: number): Record<Button, boolean> {
+    const mapping = {} as Record<Button, boolean>;
+    for (let bit = 0; bit < 8; bit++) {
+      const mask = 1 << bit;
+      const button = ButtonBitMapping[mask];
+      const value = Boolean(raw & mask);
+      mapping[button] = value;
+    }
+    return mapping;
+  }
+
+  buttonPress(button: Button) {
+    const val = ButtonBitMapping[button];
+    return this._buttonStatus(WASM.fd_button_press(this.pointer, val));
+  }
+
+  buttonRelease(button: Button) {
+    const val = ButtonBitMapping[button];
+    return this._buttonStatus(WASM.fd_button_release(this.pointer, val));
   }
 
   static *disassemble(cart: Uint8Array): IterableIterator<GBInstruction> {

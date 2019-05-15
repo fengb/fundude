@@ -5,14 +5,14 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "apu.h"
+#include "ggp.h"
 #include "irq.h"
-#include "joypad.h"
 #include "lpt.h"
 #include "ppu.h"
 #include "timer.h"
 
 typedef struct {
-  joypad_io P1;
+  ggp_io P1;
   lpt_io lpt;  // $FF01-FF02
   uint8_t _pad_ff03;
   timer_io timer;

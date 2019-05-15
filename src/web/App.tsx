@@ -76,7 +76,7 @@ const CSS = {
     margin: "0 auto",
     display: "flex",
     justifyContent: "center",
-    alignItems: "center",
+    alignItems: "center"
   })
 };
 
@@ -104,7 +104,7 @@ export function App(props: { debug?: boolean }) {
           </h1>
         </div>
         <div className={CSS.controls}>
-          <Controller />
+          <Controller fd={fd} />
         </div>
       </div>
     </div>
@@ -113,10 +113,8 @@ export function App(props: { debug?: boolean }) {
 
 export default function(props: { debug?: boolean }) {
   const [debug, setDebug] = React.useState(props.debug);
-  useEvent(
-    "hashchange",
-    () => setDebug(window.location.hash.includes("debug")),
-    window
+  useEvent("hashchange", () =>
+    setDebug(window.location.hash.includes("debug"))
   );
   return (
     <FD.Provider bootCart={BOOTLOADER}>

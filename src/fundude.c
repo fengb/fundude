@@ -88,6 +88,16 @@ int fd_step_cycles(fundude* fd, int cycles) {
   return cycles + track;
 }
 
+ggp_button fd_button_press(fundude* fd, ggp_button button) {
+  fd->buttons |= button;
+  return fd->buttons;
+}
+
+ggp_button fd_button_release(fundude* fd, ggp_button button) {
+  fd->buttons &= ~button;
+  return fd->buttons;
+}
+
 char* fd_disassemble(fundude* fd) {
   if (fd->mode == SYS_FATAL) {
     return NULL;

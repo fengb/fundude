@@ -2,6 +2,7 @@ import React from "react";
 import cx from "classnames";
 import { style } from "typestyle";
 import useEvent from "react-use/lib/useEvent";
+import FundudeWasm, { Button } from "../wasm";
 
 const CSS = {
   root: style({
@@ -66,9 +67,7 @@ const INITIAL_STATE = {
   b: false
 };
 
-type KeyState = typeof INITIAL_STATE;
-
-const KEY_MAP: Record<string, keyof KeyState> = {
+const KEY_MAP: Record<string, Button> = {
   KeyW: "up",
   ArrowUp: "up",
   KeyD: "right",
@@ -84,50 +83,43 @@ const KEY_MAP: Record<string, keyof KeyState> = {
   Period: "a"
 };
 
-const VALUE_MAP: Record<string, boolean> = {
-  keydown: true,
-  keyup: false
-};
+export default function Controller(props: { fd: FundudeWasm }) {
+  const [buttons, setButtons] = React.useState(INITIAL_STATE);
 
-function keyReducer(state: KeyState, action: KeyboardEvent) {
-  const key = KEY_MAP[action.code];
-  const value = VALUE_MAP[action.type];
-  if (key == undefined || value == undefined) {
-    return state;
-  }
-
-  action.preventDefault();
-
-  return { ...state, [key]: value };
-}
-
-export default function Controller() {
-  const [keys, dispatchKeyEvent] = React.useReducer(keyReducer, INITIAL_STATE);
-
-  useEvent("keydown", dispatchKeyEvent, window);
-  useEvent("keyup", dispatchKeyEvent, window);
+  useEvent("keydown", (event: KeyboardEvent) => {
+    const button = KEY_MAP[event.code];
+    if (button) {
+      setButtons(props.fd.buttonPress(button));
+    }
+  });
+  useEvent("keyup", (event: KeyboardEvent) => {
+    const button = KEY_MAP[event.code];
+    if (button) {
+      setButtons(props.fd.buttonRelease(button));
+    }
+  });
 
   return (
     <div className={CSS.root}>
       <div className={CSS.dpad.base}>
         <button
           className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.up, {
-            pressed: keys.up
+            pressed: buttons.up
           })}
         />
         <button
           className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.down, {
-            pressed: keys.down
+            pressed: buttons.down
           })}
         />
         <button
           className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.left, {
-            pressed: keys.left
+            pressed: buttons.left
           })}
         />
         <button
           className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.right, {
-            pressed: keys.right
+            pressed: buttons.right
           })}
         />
       </div>
@@ -135,23 +127,29 @@ export default function Controller() {
       <div className={CSS.buttons.base}>
         <button
           className={cx(CSS.button, CSS.buttons.select, {
-            pressed: keys.select
+            pressed: buttons.select
           })}
         >
           Select
         </button>
         <button
-          className={cx(CSS.button, CSS.buttons.start, { pressed: keys.start })}
+          className={cx(CSS.button, CSS.buttons.start, {
+            pressed: buttons.start
+          })}
         >
           Start
         </button>
       </div>
 
       <div className={CSS.buttons.base}>
-        <button className={cx(CSS.button, CSS.buttons.b, { pressed: keys.b })}>
+        <button
+          className={cx(CSS.button, CSS.buttons.b, { pressed: buttons.b })}
+        >
           B
         </button>
-        <button className={cx(CSS.button, CSS.buttons.a, { pressed: keys.a })}>
+        <button
+          className={cx(CSS.button, CSS.buttons.a, { pressed: buttons.a })}
+        >
           A
         </button>
       </div>
