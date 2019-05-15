@@ -79,6 +79,7 @@ const KEY_MAP: Record<string, Input> = {
 
   KeyN: "select",
   KeyM: "start",
+  Enter: "start",
   Comma: "b",
   Period: "a"
 };
