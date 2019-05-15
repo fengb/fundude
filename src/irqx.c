@@ -29,16 +29,16 @@ static uint8_t irq_addr(fundude* fd) {
 }
 
 cpu_result irq_step(fundude* fd) {
-  static uint8_t synth_op[3] = {OP_CALL, 0, 0};
-
   if (!fd->interrupt_master) {
     return (cpu_result){0, 0, 0, 0};
   }
 
-  synth_op[1] = irq_addr(fd);
-  if (!synth_op[1]) {
+  uint8_t addr = irq_addr(fd);
+  if (!addr) {
     return (cpu_result){0, 0, 0, 0};
   }
+
+  uint8_t synth_op[3] = {OP_CALL, addr, 0};
 
   fd->interrupt_master = false;
   // TODO: this is silly -- we reverse the hacked offset in OP CALL
