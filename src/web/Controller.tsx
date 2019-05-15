@@ -90,12 +90,14 @@ export default function Controller(props: { fd: FundudeWasm }) {
   useEvent("keydown", (event: KeyboardEvent) => {
     const input = KEY_MAP[event.code];
     if (input) {
+      event.preventDefault();
       setInputs(props.fd.inputPress(input));
     }
   });
   useEvent("keyup", (event: KeyboardEvent) => {
     const input = KEY_MAP[event.code];
     if (input) {
+      event.preventDefault();
       setInputs(props.fd.inputRelease(input));
     }
   });
