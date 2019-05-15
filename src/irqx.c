@@ -3,25 +3,25 @@
 #define OP_CALL 0xCD
 
 static uint8_t irq_addr(fundude* fd) {
-  irq_flags cmp = {.raw = fd->mmu.io_ports.IF.raw & fd->mmu.interrupt_enable.raw};
+  irq_flags cmp = {.raw = fd->mmu.io.IF.raw & fd->mmu.interrupt_enable.raw};
   if (!cmp.raw) {
     return 0;
   }
 
   if (cmp.vblank) {
-    fd->mmu.io_ports.IF.vblank = false;
+    fd->mmu.io.IF.vblank = false;
     return 0x40;
   } else if (cmp.lcd_stat) {
-    fd->mmu.io_ports.IF.lcd_stat = false;
+    fd->mmu.io.IF.lcd_stat = false;
     return 0x48;
   } else if (cmp.timer) {
-    fd->mmu.io_ports.IF.timer = false;
+    fd->mmu.io.IF.timer = false;
     return 0x50;
   } else if (cmp.serial) {
-    fd->mmu.io_ports.IF.serial = false;
+    fd->mmu.io.IF.serial = false;
     return 0x58;
   } else if (cmp.joypad) {
-    fd->mmu.io_ports.IF.joypad = false;
+    fd->mmu.io.IF.joypad = false;
     return 0x60;
   }
 

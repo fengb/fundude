@@ -12,20 +12,20 @@ static uint8_t tima_shift(timer_speed t, uint8_t cycles) {
 
 void timer_step(fundude* fd, uint8_t cycles) {
   fd->clock.timer += cycles;  // overflow is fine
-  fd->mmu.io_ports.timer.DIV = fd->clock.timer / 256;
+  fd->mmu.io.timer.DIV = fd->clock.timer / 256;
 
-  if (!fd->mmu.io_ports.timer.TAC.active) {
+  if (!fd->mmu.io.timer.TAC.active) {
     return;
   }
 
-  uint8_t start = fd->mmu.io_ports.timer.TIMA;
+  uint8_t start = fd->mmu.io.timer.TIMA;
 
-  fd->mmu.io_ports.timer.TIMA += tima_shift(fd->mmu.io_ports.timer.TAC.speed, cycles);
+  fd->mmu.io.timer.TIMA += tima_shift(fd->mmu.io.timer.TAC.speed, cycles);
 
   // if overflowed
-  if (fd->mmu.io_ports.timer.TIMA < start) {
+  if (fd->mmu.io.timer.TIMA < start) {
     // TODO: this effect actually happen 1 cycle later
-    fd->mmu.io_ports.timer.TIMA += fd->mmu.io_ports.timer.TMA;
-    fd->mmu.io_ports.IF.timer = true;
+    fd->mmu.io.timer.TIMA += fd->mmu.io.timer.TMA;
+    fd->mmu.io.IF.timer = true;
   }
 }

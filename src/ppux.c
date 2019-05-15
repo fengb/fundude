@@ -74,13 +74,13 @@ static void draw_pattern(matrix tgt, size_t i, ppu_pattern pattern, color_palett
 
 // TODO: optimize by "materializing" the background instead of this shenanigans
 static void render_bg(fundude* fd, matrix tgt, uint8_t tile_map_flag) {
-  uint8_t tile_addressing = fd->mmu.io_ports.ppu.LCDC.bg_window_tile_data;
+  uint8_t tile_addressing = fd->mmu.io.ppu.LCDC.bg_window_tile_data;
   ppu_pattern_map* tm =
       tile_map_flag == TILE_MAP_9800 ? &fd->mmu.vram.tile_map_9800 : &fd->mmu.vram.tile_map_9C00;
 
   for (int i = 0; i < BG_TILES; i++) {
     ppu_pattern tile = tile_data(&fd->mmu.vram, tile_addressing, tm->_[i]);
-    draw_pattern(tgt, i, tile, fd->mmu.io_ports.ppu.BGP);
+    draw_pattern(tgt, i, tile, fd->mmu.io.ppu.BGP);
   }
 }
 
@@ -90,8 +90,8 @@ static void ppu_render(fundude* fd) {
     ppu_pattern p = fd->mmu.vram.patterns.ALL[i];
     draw_pattern(MATRIX(fd->patterns), i, p, NO_PALETTE);
   }
-  render_bg(fd, MATRIX(fd->background), fd->mmu.io_ports.ppu.LCDC.bg_tile_map);
-  render_bg(fd, MATRIX(fd->window), fd->mmu.io_ports.ppu.LCDC.window_tile_map);
+  render_bg(fd, MATRIX(fd->background), fd->mmu.io.ppu.LCDC.bg_tile_map);
+  render_bg(fd, MATRIX(fd->window), fd->mmu.io.ppu.LCDC.window_tile_map);
   for (int i = 0; i < ARRAY_LEN(fd->mmu.oam); i++) {
     ppu_sprite_attr s = fd->mmu.oam[i];
     if (!s.x_pos && !s.y_pos && !s.pattern) {
@@ -99,15 +99,15 @@ static void ppu_render(fundude* fd) {
     }
     ppu_pattern pattern = sprite_data(&fd->mmu.vram, s.pattern);
     color_palette palette = s.flags.palette == PPU_SPRITE_PALETTE_OBP0  //
-                                ? fd->mmu.io_ports.ppu.OBP0
-                                : fd->mmu.io_ports.ppu.OBP1;
+                                ? fd->mmu.io.ppu.OBP0
+                                : fd->mmu.io.ppu.OBP1;
     draw_pattern(MATRIX(fd->sprites), i, pattern, palette);
   }
 
   // TODO: use memcpy
-  if (fd->mmu.io_ports.ppu.LCDC.bg_enable) {
-    uint8_t scx = fd->mmu.io_ports.ppu.SCX;
-    uint8_t scy = fd->mmu.io_ports.ppu.SCY;
+  if (fd->mmu.io.ppu.LCDC.bg_enable) {
+    uint8_t scx = fd->mmu.io.ppu.SCX;
+    uint8_t scy = fd->mmu.io.ppu.SCY;
 
     for (int y = 0; y < HEIGHT; y++) {
       for (int x = 0; x < WIDTH; x++) {
@@ -116,9 +116,9 @@ static void ppu_render(fundude* fd) {
     }
   }
 
-  if (fd->mmu.io_ports.ppu.LCDC.window_enable) {
-    uint8_t wx = fd->mmu.io_ports.ppu.WX;
-    uint8_t wy = fd->mmu.io_ports.ppu.WY;
+  if (fd->mmu.io.ppu.LCDC.window_enable) {
+    uint8_t wx = fd->mmu.io.ppu.WX;
+    uint8_t wy = fd->mmu.io.ppu.WY;
 
     for (int y = wy; y < HEIGHT; y++) {
       for (int x = wx - 7; x < WIDTH; x++) {
@@ -134,29 +134,29 @@ static void ppu_render(fundude* fd) {
     }
     ppu_pattern pattern = sprite_data(&fd->mmu.vram, s.pattern);
     color_palette palette = s.flags.palette == PPU_SPRITE_PALETTE_OBP0  //
-                                ? fd->mmu.io_ports.ppu.OBP0
-                                : fd->mmu.io_ports.ppu.OBP1;
+                                ? fd->mmu.io.ppu.OBP0
+                                : fd->mmu.io.ppu.OBP1;
     draw_pattern_xy(MATRIX(fd->display), s.x_pos - 8, s.y_pos - 16, pattern, palette);
   }
 }
 
 void ppu_reset(fundude* fd) {
-  fd->mmu.io_ports.ppu.STAT.mode = LCDC_VBLANK;
-  fd->mmu.io_ports.ppu.DMA = 0;
-  fd->mmu.io_ports.ppu.LCDC.lcd_enable = false;
+  fd->mmu.io.ppu.STAT.mode = LCDC_VBLANK;
+  fd->mmu.io.ppu.DMA = 0;
+  fd->mmu.io.ppu.LCDC.lcd_enable = false;
 }
 
 void ppu_step(fundude* fd, uint8_t cycles) {
   // FIXME: this isn't how DMA works
-  if (fd->mmu.io_ports.ppu.DMA) {
-    uint16_t addr = fd->mmu.io_ports.ppu.DMA << 8;
+  if (fd->mmu.io.ppu.DMA) {
+    uint16_t addr = fd->mmu.io.ppu.DMA << 8;
     memcpy(&fd->mmu.oam, mmu_ptr(&fd->mmu, addr), 160);
-    fd->mmu.io_ports.ppu.DMA = 0;
+    fd->mmu.io.ppu.DMA = 0;
   }
 
-  if (!fd->mmu.io_ports.ppu.LCDC.lcd_enable) {
+  if (!fd->mmu.io.ppu.LCDC.lcd_enable) {
     fd->clock.ppu = 0;
-    fd->mmu.io_ports.ppu.STAT.mode = LCDC_VBLANK;
+    fd->mmu.io.ppu.STAT.mode = LCDC_VBLANK;
     return;
   }
 
@@ -166,20 +166,20 @@ void ppu_step(fundude* fd, uint8_t cycles) {
     fd->clock.ppu %= DOTS_PER_FRAME;
   }
 
-  fd->mmu.io_ports.ppu.LY = fd->clock.ppu / DOTS_PER_LINE;
-  fd->mmu.io_ports.ppu.STAT.coincidence = fd->mmu.io_ports.ppu.LY == fd->mmu.io_ports.ppu.LYC;
-  if ((fd->mmu.io_ports.ppu.STAT.irq_coincidence && fd->mmu.io_ports.ppu.STAT.coincidence) ||
-      (fd->mmu.io_ports.ppu.STAT.irq_hblank && fd->mmu.io_ports.ppu.STAT.mode == LCDC_HBLANK) ||
-      (fd->mmu.io_ports.ppu.STAT.irq_vblank && fd->mmu.io_ports.ppu.STAT.mode == LCDC_VBLANK) ||
-      (fd->mmu.io_ports.ppu.STAT.irq_oam && fd->mmu.io_ports.ppu.STAT.mode == LCDC_SEARCHING)) {
-    fd->mmu.io_ports.IF.lcd_stat = true;
+  fd->mmu.io.ppu.LY = fd->clock.ppu / DOTS_PER_LINE;
+  fd->mmu.io.ppu.STAT.coincidence = fd->mmu.io.ppu.LY == fd->mmu.io.ppu.LYC;
+  if ((fd->mmu.io.ppu.STAT.irq_coincidence && fd->mmu.io.ppu.STAT.coincidence) ||
+      (fd->mmu.io.ppu.STAT.irq_hblank && fd->mmu.io.ppu.STAT.mode == LCDC_HBLANK) ||
+      (fd->mmu.io.ppu.STAT.irq_vblank && fd->mmu.io.ppu.STAT.mode == LCDC_VBLANK) ||
+      (fd->mmu.io.ppu.STAT.irq_oam && fd->mmu.io.ppu.STAT.mode == LCDC_SEARCHING)) {
+    fd->mmu.io.IF.lcd_stat = true;
   }
 
   if (fd->clock.ppu > HEIGHT * DOTS_PER_LINE) {
     // TODO: render specific pixels in mode 3 / transferring
-    if (fd->mmu.io_ports.ppu.STAT.mode != LCDC_VBLANK) {
-      fd->mmu.io_ports.ppu.STAT.mode = LCDC_VBLANK;
-      fd->mmu.io_ports.IF.vblank = true;
+    if (fd->mmu.io.ppu.STAT.mode != LCDC_VBLANK) {
+      fd->mmu.io.ppu.STAT.mode = LCDC_VBLANK;
+      fd->mmu.io.IF.vblank = true;
       ppu_render(fd);
     }
     return;
@@ -187,11 +187,11 @@ void ppu_step(fundude* fd, uint8_t cycles) {
 
   int offset = fd->clock.ppu % DOTS_PER_LINE;
   if (offset < 80) {
-    fd->mmu.io_ports.ppu.STAT.mode = LCDC_SEARCHING;
+    fd->mmu.io.ppu.STAT.mode = LCDC_SEARCHING;
   } else if (offset < 291) {
     // TODO: depends on sprite
-    fd->mmu.io_ports.ppu.STAT.mode = LCDC_TRANSFERRING;
+    fd->mmu.io.ppu.STAT.mode = LCDC_TRANSFERRING;
   } else {
-    fd->mmu.io_ports.ppu.STAT.mode = LCDC_HBLANK;
+    fd->mmu.io.ppu.STAT.mode = LCDC_HBLANK;
   }
 }
