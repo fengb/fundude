@@ -97,6 +97,7 @@ export default function Controller(props: { fd: FundudeWasm }) {
     if (!clicking) {
       return;
     }
+    event.currentTarget.focus();
     setInputs(props.fd.inputPress(event.currentTarget.value as any));
   }
 
@@ -104,11 +105,13 @@ export default function Controller(props: { fd: FundudeWasm }) {
     if (!clicking) {
       return;
     }
+    event.currentTarget.blur();
     setInputs(props.fd.inputRelease(event.currentTarget.value as any));
   }
 
   useEvent("mouseup", (event: React.MouseEvent<HTMLButtonElement>) => {
     setClicking(false);
+    (event.target as any).blur();
     setInputs(props.fd.inputReleaseAll());
   });
 
