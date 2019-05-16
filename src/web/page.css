@@ -3,6 +3,10 @@
   margin: 0;
 }
 
+html {
+  touch-action: manipulation;
+}
+
 input {
   max-width: 100%;
 }

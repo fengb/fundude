@@ -198,6 +198,10 @@ export default class FundudeWasm {
     return this._inputStatus(WASM.fd_input_release(this.pointer, val));
   }
 
+  inputReleaseAll() {
+    return this._inputStatus(WASM.fd_input_release(this.pointer, 0xff));
+  }
+
   static *disassemble(cart: Uint8Array): IterableIterator<GBInstruction> {
     const fd = new FundudeWasm(cart);
     try {
