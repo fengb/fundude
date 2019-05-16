@@ -9,7 +9,7 @@
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 #define DOTS_PER_LINE 456
-#define DOTS_PER_FRAME 70224
+#define DOTS_PER_FRAME (154 * DOTS_PER_LINE)
 
 static color_palette NO_PALETTE = {.color0 = 0, .color1 = 1, .color2 = 2, .color3 = 3};
 
@@ -38,9 +38,7 @@ static ppu_pattern sprite_data(ppu_vram* vram, uint8_t index) {
 }
 
 static uint8_t color_from_uint16(uint16_t val, int bit) {
-  uint8_t hb = BYTE_HI(val);
-  uint8_t lb = BYTE_LO(val);
-  return (BIT_GET(lb, bit) << 1) | BIT_GET(hb, bit);
+  return (BIT_GET(val, bit) << 1) | BIT_GET(val, bit + 8);
 }
 
 static shade shade_from_color(uint8_t val, color_palette pal) {
@@ -78,7 +76,7 @@ static void render_bg(fundude* fd, matrix tgt, uint8_t tile_map_flag) {
   ppu_pattern_map* tm =
       tile_map_flag == TILE_MAP_9800 ? &fd->mmu.vram.tile_map_9800 : &fd->mmu.vram.tile_map_9C00;
 
-  for (int i = 0; i < BG_TILES; i++) {
+  for (size_t i = 0; i < BG_TILES; i++) {
     ppu_pattern tile = tile_data(&fd->mmu.vram, tile_addressing, tm->_[i]);
     draw_pattern(tgt, i, tile, fd->mmu.io.ppu.BGP);
   }

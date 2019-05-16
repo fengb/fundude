@@ -38,7 +38,7 @@ function timed<T, R>(fn: (T) => R): (T) => R {
   return function(t: T) {
     const start = Date.now();
     const val = fn(t);
-    console.log(`${(Date.now() - start) / 1000}s`);
+    console.log(`${(Date.now() - start) / 1000}s realtime -- 250s ingame`);
     return val;
   };
 }
