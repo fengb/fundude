@@ -9,7 +9,8 @@ const CSS = {
     display: "flex",
     flex: "1",
     justifyContent: "space-between",
-    alignItems: "center"
+    alignItems: "center",
+    touchAction: "none"
   }),
 
   button: style({
@@ -110,8 +111,11 @@ export default function Controller(props: { fd: FundudeWasm }) {
   }
 
   useEvent("mouseup", (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!clicking) {
+      return;
+    }
     setClicking(false);
-    (event.target as any).blur();
+    event.currentTarget.blur();
     setInputs(props.fd.inputReleaseAll());
   });
 
@@ -140,107 +144,62 @@ export default function Controller(props: { fd: FundudeWasm }) {
     }
   });
 
+  function Button(props: {
+    value: Input;
+    className: string;
+    children?: string;
+  }) {
+    return (
+      <button
+        value={props.value}
+        className={cx(CSS.button, props.className, {
+          pressed: inputs[props.value]
+        })}
+        onMouseDown={handleMouseDown}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouch}
+        onTouchEnd={handleUntouch}
+      >
+        {props.children}
+      </button>
+    );
+  }
+
   return (
     <div className={CSS.root}>
       <div className={CSS.dpad.base}>
-        <button
-          value="up"
-          className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.up, {
-            pressed: inputs.up
-          })}
-          onMouseDown={handleMouseDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouch}
-          onTouchEnd={handleUntouch}
-        />
-        <button
+        <Button value="up" className={cx(CSS.dpad.direction, CSS.dpad.up)} />
+        <Button
           value="down"
-          className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.down, {
-            pressed: inputs.down
-          })}
-          onMouseDown={handleMouseDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouch}
-          onTouchEnd={handleUntouch}
+          className={cx(CSS.dpad.direction, CSS.dpad.down)}
         />
-        <button
+        <Button
           value="left"
-          className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.left, {
-            pressed: inputs.left
-          })}
-          onMouseDown={handleMouseDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouch}
-          onTouchEnd={handleUntouch}
+          className={cx(CSS.dpad.direction, CSS.dpad.left)}
         />
-        <button
+        <Button
           value="right"
-          className={cx(CSS.button, CSS.dpad.direction, CSS.dpad.right, {
-            pressed: inputs.right
-          })}
-          onMouseDown={handleMouseDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouch}
-          onTouchEnd={handleUntouch}
+          className={cx(CSS.dpad.direction, CSS.dpad.right)}
         />
       </div>
 
       <div className={CSS.buttons.base}>
-        <button
-          value="select"
-          className={cx(CSS.button, CSS.buttons.select, {
-            pressed: inputs.select
-          })}
-          onMouseDown={handleMouseDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouch}
-          onTouchEnd={handleUntouch}
-        >
+        <Button value="select" className={CSS.buttons.select}>
           Select
-        </button>
-        <button
-          value="start"
-          className={cx(CSS.button, CSS.buttons.start, {
-            pressed: inputs.start
-          })}
-          onMouseDown={handleMouseDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouch}
-          onTouchEnd={handleUntouch}
-        >
+        </Button>
+        <Button value="start" className={CSS.buttons.start}>
           Start
-        </button>
+        </Button>
       </div>
 
       <div className={CSS.buttons.base}>
-        <button
-          value="b"
-          className={cx(CSS.button, CSS.buttons.b, { pressed: inputs.b })}
-          onMouseDown={handleMouseDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouch}
-          onTouchEnd={handleUntouch}
-        >
+        <Button value="b" className={CSS.buttons.b}>
           B
-        </button>
-        <button
-          value="a"
-          className={cx(CSS.button, CSS.buttons.a, { pressed: inputs.a })}
-          onMouseDown={handleMouseDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouch}
-          onTouchEnd={handleUntouch}
-        >
+        </Button>
+        <Button value="a" className={CSS.buttons.a}>
           A
-        </button>
+        </Button>
       </div>
     </div>
   );
