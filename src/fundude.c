@@ -19,18 +19,19 @@ void fd_init(fundude* fd, size_t cart_length, uint8_t cart[]) {
   fd_reset(fd);
   fd->mmu.cart_length = cart_length;
   fd->mmu.cart = cart;
+  fd->breakpoint = 0;
 }
 
 void fd_reset(fundude* fd) {
   memset(fd->display, 0, sizeof(fd->display));
+  memset(&fd->mmu.io, 0, sizeof(fd->mmu.io));
   fd->cpu.PC._ = 0;
-  fd->mmu.boot_complete = 0;
+  fd->interrupt_master = false;
+  fd->inputs = 0;
   fd->mode = SYS_NORM;
   fd->clock.cpu = 0;
   fd->clock.ppu = 0;
   fd->clock.timer = 0;
-
-  ppu_reset(fd);
 }
 
 int fd_step(fundude* fd) {
@@ -113,7 +114,7 @@ char* fd_disassemble(fundude* fd) {
     return NULL;
   }
 
-  fd->mmu.boot_complete = 1;
+  fd->mmu.io.boot_complete = 1;
   int addr = fd->cpu.PC._;
 
   cpu_result res = cpu_step(fd, &fd->mmu.cart[addr]);

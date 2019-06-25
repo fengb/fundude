@@ -138,12 +138,6 @@ static void ppu_render(fundude* fd) {
   }
 }
 
-void ppu_reset(fundude* fd) {
-  fd->mmu.io.ppu.STAT.mode = LCDC_VBLANK;
-  fd->mmu.io.ppu.DMA = 0;
-  fd->mmu.io.ppu.LCDC.lcd_enable = false;
-}
-
 void ppu_step(fundude* fd, uint8_t cycles) {
   // FIXME: this isn't how DMA works
   if (fd->mmu.io.ppu.DMA) {

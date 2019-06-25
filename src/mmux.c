@@ -6,7 +6,7 @@
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 uint8_t* mmu_ptr(mmu* m, uint16_t addr) {
-  if (!m->boot_complete && addr < BEYOND_BOOTLOADER) {
+  if (!m->io.boot_complete && addr < BEYOND_BOOTLOADER) {
     return &BOOTLOADER[addr];
   }
   if (addr < BEYOND_CART) {
