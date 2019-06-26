@@ -19,15 +19,15 @@ uint8_t* mmu_ptr(mmu* m, uint16_t addr) {
   return &m->RAW[addr - BEYOND_CART];
 }
 
-bool is_locked(mmu* m, uint16_t addr) {
-  return (0x8000 <= addr && addr < 0xA000 && m->io.ppu.STAT.mode == LCDC_TRANSFERRING) ||
-         (0xFE00 <= addr && addr < 0xFEA0 && m->io.ppu.STAT.mode >= LCDC_SEARCHING);
-}
+// bool is_locked(mmu* m, uint16_t addr) {
+//   return (0x8000 <= addr && addr < 0xA000 && m->io.ppu.STAT.mode == LCDC_TRANSFERRING) ||
+//          (0xFE00 <= addr && addr < 0xFEA0 && m->io.ppu.STAT.mode >= LCDC_SEARCHING);
+// }
 
 uint8_t mmu_get(mmu* m, uint16_t addr) {
-  if (is_locked(m, addr)) {
-    return 0xFF;
-  }
+  // if (is_locked(m, addr)) {
+  //   return 0xFF;
+  // }
   uint8_t* ptr = mmu_ptr(m, addr);
   return *ptr;
 }
@@ -37,9 +37,9 @@ void mmu_set(fundude* fd, uint16_t addr, uint8_t val) {
   if (addr < BEYOND_CART) {
     return;
   }
-  if (is_locked(&fd->mmu, addr)) {
-    return;
-  }
+  // if (is_locked(&fd->mmu, addr)) {
+  //   return;
+  // }
   if (addr == 0xFF00) {
     // Joypad
     ggp_set(fd, val);
