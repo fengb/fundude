@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "cart.h"
 #include "cpu.h"
 #include "mmu.h"
 
