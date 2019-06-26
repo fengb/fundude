@@ -2,26 +2,38 @@
 
 #define OP_CALL 0xCD
 
+typedef union {
+  uint8_t _;
+  struct {
+    bool vblank : 1;
+    bool lcd_stat : 1;
+    bool timer : 1;
+    bool serial : 1;
+    bool joypad : 1;
+  };
+} HACK_FLAGS;
+
 static uint8_t irq_addr(fundude* fd) {
-  irq_flags cmp = {.raw = fd->mmu.io.IF.raw & fd->mmu.interrupt_enable.raw};
-  if (!cmp.raw) {
+  HACK_FLAGS cmp = {._ = fd->mmu.io.IF._ & fd->mmu.interrupt_enable._};
+  HACK_FLAGS* write = (HACK_FLAGS*)&fd->mmu.io.IF;
+  if (!cmp._) {
     return 0;
   }
 
   if (cmp.vblank) {
-    fd->mmu.io.IF.vblank = false;
+    write->vblank = false;
     return 0x40;
   } else if (cmp.lcd_stat) {
-    fd->mmu.io.IF.lcd_stat = false;
+    write->lcd_stat = false;
     return 0x48;
   } else if (cmp.timer) {
-    fd->mmu.io.IF.timer = false;
+    write->timer = false;
     return 0x50;
   } else if (cmp.serial) {
-    fd->mmu.io.IF.serial = false;
+    write->serial = false;
     return 0x58;
   } else if (cmp.joypad) {
-    fd->mmu.io.IF.joypad = false;
+    write->joypad = false;
     return 0x60;
   }
 

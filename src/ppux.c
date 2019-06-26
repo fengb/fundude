@@ -218,14 +218,14 @@ void ppu_step(fundude* fd, uint8_t cycles) {
       (hack_stat->irq_hblank && hack_stat->mode == LCDC_HBLANK) ||
       (hack_stat->irq_vblank && hack_stat->mode == LCDC_VBLANK) ||
       (hack_stat->irq_oam && hack_stat->mode == LCDC_SEARCHING)) {
-    fd->mmu.io.IF.lcd_stat = true;
+    // fd->mmu.io.IF.lcd_stat = true;
   }
 
   if (fd->clock.ppu > HEIGHT * DOTS_PER_LINE) {
     // TODO: render specific pixels in mode 3 / transferring
     if (hack_stat->mode != LCDC_VBLANK) {
       hack_stat->mode = LCDC_VBLANK;
-      fd->mmu.io.IF.vblank = true;
+      // fd->mmu.io.IF.vblank = true;
       ppu_render(fd);
     }
     return;

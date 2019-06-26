@@ -31,7 +31,7 @@ typedef struct {
 
   bool interrupt_master;
 
-  ggp_input inputs;
+  uint8_t inputs;
 
   struct {
     int cpu;
@@ -53,8 +53,8 @@ int fd_step(fundude* fd);
 short fd_step_frames(fundude* fd, short frames);
 int fd_step_cycles(fundude* fd, int cycles);
 
-ggp_input fd_input_press(fundude* fd, ggp_input input);
-ggp_input fd_input_release(fundude* fd, ggp_input input);
+uint8_t fd_input_press(fundude* fd, uint8_t input);
+uint8_t fd_input_release(fundude* fd, uint8_t input);
 
 #pragma mark debugging tools
 
