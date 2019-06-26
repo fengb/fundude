@@ -1,5 +1,19 @@
 #include "fundude.h"
 
+typedef union {
+  uint8_t _;
+  struct {
+    uint8_t _padding : 4;
+    bool C : 1;
+    bool H : 1;
+    bool N : 1;
+    bool Z : 1;
+  };
+} cpu_flags;
+
+cpu_flags cpu_flags_get(cpu* cpu);
+void cpu_flags_set(cpu* cpu, cpu_flags flags);
+
 bool is_uint8_zero(int val);
 bool will_carry_into(int bit, int a, int b);
 bool will_borrow_from(int bit, int a, int b);

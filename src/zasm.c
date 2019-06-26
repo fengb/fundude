@@ -76,14 +76,14 @@ static char* zasma_raw(zasm_arg arg) {
       }
     case ZASM_REG8:
       switch (arg.val) {
-        case offsetof(cpu, A): return "A";
-        case offsetof(cpu, F): return "F";
-        case offsetof(cpu, B): return "B";
-        case offsetof(cpu, C): return "C";
-        case offsetof(cpu, D): return "D";
-        case offsetof(cpu, E): return "E";
-        case offsetof(cpu, H): return "H";
-        case offsetof(cpu, L): return "L";
+        // case offsetof(cpu, A): return "A";
+        // case offsetof(cpu, F): return "F";
+        // case offsetof(cpu, B): return "B";
+        // case offsetof(cpu, C): return "C";
+        // case offsetof(cpu, D): return "D";
+        // case offsetof(cpu, E): return "E";
+        // case offsetof(cpu, H): return "H";
+        // case offsetof(cpu, L): return "L";
         default: return "R?";
       }
     case ZASM_REG16:

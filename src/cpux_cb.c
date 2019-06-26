@@ -52,12 +52,12 @@ cb_result cb_srl(fundude* fd, uint8_t val) {
   }
 
 cb_result cb_bit(fundude* fd, uint8_t val, int bit) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = BIT_GET(val, bit) == 0,
-      .N = false,
-      .H = true,
-      .C = fd->cpu.FLAGS.C,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = BIT_GET(val, bit) == 0,
+                              .N = false,
+                              .H = true,
+                              .C = cpu_flags_get(&fd->cpu).C,
+                          });
   NAME_GLUE("BIT", bit);
   return (cb_result){name, val};
 }
@@ -76,14 +76,14 @@ cb_result cb_set(fundude* fd, uint8_t val, int bit) {
 
 cpu_reg8* cb_tgt(fundude* fd, uint8_t op) {
   switch (op & 7) {
-    case 0: return &fd->cpu.B;
-    case 1: return &fd->cpu.C;
-    case 2: return &fd->cpu.D;
-    case 3: return &fd->cpu.E;
-    case 4: return &fd->cpu.H;
-    case 5: return &fd->cpu.L;
+    case 0: return &fd->cpu.BC.x._0;
+    case 1: return &fd->cpu.BC.x._1;
+    case 2: return &fd->cpu.DE.x._0;
+    case 3: return &fd->cpu.DE.x._1;
+    case 4: return &fd->cpu.HL.x._0;
+    case 5: return &fd->cpu.HL.x._1;
     case 6: return NULL;
-    case 7: return &fd->cpu.A;
+    case 7: return &fd->cpu.AF.x._0;
   }
 
   return NULL;

@@ -2,6 +2,16 @@
 #include "bit.h"
 #include "mmux.h"
 
+cpu_flags cpu_flags_get(cpu* cpu) {
+  return (cpu_flags){
+      ._ = cpu->AF.x._1._,
+  };
+}
+
+void cpu_flags_set(cpu* cpu, cpu_flags flags) {
+  cpu->AF.x._1._ = flags._;
+}
+
 bool is_uint8_zero(int val) {
   return (val & 0xFF) == 0;
 }
@@ -18,12 +28,12 @@ bool will_borrow_from(int bit, int a, int b) {
 
 // TODO: maybe rename? Not too obvious...
 uint8_t flag_shift(fundude* fd, uint8_t val, bool C) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(val),
-      .N = false,
-      .H = false,
-      .C = C,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = is_uint8_zero(val),
+                              .N = false,
+                              .H = false,
+                              .C = C,
+                          });
   return val;
 }
 
@@ -47,12 +57,12 @@ uint16_t do_pop16(fundude* fd) {
 }
 
 void do_and_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ & val),
-      .N = false,
-      .H = true,
-      .C = false,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = is_uint8_zero(tgt->_ & val),
+                              .N = false,
+                              .H = true,
+                              .C = false,
+                          });
   tgt->_ = tgt->_ & val;
 }
 
@@ -65,32 +75,33 @@ void do_xor_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
 }
 
 void do_cp__rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ - val),
-      .N = true,
-      .H = will_borrow_from(4, tgt->_, val),
-      .C = will_borrow_from(8, tgt->_, val),
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = is_uint8_zero(tgt->_ - val),
+                              .N = true,
+                              .H = will_borrow_from(4, tgt->_, val),
+                              .C = will_borrow_from(8, tgt->_, val),
+                          });
 }
 
 void do_add_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ + val),
-      .N = false,
-      .H = will_carry_into(4, tgt->_, val),
-      .C = will_carry_into(8, tgt->_, val),
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = is_uint8_zero(tgt->_ + val),
+                              .N = false,
+                              .H = will_carry_into(4, tgt->_, val),
+                              .C = will_carry_into(8, tgt->_, val),
+                          });
   tgt->_ += val;
 }
 
 void do_adc_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
-  int carry = fd->cpu.FLAGS.C;
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ + val + carry),
-      .N = false,
-      .H = will_carry_into(4, tgt->_, val) || will_carry_into(4, tgt->_, val + carry),
-      .C = will_carry_into(8, tgt->_, val) || will_carry_into(8, tgt->_, val + carry),
-  };
+  int carry = cpu_flags_get(&fd->cpu).C;
+  cpu_flags_set(&fd->cpu,
+                (cpu_flags){
+                    .Z = is_uint8_zero(tgt->_ + val + carry),
+                    .N = false,
+                    .H = will_carry_into(4, tgt->_, val) || will_carry_into(4, tgt->_, val + carry),
+                    .C = will_carry_into(8, tgt->_, val) || will_carry_into(8, tgt->_, val + carry),
+                });
   tgt->_ += val + carry;
 }
 
@@ -100,13 +111,15 @@ void do_sub_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
 }
 
 void do_sbc_rr(fundude* fd, cpu_reg8* tgt, uint8_t val) {
-  int carry = fd->cpu.FLAGS.C;
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ - val - carry),
-      .N = true,
-      .H = will_borrow_from(4, tgt->_, val) || will_borrow_from(4, tgt->_ - val, carry),
-      .C = will_borrow_from(8, tgt->_, val) || will_borrow_from(8, tgt->_ - val, carry),
-  };
+  int carry = cpu_flags_get(&fd->cpu).C;
+  cpu_flags_set(
+      &fd->cpu,
+      (cpu_flags){
+          .Z = is_uint8_zero(tgt->_ - val - carry),
+          .N = true,
+          .H = will_borrow_from(4, tgt->_, val) || will_borrow_from(4, tgt->_ - val, carry),
+          .C = will_borrow_from(8, tgt->_, val) || will_borrow_from(8, tgt->_ - val, carry),
+      });
   tgt->_ -= (val + carry);
 }
 
@@ -122,10 +135,10 @@ uint8_t do_rrc(fundude* fd, uint8_t val) {
 
 uint8_t do_rl(fundude* fd, uint8_t val) {
   int msb = BIT_GET(val, 7);
-  return flag_shift(fd, val << 1 | fd->cpu.FLAGS.C, msb);
+  return flag_shift(fd, val << 1 | cpu_flags_get(&fd->cpu).C, msb);
 }
 
 uint8_t do_rr(fundude* fd, uint8_t val) {
   int lsb = BIT_GET(val, 0);
-  return flag_shift(fd, val >> 1 | (fd->cpu.FLAGS.C << 7), lsb);
+  return flag_shift(fd, val >> 1 | (cpu_flags_get(&fd->cpu).C << 7), lsb);
 }

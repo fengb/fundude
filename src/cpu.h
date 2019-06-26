@@ -16,57 +16,22 @@ typedef enum {
 } cpu_cond;
 
 typedef struct {
-  uint8_t _padding : 4;
-  bool C : 1;
-  bool H : 1;
-  bool N : 1;
-  bool Z : 1;
-} cpu_flags;
-
-typedef struct {
   uint8_t _;
 } cpu_reg8;
 
-typedef struct {
+typedef union {
   uint16_t _;
+  struct {
+    cpu_reg8 _1;
+    cpu_reg8 _0;
+  } x;
 } cpu_reg16;
 
 typedef struct {
-  union {
-    cpu_reg16 AF;
-    struct {
-      union {
-        cpu_reg8 F;
-        cpu_flags FLAGS;
-      };
-      cpu_reg8 A;
-    };
-  };
-
-  union {
-    cpu_reg16 BC;
-    struct {
-      cpu_reg8 C;
-      cpu_reg8 B;
-    };
-  };
-
-  union {
-    cpu_reg16 DE;
-    struct {
-      cpu_reg8 E;
-      cpu_reg8 D;
-    };
-  };
-
-  union {
-    cpu_reg16 HL;
-    struct {
-      cpu_reg8 L;
-      cpu_reg8 H;
-    };
-  };
-
+  cpu_reg16 AF;
+  cpu_reg16 BC;
+  cpu_reg16 DE;
+  cpu_reg16 HL;
   cpu_reg16 SP;
   cpu_reg16 PC;
 } cpu;

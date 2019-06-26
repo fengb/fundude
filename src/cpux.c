@@ -14,8 +14,10 @@ static uint16_t with16(uint8_t op[]) {
 }
 
 static bool cond_check(fundude* fd, cpu_cond c) {
-  return (c == CPU_COND_NZ && !fd->cpu.FLAGS.Z) || (c == CPU_COND_Z && fd->cpu.FLAGS.Z) ||
-         (c == CPU_COND_NC && !fd->cpu.FLAGS.C) || (c == CPU_COND_C && fd->cpu.FLAGS.C);
+  return (c == CPU_COND_NZ && !cpu_flags_get(&fd->cpu).Z) ||
+         (c == CPU_COND_Z && cpu_flags_get(&fd->cpu).Z) ||
+         (c == CPU_COND_NC && !cpu_flags_get(&fd->cpu).C) ||
+         (c == CPU_COND_C && cpu_flags_get(&fd->cpu).C);
 }
 
 static cpu_result CPU_JUMP(uint16_t jump, int length, int duration, zasm z) {
@@ -59,22 +61,22 @@ static cpu_result op_sys(fundude* fd, sys_mode mode, int length) {
 }
 
 static cpu_result op_scf(fundude* fd) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = fd->cpu.FLAGS.Z,
-      .N = false,
-      .H = false,
-      .C = true,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = cpu_flags_get(&fd->cpu).Z,
+                              .N = false,
+                              .H = false,
+                              .C = true,
+                          });
   return CPU_STEP(fd, 1, 4, zasm0("SCF"));
 }
 
 static cpu_result op_ccf(fundude* fd) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = fd->cpu.FLAGS.Z,
-      .N = false,
-      .H = false,
-      .C = !fd->cpu.FLAGS.C,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = cpu_flags_get(&fd->cpu).Z,
+                              .N = false,
+                              .H = false,
+                              .C = !cpu_flags_get(&fd->cpu).C,
+                          });
   return CPU_STEP(fd, 1, 4, zasm0("CCF"));
 }
 
@@ -96,15 +98,15 @@ static cpu_result op_daa_rr___(fundude* fd, cpu_reg8* dst) {
   // N is preserved, Z is set the usual way, and the rest of the Z80 flags don't exist
 
   uint8_t val = dst->_;
-  bool carry = fd->cpu.FLAGS.C;
+  bool carry = cpu_flags_get(&fd->cpu).C;
 
-  if (fd->cpu.FLAGS.N) {
+  if (cpu_flags_get(&fd->cpu).N) {
     // SUB -> DAA
-    if (fd->cpu.FLAGS.H) {
+    if (cpu_flags_get(&fd->cpu).H) {
       val -= 0x6;
     }
 
-    if (fd->cpu.FLAGS.C) {
+    if (cpu_flags_get(&fd->cpu).C) {
       val -= 0x60;
     }
 
@@ -113,11 +115,11 @@ static cpu_result op_daa_rr___(fundude* fd, cpu_reg8* dst) {
     }
   } else {
     // ADD -> DAA
-    if (fd->cpu.FLAGS.H || NIBBLE_LO(dst->_) > 0x9) {
+    if (cpu_flags_get(&fd->cpu).H || NIBBLE_LO(dst->_) > 0x9) {
       val += 0x6;
     }
 
-    if (fd->cpu.FLAGS.C || NIBBLE_HI(dst->_) > 0x9) {
+    if (cpu_flags_get(&fd->cpu).C || NIBBLE_HI(dst->_) > 0x9) {
       val += 0x60;
     }
 
@@ -127,12 +129,12 @@ static cpu_result op_daa_rr___(fundude* fd, cpu_reg8* dst) {
   }
 
   dst->_ = val;
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(dst->_),
-      .N = fd->cpu.FLAGS.N,
-      .H = false,
-      .C = carry,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = is_uint8_zero(dst->_),
+                              .N = cpu_flags_get(&fd->cpu).N,
+                              .H = false,
+                              .C = carry,
+                          });
   return CPU_STEP(fd, 1, 4, zasm1("DAA", zasma_reg8(ZASM_PLAIN, fd, dst)));
 }
 
@@ -211,25 +213,33 @@ static cpu_result op_cal_if_AF(fundude* fd, cpu_cond c, uint16_t val) {
 
 static cpu_result op_rlc_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rlc(fd, tgt->_);
-  fd->cpu.FLAGS.Z = false;
+  cpu_flags flags = cpu_flags_get(&fd->cpu);
+  flags.Z = false;
+  cpu_flags_set(&fd->cpu, flags);
   return CPU_STEP(fd, 1, 4, zasm1("RLCA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 static cpu_result op_rla_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rl(fd, tgt->_);
-  fd->cpu.FLAGS.Z = false;
+  cpu_flags flags = cpu_flags_get(&fd->cpu);
+  flags.Z = false;
+  cpu_flags_set(&fd->cpu, flags);
   return CPU_STEP(fd, 1, 4, zasm1("RLA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 static cpu_result op_rrc_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rrc(fd, tgt->_);
-  fd->cpu.FLAGS.Z = false;
+  cpu_flags flags = cpu_flags_get(&fd->cpu);
+  flags.Z = false;
+  cpu_flags_set(&fd->cpu, flags);
   return CPU_STEP(fd, 1, 4, zasm1("RRC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 static cpu_result op_rra_rr___(fundude* fd, cpu_reg8* tgt) {
   tgt->_ = do_rr(fd, tgt->_);
-  fd->cpu.FLAGS.Z = false;
+  cpu_flags flags = cpu_flags_get(&fd->cpu);
+  flags.Z = false;
+  cpu_flags_set(&fd->cpu, flags);
   return CPU_STEP(fd, 1, 4, zasm1("RRA", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
@@ -356,12 +366,12 @@ static cpu_result op_inc_ww___(fundude* fd, cpu_reg16* tgt) {
 static cpu_result op_inc_WW___(fundude* fd, cpu_reg16* tgt) {
   uint8_t val = mmu_get(&fd->mmu, tgt->_);
 
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(val + 1),
-      .N = false,
-      .H = will_carry_into(4, val, 1),
-      .C = fd->cpu.FLAGS.C,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = is_uint8_zero(val + 1),
+                              .N = false,
+                              .H = will_carry_into(4, val, 1),
+                              .C = cpu_flags_get(&fd->cpu).C,
+                          });
   mmu_set(fd, tgt->_, val + 1);
   return CPU_STEP(fd, 1, 12, zasm1("INC", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
@@ -374,12 +384,12 @@ static cpu_result op_dec_ww___(fundude* fd, cpu_reg16* tgt) {
 static cpu_result op_dec_WW___(fundude* fd, cpu_reg16* tgt) {
   uint8_t val = mmu_get(&fd->mmu, tgt->_);
 
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(val - 1),
-      .N = true,
-      .H = will_borrow_from(4, val, 1),
-      .C = fd->cpu.FLAGS.C,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = is_uint8_zero(val - 1),
+                              .N = true,
+                              .H = will_borrow_from(4, val, 1),
+                              .C = cpu_flags_get(&fd->cpu).C,
+                          });
   mmu_set(fd, tgt->_, val - 1);
   return CPU_STEP(fd, 1, 12, zasm1("DEC", zasma_reg16(ZASM_PAREN, fd, tgt)));
 }
@@ -403,12 +413,12 @@ static cpu_result op_add_rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
 }
 
 static cpu_result op_add_ww_ww(fundude* fd, cpu_reg16* tgt, cpu_reg16* src) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = fd->cpu.FLAGS.Z,
-      .N = false,
-      .H = will_carry_into(12, tgt->_, src->_),
-      .C = will_carry_into(16, tgt->_, src->_),
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = cpu_flags_get(&fd->cpu).Z,
+                              .N = false,
+                              .H = will_carry_into(12, tgt->_, src->_),
+                              .C = will_carry_into(16, tgt->_, src->_),
+                          });
   tgt->_ += src->_;
   return CPU_STEP(fd, 1, 8,
                   zasm2("ADD", zasma_reg16(ZASM_PLAIN, fd, tgt), zasma_reg16(ZASM_PLAIN, fd, src)));
@@ -416,12 +426,12 @@ static cpu_result op_add_ww_ww(fundude* fd, cpu_reg16* tgt, cpu_reg16* src) {
 
 static cpu_result op_add_ww_R8(fundude* fd, cpu_reg16* tgt, uint8_t val) {
   int offset = signed_offset(val);
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = false,
-      .N = false,
-      .H = will_carry_into(12, tgt->_, offset),
-      .C = will_carry_into(16, tgt->_, offset),
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = false,
+                              .N = false,
+                              .H = will_carry_into(12, tgt->_, offset),
+                              .C = will_carry_into(16, tgt->_, offset),
+                          });
   tgt->_ += offset;
   return CPU_STEP(fd, 2, 16,
                   zasm2("ADD", zasma_reg16(ZASM_PLAIN, fd, tgt), zasma_hex8(ZASM_PLAIN, val)));
@@ -554,41 +564,41 @@ static cpu_result op_cp__rr_d8(fundude* fd, cpu_reg8* tgt, uint8_t val) {
 }
 
 static cpu_result op_inc_rr___(fundude* fd, cpu_reg8* tgt) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ + 1),
-      .N = false,
-      .H = will_carry_into(4, tgt->_, 1),
-      .C = fd->cpu.FLAGS.C,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = is_uint8_zero(tgt->_ + 1),
+                              .N = false,
+                              .H = will_carry_into(4, tgt->_, 1),
+                              .C = cpu_flags_get(&fd->cpu).C,
+                          });
   tgt->_++;
   return CPU_STEP(fd, 1, 4, zasm1("INC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 static cpu_result op_dec_rr___(fundude* fd, cpu_reg8* tgt) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = is_uint8_zero(tgt->_ - 1),
-      .N = true,
-      .H = will_borrow_from(4, tgt->_, 1),
-      .C = fd->cpu.FLAGS.C,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = is_uint8_zero(tgt->_ - 1),
+                              .N = true,
+                              .H = will_borrow_from(4, tgt->_, 1),
+                              .C = cpu_flags_get(&fd->cpu).C,
+                          });
   tgt->_--;
   return CPU_STEP(fd, 1, 4, zasm1("DEC", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 static cpu_result op_cpl_rr___(fundude* fd, cpu_reg8* tgt) {
-  fd->cpu.FLAGS = (cpu_flags){
-      .Z = fd->cpu.FLAGS.Z,
-      .N = true,
-      .H = true,
-      .C = fd->cpu.FLAGS.C,
-  };
+  cpu_flags_set(&fd->cpu, (cpu_flags){
+                              .Z = cpu_flags_get(&fd->cpu).Z,
+                              .N = true,
+                              .H = true,
+                              .C = cpu_flags_get(&fd->cpu).C,
+                          });
   tgt->_ = ~tgt->_;
   return CPU_STEP(fd, 1, 4, zasm1("CPL", zasma_reg8(ZASM_PLAIN, fd, tgt)));
 }
 
 static cpu_result op_pop_ww___(fundude* fd, cpu_reg16* tgt) {
   tgt->_ = do_pop16(fd);
-  fd->cpu.FLAGS._padding = 0;
+  // cpu_flags_get(&fd->cpu)._padding = 0;
   return CPU_STEP(fd, 1, 12, zasm1("POP", zasma_reg16(ZASM_PLAIN, fd, tgt)));
 }
 
@@ -614,58 +624,58 @@ cpu_result cpu_step(fundude* fd, uint8_t op[]) {
   switch (op[0]) {
     case 0x00: return op_nop(fd);
     case 0x01: return op_ld__ww_df(fd, &fd->cpu.BC, with16(op));
-    case 0x02: return op_ld__WW_rr(fd, &fd->cpu.BC, &fd->cpu.A);
+    case 0x02: return op_ld__WW_rr(fd, &fd->cpu.BC, &fd->cpu.AF.x._0);
     case 0x03: return op_inc_ww___(fd, &fd->cpu.BC);
-    case 0x04: return op_inc_rr___(fd, &fd->cpu.B);
-    case 0x05: return op_dec_rr___(fd, &fd->cpu.B);
-    case 0x06: return op_ld__rr_d8(fd, &fd->cpu.B, with8(op));
-    case 0x07: return op_rlc_rr___(fd, &fd->cpu.A);
+    case 0x04: return op_inc_rr___(fd, &fd->cpu.BC.x._0);
+    case 0x05: return op_dec_rr___(fd, &fd->cpu.BC.x._0);
+    case 0x06: return op_ld__rr_d8(fd, &fd->cpu.BC.x._0, with8(op));
+    case 0x07: return op_rlc_rr___(fd, &fd->cpu.AF.x._0);
     case 0x08: return op_ld__AF_ww(fd, with16(op), &fd->cpu.SP);
     case 0x09: return op_add_ww_ww(fd, &fd->cpu.HL, &fd->cpu.BC);
-    case 0x0A: return op_ld__rr_WW(fd, &fd->cpu.A, &fd->cpu.BC);
+    case 0x0A: return op_ld__rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.BC);
     case 0x0B: return op_dec_ww___(fd, &fd->cpu.BC);
-    case 0x0C: return op_inc_rr___(fd, &fd->cpu.C);
-    case 0x0D: return op_dec_rr___(fd, &fd->cpu.C);
-    case 0x0E: return op_ld__rr_d8(fd, &fd->cpu.C, with8(op));
-    case 0x0F: return op_rrc_rr___(fd, &fd->cpu.A);
+    case 0x0C: return op_inc_rr___(fd, &fd->cpu.BC.x._1);
+    case 0x0D: return op_dec_rr___(fd, &fd->cpu.BC.x._1);
+    case 0x0E: return op_ld__rr_d8(fd, &fd->cpu.BC.x._1, with8(op));
+    case 0x0F: return op_rrc_rr___(fd, &fd->cpu.AF.x._0);
 
     case 0x10: return op_sys(fd, SYS_STOP, 2);
     case 0x11: return op_ld__ww_df(fd, &fd->cpu.DE, with16(op));
-    case 0x12: return op_ld__WW_rr(fd, &fd->cpu.DE, &fd->cpu.A);
+    case 0x12: return op_ld__WW_rr(fd, &fd->cpu.DE, &fd->cpu.AF.x._0);
     case 0x13: return op_inc_ww___(fd, &fd->cpu.DE);
-    case 0x14: return op_inc_rr___(fd, &fd->cpu.D);
-    case 0x15: return op_dec_rr___(fd, &fd->cpu.D);
-    case 0x16: return op_ld__rr_d8(fd, &fd->cpu.D, with8(op));
-    case 0x17: return op_rla_rr___(fd, &fd->cpu.A);
+    case 0x14: return op_inc_rr___(fd, &fd->cpu.DE.x._0);
+    case 0x15: return op_dec_rr___(fd, &fd->cpu.DE.x._0);
+    case 0x16: return op_ld__rr_d8(fd, &fd->cpu.DE.x._0, with8(op));
+    case 0x17: return op_rla_rr___(fd, &fd->cpu.AF.x._0);
     case 0x18: return op_jr__R8___(fd, with8(op));
     case 0x19: return op_add_ww_ww(fd, &fd->cpu.HL, &fd->cpu.DE);
-    case 0x1A: return op_ld__rr_WW(fd, &fd->cpu.A, &fd->cpu.DE);
+    case 0x1A: return op_ld__rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.DE);
     case 0x1B: return op_dec_ww___(fd, &fd->cpu.DE);
-    case 0x1C: return op_inc_rr___(fd, &fd->cpu.E);
-    case 0x1D: return op_dec_rr___(fd, &fd->cpu.E);
-    case 0x1E: return op_ld__rr_d8(fd, &fd->cpu.E, with8(op));
-    case 0x1F: return op_rra_rr___(fd, &fd->cpu.A);
+    case 0x1C: return op_inc_rr___(fd, &fd->cpu.DE.x._1);
+    case 0x1D: return op_dec_rr___(fd, &fd->cpu.DE.x._1);
+    case 0x1E: return op_ld__rr_d8(fd, &fd->cpu.DE.x._1, with8(op));
+    case 0x1F: return op_rra_rr___(fd, &fd->cpu.AF.x._0);
 
     case 0x20: return op_jr__if_R8(fd, CPU_COND_NZ, with8(op));
     case 0x21: return op_ld__ww_df(fd, &fd->cpu.HL, with16(op));
-    case 0x22: return op_ldi_WW_rr(fd, &fd->cpu.HL, &fd->cpu.A);
+    case 0x22: return op_ldi_WW_rr(fd, &fd->cpu.HL, &fd->cpu.AF.x._0);
     case 0x23: return op_inc_ww___(fd, &fd->cpu.HL);
-    case 0x24: return op_inc_rr___(fd, &fd->cpu.H);
-    case 0x25: return op_dec_rr___(fd, &fd->cpu.H);
-    case 0x26: return op_ld__rr_d8(fd, &fd->cpu.H, with8(op));
-    case 0x27: return op_daa_rr___(fd, &fd->cpu.A);
+    case 0x24: return op_inc_rr___(fd, &fd->cpu.HL.x._0);
+    case 0x25: return op_dec_rr___(fd, &fd->cpu.HL.x._0);
+    case 0x26: return op_ld__rr_d8(fd, &fd->cpu.HL.x._0, with8(op));
+    case 0x27: return op_daa_rr___(fd, &fd->cpu.AF.x._0);
     case 0x28: return op_jr__if_R8(fd, CPU_COND_Z, with8(op));
     case 0x29: return op_add_ww_ww(fd, &fd->cpu.HL, &fd->cpu.HL);
-    case 0x2A: return op_ldi_rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
+    case 0x2A: return op_ldi_rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
     case 0x2B: return op_dec_ww___(fd, &fd->cpu.HL);
-    case 0x2C: return op_inc_rr___(fd, &fd->cpu.L);
-    case 0x2D: return op_dec_rr___(fd, &fd->cpu.L);
-    case 0x2E: return op_ld__rr_d8(fd, &fd->cpu.L, with8(op));
-    case 0x2F: return op_cpl_rr___(fd, &fd->cpu.A);
+    case 0x2C: return op_inc_rr___(fd, &fd->cpu.HL.x._1);
+    case 0x2D: return op_dec_rr___(fd, &fd->cpu.HL.x._1);
+    case 0x2E: return op_ld__rr_d8(fd, &fd->cpu.HL.x._1, with8(op));
+    case 0x2F: return op_cpl_rr___(fd, &fd->cpu.AF.x._0);
 
     case 0x30: return op_jr__if_R8(fd, CPU_COND_NC, with8(op));
     case 0x31: return op_ld__ww_df(fd, &fd->cpu.SP, with16(op));
-    case 0x32: return op_ldd_WW_rr(fd, &fd->cpu.HL, &fd->cpu.A);
+    case 0x32: return op_ldd_WW_rr(fd, &fd->cpu.HL, &fd->cpu.AF.x._0);
     case 0x33: return op_inc_ww___(fd, &fd->cpu.SP);
     case 0x34: return op_inc_WW___(fd, &fd->cpu.HL);
     case 0x35: return op_dec_WW___(fd, &fd->cpu.HL);
@@ -673,148 +683,148 @@ cpu_result cpu_step(fundude* fd, uint8_t op[]) {
     case 0x37: return op_scf(fd);
     case 0x38: return op_jr__if_R8(fd, CPU_COND_C, with8(op));
     case 0x39: return op_add_ww_ww(fd, &fd->cpu.HL, &fd->cpu.SP);
-    case 0x3A: return op_ldd_rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
+    case 0x3A: return op_ldd_rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
     case 0x3B: return op_dec_ww___(fd, &fd->cpu.SP);
-    case 0x3C: return op_inc_rr___(fd, &fd->cpu.A);
-    case 0x3D: return op_dec_rr___(fd, &fd->cpu.A);
-    case 0x3E: return op_ld__rr_d8(fd, &fd->cpu.A, with8(op));
+    case 0x3C: return op_inc_rr___(fd, &fd->cpu.AF.x._0);
+    case 0x3D: return op_dec_rr___(fd, &fd->cpu.AF.x._0);
+    case 0x3E: return op_ld__rr_d8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0x3F: return op_ccf(fd);
 
-    case 0x40: return op_ld__rr_rr(fd, &fd->cpu.B, &fd->cpu.B);
-    case 0x41: return op_ld__rr_rr(fd, &fd->cpu.B, &fd->cpu.C);
-    case 0x42: return op_ld__rr_rr(fd, &fd->cpu.B, &fd->cpu.D);
-    case 0x43: return op_ld__rr_rr(fd, &fd->cpu.B, &fd->cpu.E);
-    case 0x44: return op_ld__rr_rr(fd, &fd->cpu.B, &fd->cpu.H);
-    case 0x45: return op_ld__rr_rr(fd, &fd->cpu.B, &fd->cpu.L);
-    case 0x46: return op_ld__rr_WW(fd, &fd->cpu.B, &fd->cpu.HL);
-    case 0x47: return op_ld__rr_rr(fd, &fd->cpu.B, &fd->cpu.A);
-    case 0x48: return op_ld__rr_rr(fd, &fd->cpu.C, &fd->cpu.B);
-    case 0x49: return op_ld__rr_rr(fd, &fd->cpu.C, &fd->cpu.C);
-    case 0x4A: return op_ld__rr_rr(fd, &fd->cpu.C, &fd->cpu.D);
-    case 0x4B: return op_ld__rr_rr(fd, &fd->cpu.C, &fd->cpu.E);
-    case 0x4C: return op_ld__rr_rr(fd, &fd->cpu.C, &fd->cpu.H);
-    case 0x4D: return op_ld__rr_rr(fd, &fd->cpu.C, &fd->cpu.L);
-    case 0x4E: return op_ld__rr_WW(fd, &fd->cpu.C, &fd->cpu.HL);
-    case 0x4F: return op_ld__rr_rr(fd, &fd->cpu.C, &fd->cpu.A);
+    case 0x40: return op_ld__rr_rr(fd, &fd->cpu.BC.x._0, &fd->cpu.BC.x._0);
+    case 0x41: return op_ld__rr_rr(fd, &fd->cpu.BC.x._0, &fd->cpu.BC.x._1);
+    case 0x42: return op_ld__rr_rr(fd, &fd->cpu.BC.x._0, &fd->cpu.DE.x._0);
+    case 0x43: return op_ld__rr_rr(fd, &fd->cpu.BC.x._0, &fd->cpu.DE.x._1);
+    case 0x44: return op_ld__rr_rr(fd, &fd->cpu.BC.x._0, &fd->cpu.HL.x._0);
+    case 0x45: return op_ld__rr_rr(fd, &fd->cpu.BC.x._0, &fd->cpu.HL.x._1);
+    case 0x46: return op_ld__rr_WW(fd, &fd->cpu.BC.x._0, &fd->cpu.HL);
+    case 0x47: return op_ld__rr_rr(fd, &fd->cpu.BC.x._0, &fd->cpu.AF.x._0);
+    case 0x48: return op_ld__rr_rr(fd, &fd->cpu.BC.x._1, &fd->cpu.BC.x._0);
+    case 0x49: return op_ld__rr_rr(fd, &fd->cpu.BC.x._1, &fd->cpu.BC.x._1);
+    case 0x4A: return op_ld__rr_rr(fd, &fd->cpu.BC.x._1, &fd->cpu.DE.x._0);
+    case 0x4B: return op_ld__rr_rr(fd, &fd->cpu.BC.x._1, &fd->cpu.DE.x._1);
+    case 0x4C: return op_ld__rr_rr(fd, &fd->cpu.BC.x._1, &fd->cpu.HL.x._0);
+    case 0x4D: return op_ld__rr_rr(fd, &fd->cpu.BC.x._1, &fd->cpu.HL.x._1);
+    case 0x4E: return op_ld__rr_WW(fd, &fd->cpu.BC.x._1, &fd->cpu.HL);
+    case 0x4F: return op_ld__rr_rr(fd, &fd->cpu.BC.x._1, &fd->cpu.AF.x._0);
 
-    case 0x50: return op_ld__rr_rr(fd, &fd->cpu.D, &fd->cpu.B);
-    case 0x51: return op_ld__rr_rr(fd, &fd->cpu.D, &fd->cpu.C);
-    case 0x52: return op_ld__rr_rr(fd, &fd->cpu.D, &fd->cpu.D);
-    case 0x53: return op_ld__rr_rr(fd, &fd->cpu.D, &fd->cpu.E);
-    case 0x54: return op_ld__rr_rr(fd, &fd->cpu.D, &fd->cpu.H);
-    case 0x55: return op_ld__rr_rr(fd, &fd->cpu.D, &fd->cpu.L);
-    case 0x56: return op_ld__rr_WW(fd, &fd->cpu.D, &fd->cpu.HL);
-    case 0x57: return op_ld__rr_rr(fd, &fd->cpu.D, &fd->cpu.A);
-    case 0x58: return op_ld__rr_rr(fd, &fd->cpu.E, &fd->cpu.B);
-    case 0x59: return op_ld__rr_rr(fd, &fd->cpu.E, &fd->cpu.C);
-    case 0x5A: return op_ld__rr_rr(fd, &fd->cpu.E, &fd->cpu.D);
-    case 0x5B: return op_ld__rr_rr(fd, &fd->cpu.E, &fd->cpu.E);
-    case 0x5C: return op_ld__rr_rr(fd, &fd->cpu.E, &fd->cpu.H);
-    case 0x5D: return op_ld__rr_rr(fd, &fd->cpu.E, &fd->cpu.L);
-    case 0x5E: return op_ld__rr_WW(fd, &fd->cpu.E, &fd->cpu.HL);
-    case 0x5F: return op_ld__rr_rr(fd, &fd->cpu.E, &fd->cpu.A);
+    case 0x50: return op_ld__rr_rr(fd, &fd->cpu.DE.x._0, &fd->cpu.BC.x._0);
+    case 0x51: return op_ld__rr_rr(fd, &fd->cpu.DE.x._0, &fd->cpu.BC.x._1);
+    case 0x52: return op_ld__rr_rr(fd, &fd->cpu.DE.x._0, &fd->cpu.DE.x._0);
+    case 0x53: return op_ld__rr_rr(fd, &fd->cpu.DE.x._0, &fd->cpu.DE.x._1);
+    case 0x54: return op_ld__rr_rr(fd, &fd->cpu.DE.x._0, &fd->cpu.HL.x._0);
+    case 0x55: return op_ld__rr_rr(fd, &fd->cpu.DE.x._0, &fd->cpu.HL.x._1);
+    case 0x56: return op_ld__rr_WW(fd, &fd->cpu.DE.x._0, &fd->cpu.HL);
+    case 0x57: return op_ld__rr_rr(fd, &fd->cpu.DE.x._0, &fd->cpu.AF.x._0);
+    case 0x58: return op_ld__rr_rr(fd, &fd->cpu.DE.x._1, &fd->cpu.BC.x._0);
+    case 0x59: return op_ld__rr_rr(fd, &fd->cpu.DE.x._1, &fd->cpu.BC.x._1);
+    case 0x5A: return op_ld__rr_rr(fd, &fd->cpu.DE.x._1, &fd->cpu.DE.x._0);
+    case 0x5B: return op_ld__rr_rr(fd, &fd->cpu.DE.x._1, &fd->cpu.DE.x._1);
+    case 0x5C: return op_ld__rr_rr(fd, &fd->cpu.DE.x._1, &fd->cpu.HL.x._0);
+    case 0x5D: return op_ld__rr_rr(fd, &fd->cpu.DE.x._1, &fd->cpu.HL.x._1);
+    case 0x5E: return op_ld__rr_WW(fd, &fd->cpu.DE.x._1, &fd->cpu.HL);
+    case 0x5F: return op_ld__rr_rr(fd, &fd->cpu.DE.x._1, &fd->cpu.AF.x._0);
 
-    case 0x60: return op_ld__rr_rr(fd, &fd->cpu.H, &fd->cpu.B);
-    case 0x61: return op_ld__rr_rr(fd, &fd->cpu.H, &fd->cpu.C);
-    case 0x62: return op_ld__rr_rr(fd, &fd->cpu.H, &fd->cpu.D);
-    case 0x63: return op_ld__rr_rr(fd, &fd->cpu.H, &fd->cpu.E);
-    case 0x64: return op_ld__rr_rr(fd, &fd->cpu.H, &fd->cpu.H);
-    case 0x65: return op_ld__rr_rr(fd, &fd->cpu.H, &fd->cpu.L);
-    case 0x66: return op_ld__rr_WW(fd, &fd->cpu.H, &fd->cpu.HL);
-    case 0x67: return op_ld__rr_rr(fd, &fd->cpu.H, &fd->cpu.A);
-    case 0x68: return op_ld__rr_rr(fd, &fd->cpu.L, &fd->cpu.B);
-    case 0x69: return op_ld__rr_rr(fd, &fd->cpu.L, &fd->cpu.C);
-    case 0x6A: return op_ld__rr_rr(fd, &fd->cpu.L, &fd->cpu.D);
-    case 0x6B: return op_ld__rr_rr(fd, &fd->cpu.L, &fd->cpu.E);
-    case 0x6C: return op_ld__rr_rr(fd, &fd->cpu.L, &fd->cpu.H);
-    case 0x6D: return op_ld__rr_rr(fd, &fd->cpu.L, &fd->cpu.L);
-    case 0x6E: return op_ld__rr_WW(fd, &fd->cpu.L, &fd->cpu.HL);
-    case 0x6F: return op_ld__rr_rr(fd, &fd->cpu.L, &fd->cpu.A);
+    case 0x60: return op_ld__rr_rr(fd, &fd->cpu.HL.x._0, &fd->cpu.BC.x._0);
+    case 0x61: return op_ld__rr_rr(fd, &fd->cpu.HL.x._0, &fd->cpu.BC.x._1);
+    case 0x62: return op_ld__rr_rr(fd, &fd->cpu.HL.x._0, &fd->cpu.DE.x._0);
+    case 0x63: return op_ld__rr_rr(fd, &fd->cpu.HL.x._0, &fd->cpu.DE.x._1);
+    case 0x64: return op_ld__rr_rr(fd, &fd->cpu.HL.x._0, &fd->cpu.HL.x._0);
+    case 0x65: return op_ld__rr_rr(fd, &fd->cpu.HL.x._0, &fd->cpu.HL.x._1);
+    case 0x66: return op_ld__rr_WW(fd, &fd->cpu.HL.x._0, &fd->cpu.HL);
+    case 0x67: return op_ld__rr_rr(fd, &fd->cpu.HL.x._0, &fd->cpu.AF.x._0);
+    case 0x68: return op_ld__rr_rr(fd, &fd->cpu.HL.x._1, &fd->cpu.BC.x._0);
+    case 0x69: return op_ld__rr_rr(fd, &fd->cpu.HL.x._1, &fd->cpu.BC.x._1);
+    case 0x6A: return op_ld__rr_rr(fd, &fd->cpu.HL.x._1, &fd->cpu.DE.x._0);
+    case 0x6B: return op_ld__rr_rr(fd, &fd->cpu.HL.x._1, &fd->cpu.DE.x._1);
+    case 0x6C: return op_ld__rr_rr(fd, &fd->cpu.HL.x._1, &fd->cpu.HL.x._0);
+    case 0x6D: return op_ld__rr_rr(fd, &fd->cpu.HL.x._1, &fd->cpu.HL.x._1);
+    case 0x6E: return op_ld__rr_WW(fd, &fd->cpu.HL.x._1, &fd->cpu.HL);
+    case 0x6F: return op_ld__rr_rr(fd, &fd->cpu.HL.x._1, &fd->cpu.AF.x._0);
 
-    case 0x70: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.B);
-    case 0x71: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.C);
-    case 0x72: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.D);
-    case 0x73: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.E);
-    case 0x74: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.H);
-    case 0x75: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.L);
+    case 0x70: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.BC.x._0);
+    case 0x71: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.BC.x._1);
+    case 0x72: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.DE.x._0);
+    case 0x73: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.DE.x._1);
+    case 0x74: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.HL.x._0);
+    case 0x75: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.HL.x._1);
     case 0x76: return op_sys(fd, SYS_HALT, 1);
-    case 0x77: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.A);
-    case 0x78: return op_ld__rr_rr(fd, &fd->cpu.A, &fd->cpu.B);
-    case 0x79: return op_ld__rr_rr(fd, &fd->cpu.A, &fd->cpu.C);
-    case 0x7A: return op_ld__rr_rr(fd, &fd->cpu.A, &fd->cpu.D);
-    case 0x7B: return op_ld__rr_rr(fd, &fd->cpu.A, &fd->cpu.E);
-    case 0x7C: return op_ld__rr_rr(fd, &fd->cpu.A, &fd->cpu.H);
-    case 0x7D: return op_ld__rr_rr(fd, &fd->cpu.A, &fd->cpu.L);
-    case 0x7E: return op_ld__rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
-    case 0x7F: return op_ld__rr_rr(fd, &fd->cpu.A, &fd->cpu.A);
+    case 0x77: return op_ld__WW_rr(fd, &fd->cpu.HL, &fd->cpu.AF.x._0);
+    case 0x78: return op_ld__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._0);
+    case 0x79: return op_ld__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
+    case 0x7A: return op_ld__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._0);
+    case 0x7B: return op_ld__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._1);
+    case 0x7C: return op_ld__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._0);
+    case 0x7D: return op_ld__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._1);
+    case 0x7E: return op_ld__rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
+    case 0x7F: return op_ld__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.AF.x._0);
 
-    case 0x80: return op_add_rr_rr(fd, &fd->cpu.A, &fd->cpu.B);
-    case 0x81: return op_add_rr_rr(fd, &fd->cpu.A, &fd->cpu.C);
-    case 0x82: return op_add_rr_rr(fd, &fd->cpu.A, &fd->cpu.D);
-    case 0x83: return op_add_rr_rr(fd, &fd->cpu.A, &fd->cpu.E);
-    case 0x84: return op_add_rr_rr(fd, &fd->cpu.A, &fd->cpu.H);
-    case 0x85: return op_add_rr_rr(fd, &fd->cpu.A, &fd->cpu.L);
-    case 0x86: return op_add_rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
-    case 0x87: return op_add_rr_rr(fd, &fd->cpu.A, &fd->cpu.A);
-    case 0x88: return op_adc_rr_rr(fd, &fd->cpu.A, &fd->cpu.B);
-    case 0x89: return op_adc_rr_rr(fd, &fd->cpu.A, &fd->cpu.C);
-    case 0x8A: return op_adc_rr_rr(fd, &fd->cpu.A, &fd->cpu.D);
-    case 0x8B: return op_adc_rr_rr(fd, &fd->cpu.A, &fd->cpu.E);
-    case 0x8C: return op_adc_rr_rr(fd, &fd->cpu.A, &fd->cpu.H);
-    case 0x8D: return op_adc_rr_rr(fd, &fd->cpu.A, &fd->cpu.L);
-    case 0x8E: return op_adc_rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
-    case 0x8F: return op_adc_rr_rr(fd, &fd->cpu.A, &fd->cpu.A);
+    case 0x80: return op_add_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._0);
+    case 0x81: return op_add_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
+    case 0x82: return op_add_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._0);
+    case 0x83: return op_add_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._1);
+    case 0x84: return op_add_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._0);
+    case 0x85: return op_add_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._1);
+    case 0x86: return op_add_rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
+    case 0x87: return op_add_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.AF.x._0);
+    case 0x88: return op_adc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._0);
+    case 0x89: return op_adc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
+    case 0x8A: return op_adc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._0);
+    case 0x8B: return op_adc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._1);
+    case 0x8C: return op_adc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._0);
+    case 0x8D: return op_adc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._1);
+    case 0x8E: return op_adc_rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
+    case 0x8F: return op_adc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.AF.x._0);
 
-    case 0x90: return op_sub_rr_rr(fd, &fd->cpu.A, &fd->cpu.B);
-    case 0x91: return op_sub_rr_rr(fd, &fd->cpu.A, &fd->cpu.C);
-    case 0x92: return op_sub_rr_rr(fd, &fd->cpu.A, &fd->cpu.D);
-    case 0x93: return op_sub_rr_rr(fd, &fd->cpu.A, &fd->cpu.E);
-    case 0x94: return op_sub_rr_rr(fd, &fd->cpu.A, &fd->cpu.H);
-    case 0x95: return op_sub_rr_rr(fd, &fd->cpu.A, &fd->cpu.L);
-    case 0x96: return op_sub_rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
-    case 0x97: return op_sub_rr_rr(fd, &fd->cpu.A, &fd->cpu.A);
-    case 0x98: return op_sbc_rr_rr(fd, &fd->cpu.A, &fd->cpu.B);
-    case 0x99: return op_sbc_rr_rr(fd, &fd->cpu.A, &fd->cpu.C);
-    case 0x9A: return op_sbc_rr_rr(fd, &fd->cpu.A, &fd->cpu.D);
-    case 0x9B: return op_sbc_rr_rr(fd, &fd->cpu.A, &fd->cpu.E);
-    case 0x9C: return op_sbc_rr_rr(fd, &fd->cpu.A, &fd->cpu.H);
-    case 0x9D: return op_sbc_rr_rr(fd, &fd->cpu.A, &fd->cpu.L);
-    case 0x9E: return op_sbc_rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
-    case 0x9F: return op_sbc_rr_rr(fd, &fd->cpu.A, &fd->cpu.A);
+    case 0x90: return op_sub_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._0);
+    case 0x91: return op_sub_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
+    case 0x92: return op_sub_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._0);
+    case 0x93: return op_sub_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._1);
+    case 0x94: return op_sub_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._0);
+    case 0x95: return op_sub_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._1);
+    case 0x96: return op_sub_rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
+    case 0x97: return op_sub_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.AF.x._0);
+    case 0x98: return op_sbc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._0);
+    case 0x99: return op_sbc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
+    case 0x9A: return op_sbc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._0);
+    case 0x9B: return op_sbc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._1);
+    case 0x9C: return op_sbc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._0);
+    case 0x9D: return op_sbc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._1);
+    case 0x9E: return op_sbc_rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
+    case 0x9F: return op_sbc_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.AF.x._0);
 
-    case 0xA0: return op_and_rr_rr(fd, &fd->cpu.A, &fd->cpu.B);
-    case 0xA1: return op_and_rr_rr(fd, &fd->cpu.A, &fd->cpu.C);
-    case 0xA2: return op_and_rr_rr(fd, &fd->cpu.A, &fd->cpu.D);
-    case 0xA3: return op_and_rr_rr(fd, &fd->cpu.A, &fd->cpu.E);
-    case 0xA4: return op_and_rr_rr(fd, &fd->cpu.A, &fd->cpu.H);
-    case 0xA5: return op_and_rr_rr(fd, &fd->cpu.A, &fd->cpu.L);
-    case 0xA6: return op_and_rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
-    case 0xA7: return op_and_rr_rr(fd, &fd->cpu.A, &fd->cpu.A);
-    case 0xA8: return op_xor_rr_rr(fd, &fd->cpu.A, &fd->cpu.B);
-    case 0xA9: return op_xor_rr_rr(fd, &fd->cpu.A, &fd->cpu.C);
-    case 0xAA: return op_xor_rr_rr(fd, &fd->cpu.A, &fd->cpu.D);
-    case 0xAB: return op_xor_rr_rr(fd, &fd->cpu.A, &fd->cpu.E);
-    case 0xAC: return op_xor_rr_rr(fd, &fd->cpu.A, &fd->cpu.H);
-    case 0xAD: return op_xor_rr_rr(fd, &fd->cpu.A, &fd->cpu.L);
-    case 0xAE: return op_xor_rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
-    case 0xAF: return op_xor_rr_rr(fd, &fd->cpu.A, &fd->cpu.A);
+    case 0xA0: return op_and_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._0);
+    case 0xA1: return op_and_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
+    case 0xA2: return op_and_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._0);
+    case 0xA3: return op_and_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._1);
+    case 0xA4: return op_and_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._0);
+    case 0xA5: return op_and_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._1);
+    case 0xA6: return op_and_rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
+    case 0xA7: return op_and_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.AF.x._0);
+    case 0xA8: return op_xor_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._0);
+    case 0xA9: return op_xor_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
+    case 0xAA: return op_xor_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._0);
+    case 0xAB: return op_xor_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._1);
+    case 0xAC: return op_xor_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._0);
+    case 0xAD: return op_xor_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._1);
+    case 0xAE: return op_xor_rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
+    case 0xAF: return op_xor_rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.AF.x._0);
 
-    case 0xB0: return op_or__rr_rr(fd, &fd->cpu.A, &fd->cpu.B);
-    case 0xB1: return op_or__rr_rr(fd, &fd->cpu.A, &fd->cpu.C);
-    case 0xB2: return op_or__rr_rr(fd, &fd->cpu.A, &fd->cpu.D);
-    case 0xB3: return op_or__rr_rr(fd, &fd->cpu.A, &fd->cpu.E);
-    case 0xB4: return op_or__rr_rr(fd, &fd->cpu.A, &fd->cpu.H);
-    case 0xB5: return op_or__rr_rr(fd, &fd->cpu.A, &fd->cpu.L);
-    case 0xB6: return op_or__rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
-    case 0xB7: return op_or__rr_rr(fd, &fd->cpu.A, &fd->cpu.A);
-    case 0xB8: return op_cp__rr_rr(fd, &fd->cpu.A, &fd->cpu.B);
-    case 0xB9: return op_cp__rr_rr(fd, &fd->cpu.A, &fd->cpu.C);
-    case 0xBA: return op_cp__rr_rr(fd, &fd->cpu.A, &fd->cpu.D);
-    case 0xBB: return op_cp__rr_rr(fd, &fd->cpu.A, &fd->cpu.E);
-    case 0xBC: return op_cp__rr_rr(fd, &fd->cpu.A, &fd->cpu.H);
-    case 0xBD: return op_cp__rr_rr(fd, &fd->cpu.A, &fd->cpu.L);
-    case 0xBE: return op_cp__rr_WW(fd, &fd->cpu.A, &fd->cpu.HL);
-    case 0xBF: return op_cp__rr_rr(fd, &fd->cpu.A, &fd->cpu.A);
+    case 0xB0: return op_or__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._0);
+    case 0xB1: return op_or__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
+    case 0xB2: return op_or__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._0);
+    case 0xB3: return op_or__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._1);
+    case 0xB4: return op_or__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._0);
+    case 0xB5: return op_or__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._1);
+    case 0xB6: return op_or__rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
+    case 0xB7: return op_or__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.AF.x._0);
+    case 0xB8: return op_cp__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._0);
+    case 0xB9: return op_cp__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
+    case 0xBA: return op_cp__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._0);
+    case 0xBB: return op_cp__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.DE.x._1);
+    case 0xBC: return op_cp__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._0);
+    case 0xBD: return op_cp__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.HL.x._1);
+    case 0xBE: return op_cp__rr_WW(fd, &fd->cpu.AF.x._0, &fd->cpu.HL);
+    case 0xBF: return op_cp__rr_rr(fd, &fd->cpu.AF.x._0, &fd->cpu.AF.x._0);
 
     case 0xC0: return op_ret_if___(fd, CPU_COND_NZ);
     case 0xC1: return op_pop_ww___(fd, &fd->cpu.BC);
@@ -822,7 +832,7 @@ cpu_result cpu_step(fundude* fd, uint8_t op[]) {
     case 0xC3: return op_jp__AF___(fd, with16(op));
     case 0xC4: return op_cal_if_AF(fd, CPU_COND_NZ, with16(op));
     case 0xC5: return op_psh_ww___(fd, &fd->cpu.BC);
-    case 0xC6: return op_add_rr_d8(fd, &fd->cpu.A, with8(op));
+    case 0xC6: return op_add_rr_d8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0xC7: return op_rst_d8___(fd, 0x00);
     case 0xC8: return op_ret_if___(fd, CPU_COND_Z);
     case 0xC9: return op_ret______(fd);
@@ -830,7 +840,7 @@ cpu_result cpu_step(fundude* fd, uint8_t op[]) {
     case 0xCB: return op_cb(fd, op[1]);
     case 0xCC: return op_cal_if_AF(fd, CPU_COND_Z, with16(op));
     case 0xCD: return op_cal_AF___(fd, with16(op));
-    case 0xCE: return op_adc_rr_d8(fd, &fd->cpu.A, with8(op));
+    case 0xCE: return op_adc_rr_d8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0xCF: return op_rst_d8___(fd, 0x08);
 
     case 0xD0: return op_ret_if___(fd, CPU_COND_NC);
@@ -839,7 +849,7 @@ cpu_result cpu_step(fundude* fd, uint8_t op[]) {
     case 0xD3: return CPU_UNKNOWN(fd);
     case 0xD4: return op_cal_if_AF(fd, CPU_COND_NC, with16(op));
     case 0xD5: return op_psh_ww___(fd, &fd->cpu.DE);
-    case 0xD6: return op_sub_rr_d8(fd, &fd->cpu.A, with8(op));
+    case 0xD6: return op_sub_rr_d8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0xD7: return op_rst_d8___(fd, 0x10);
     case 0xD8: return op_ret_if___(fd, CPU_COND_C);
     case 0xD9: return op_rti______(fd);
@@ -847,41 +857,41 @@ cpu_result cpu_step(fundude* fd, uint8_t op[]) {
     case 0xDB: return CPU_UNKNOWN(fd);
     case 0xDC: return op_cal_if_AF(fd, CPU_COND_C, with16(op));
     case 0xDD: return CPU_UNKNOWN(fd);
-    case 0xDE: return op_sbc_rr_d8(fd, &fd->cpu.A, with8(op));
+    case 0xDE: return op_sbc_rr_d8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0xDF: return op_rst_d8___(fd, 0x18);
 
-    case 0xE0: return op_ldh_A8_rr(fd, with8(op), &fd->cpu.A);
+    case 0xE0: return op_ldh_A8_rr(fd, with8(op), &fd->cpu.AF.x._0);
     case 0xE1: return op_pop_ww___(fd, &fd->cpu.HL);
-    case 0xE2: return op_ld__RR_rr(fd, &fd->cpu.C, &fd->cpu.A);
+    case 0xE2: return op_ld__RR_rr(fd, &fd->cpu.BC.x._1, &fd->cpu.AF.x._0);
     case 0xE3: return CPU_UNKNOWN(fd);
     case 0xE4: return CPU_UNKNOWN(fd);
     case 0xE5: return op_psh_ww___(fd, &fd->cpu.HL);
-    case 0xE6: return op_and_rr_d8(fd, &fd->cpu.A, with8(op));
+    case 0xE6: return op_and_rr_d8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0xE7: return op_rst_d8___(fd, 0x20);
     case 0xE8: return op_add_ww_R8(fd, &fd->cpu.SP, with8(op));
     case 0xE9: return op_jp__WW___(fd, &fd->cpu.HL);
-    case 0xEA: return op_ld__AF_rr(fd, with16(op), &fd->cpu.A);
+    case 0xEA: return op_ld__AF_rr(fd, with16(op), &fd->cpu.AF.x._0);
     case 0xEB: return CPU_UNKNOWN(fd);
     case 0xEC: return CPU_UNKNOWN(fd);
     case 0xED: return CPU_UNKNOWN(fd);
-    case 0xEE: return op_xor_rr_d8(fd, &fd->cpu.A, with8(op));
+    case 0xEE: return op_xor_rr_d8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0xEF: return op_rst_d8___(fd, 0x28);
 
-    case 0xF0: return op_ldh_rr_A8(fd, &fd->cpu.A, with8(op));
+    case 0xF0: return op_ldh_rr_A8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0xF1: return op_pop_ww___(fd, &fd->cpu.AF);
-    case 0xF2: return op_ld__rr_RR(fd, &fd->cpu.A, &fd->cpu.C);
+    case 0xF2: return op_ld__rr_RR(fd, &fd->cpu.AF.x._0, &fd->cpu.BC.x._1);
     case 0xF3: return op_int______(fd, false);
     case 0xF4: return CPU_UNKNOWN(fd);
     case 0xF5: return op_psh_ww___(fd, &fd->cpu.AF);
-    case 0xF6: return op_or__rr_d8(fd, &fd->cpu.A, with8(op));
+    case 0xF6: return op_or__rr_d8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0xF7: return op_rst_d8___(fd, 0x30);
     case 0xF8: return op_ldh_ww_R8(fd, &fd->cpu.SP, with8(op));
     case 0xF9: return op_ld__ww_ww(fd, &fd->cpu.SP, &fd->cpu.HL);
-    case 0xFA: return op_ld__rr_AF(fd, &fd->cpu.A, with16(op));
+    case 0xFA: return op_ld__rr_AF(fd, &fd->cpu.AF.x._0, with16(op));
     case 0xFB: return op_int______(fd, true);
     case 0xFC: return CPU_UNKNOWN(fd);
     case 0xFD: return CPU_UNKNOWN(fd);
-    case 0xFE: return op_cp__rr_d8(fd, &fd->cpu.A, with8(op));
+    case 0xFE: return op_cp__rr_d8(fd, &fd->cpu.AF.x._0, with8(op));
     case 0xFF: return op_rst_d8___(fd, 0x38);
   }
 
