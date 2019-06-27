@@ -22,8 +22,8 @@ typedef enum {
 } zasm_format;
 
 typedef struct {
-  zasm_type type : 8;
-  zasm_format format : 8;
+  zasm_type type;
+  zasm_format format;
   uint16_t val;
 } zasm_arg;
 

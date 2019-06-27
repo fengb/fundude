@@ -39,7 +39,7 @@ typedef struct {
     uint16_t timer;
   } clock;
 
-  int breakpoint;
+  uint16_t breakpoint;
   char disassembly[24];
 
   sys_mode mode;

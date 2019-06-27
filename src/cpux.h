@@ -7,8 +7,8 @@
 
 typedef struct {
   uint16_t jump;
-  int length;
-  int duration;
+  uint16_t length;
+  uint8_t duration;
   zasm zasm;
 } cpu_result;
 
