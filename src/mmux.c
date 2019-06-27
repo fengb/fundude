@@ -16,7 +16,7 @@ uint8_t* mmu_ptr(mmu* m, uint16_t addr) {
     return &m->ram[addr - 0xE000];
   }
 
-  return &m->RAW[addr - BEYOND_CART];
+  return (uint8_t*)m + (addr - BEYOND_CART);
 }
 
 // bool is_locked(mmu* m, uint16_t addr) {

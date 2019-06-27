@@ -1,8 +1,8 @@
 #include "cpux.h"
+#include "base.h"
 #include "bit.h"
 #include "cpux_cb.h"
 #include "cpux_do.h"
-#include "fundude.h"
 #include "mmux.h"
 
 static uint8_t with8(uint8_t op[]) {

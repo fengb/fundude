@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
 
-    const lib = b.addStaticLibrary("fundude", "src/fundude.zig");
+    const lib = b.addStaticLibrary("fundude", "src/main.zig");
     lib.setOutputDir("zig-cache");
     lib.setBuildMode(mode);
     lib.setTarget(.wasm32, .freestanding, .musl);

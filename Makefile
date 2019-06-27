@@ -17,7 +17,7 @@ TEST_OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OUT_DIR)/%-test.o,$(SRC_FILES))
 TEST_MAIN_FILES := $(wildcard $(TEST_MAIN_DIR)/test_*.c)
 TEST_TARGETS := $(patsubst $(TEST_MAIN_DIR)/%.c,%,$(TEST_MAIN_FILES))
 
-$(OUT_DIR)/fundude.wasm: FILE_EXPORTS=$(shell scripts/c-functions src/fundude.h)
+$(OUT_DIR)/fundude.wasm: FILE_EXPORTS=$(shell scripts/c-functions src/main.h)
 $(OUT_DIR)/fundude.wasm: LIB_EXPORTS=malloc free
 $(OUT_DIR)/fundude.wasm: $(OBJ_FILES) $(WASM_LIBC_DIR)/lib/*.a
 	$(WASM_LD) -o "$@" --no-entry $(patsubst %,--export=%,$(FILE_EXPORTS) $(LIB_EXPORTS)) $^

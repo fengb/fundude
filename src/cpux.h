@@ -2,7 +2,7 @@
 #define __CPUX_H
 
 #include <stdbool.h>
-#include "fundude.h"
+#include "base.h"
 #include "zasm.h"
 
 typedef struct {

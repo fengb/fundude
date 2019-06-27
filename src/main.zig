@@ -1,6 +1,7 @@
 const std = @import("std");
+const base = @import("base.zig");
+
 const c = @cImport({
-    @cInclude("fundude.h");
     @cInclude("cpux.h");
     @cInclude("ggpx.h");
     @cInclude("irqx.h");
@@ -11,30 +12,30 @@ const c = @cImport({
 
 const CYCLES_PER_FRAME = (4 * 16742);
 
-export fn fd_alloc() ?*c.fundude {
-    return std.heap.wasm_allocator.create(c.fundude) catch null;
+export fn fd_alloc() ?*base.Fundude {
+    return std.heap.wasm_allocator.create(base.Fundude) catch null;
 }
 
-export fn fd_init(fd: *c.fundude, cart_length: usize, cart: [*]u8) void {
+export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) void {
     fd_reset(fd);
     fd.mmu.cart_length = cart_length;
     fd.mmu.cart = cart;
     fd.breakpoint = 0;
 }
 
-export fn fd_reset(fd: *c.fundude) void {
+export fn fd_reset(fd: *base.Fundude) void {
     @memset(@ptrCast([*]u8, &fd.display), 0, @sizeOf(@typeOf(fd.display)));
     @memset(@ptrCast([*]u8, &fd.mmu.io), 0, @sizeOf(@typeOf(fd.mmu.io)));
     fd.cpu.PC._ = 0;
     fd.interrupt_master = false;
     fd.inputs = 0;
-    fd.mode = .SYS_NORM;
+    fd.mode = .norm;
     fd.clock.cpu = 0;
     fd.clock.ppu = 0;
     fd.clock.timer = 0;
 }
 
-export fn fd_step(fd: *c.fundude) i32 {
+export fn fd_step(fd: *base.Fundude) i32 {
     // Reset tracking -- single step will always accrue negatives
     fd.clock.cpu = 0;
     const cycles = fd_step_cycles(fd, 1);
@@ -42,18 +43,18 @@ export fn fd_step(fd: *c.fundude) i32 {
     return cycles;
 }
 
-export fn fd_step_frames(fd: *c.fundude, frames: i16) i16 {
+export fn fd_step_frames(fd: *base.Fundude, frames: i16) i16 {
     const cycles = fd_step_cycles(fd, i32(frames) * i32(CYCLES_PER_FRAME));
     return @intCast(i16, @divFloor(cycles, CYCLES_PER_FRAME));
 }
 
-fn exec_step(fd: *c.fundude) c.cpu_result {
+fn exec_step(fd: *base.Fundude) c.cpu_result {
     const res = c.irq_step(fd);
     if (res.duration > 0) {
         return res;
     }
 
-    if (fd.mode == .SYS_HALT) {
+    if (fd.mode == .halt) {
         return c.cpu_result{
             .jump = fd.cpu.PC._,
             .length = 0,
@@ -64,8 +65,8 @@ fn exec_step(fd: *c.fundude) c.cpu_result {
     return c.cpu_step(fd, c.mmu_ptr(&fd.mmu, fd.cpu.PC._));
 }
 
-export fn fd_step_cycles(fd: *c.fundude, cycles: i32) i32 {
-    if (fd.mode == .SYS_FATAL) {
+export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
+    if (fd.mode == .fatal) {
         return -9999;
     }
 
@@ -75,7 +76,7 @@ export fn fd_step_cycles(fd: *c.fundude, cycles: i32) i32 {
     while (track >= 0) {
         const res = exec_step(fd);
         if (res.duration <= 0) {
-            fd.mode = .SYS_FATAL;
+            fd.mode = .fatal;
             return -9999;
         }
 
@@ -95,11 +96,11 @@ export fn fd_step_cycles(fd: *c.fundude, cycles: i32) i32 {
     return adjusted_cycles + track;
 }
 
-export fn fd_input_press(fd: *c.fundude, input: u8) u8 {
+export fn fd_input_press(fd: *base.Fundude, input: u8) u8 {
     const changed_to_true = (input ^ fd.inputs) ^ (~fd.inputs);
     if (changed_to_true != 0) {
-        if (fd.mode == .SYS_STOP) {
-            fd.mode = .SYS_NORM;
+        if (fd.mode == .stop) {
+            fd.mode = .norm;
         }
         // fd.mmu.io.IF.joypad = true;
         fd.inputs |= input;
@@ -108,14 +109,14 @@ export fn fd_input_press(fd: *c.fundude, input: u8) u8 {
     return fd.inputs;
 }
 
-export fn fd_input_release(fd: *c.fundude, input: u8) u8 {
+export fn fd_input_release(fd: *base.Fundude, input: u8) u8 {
     fd.inputs &= ~input;
     c.ggp_sync(fd);
     return fd.inputs;
 }
 
-// export fn fd_disassemble(fd: *c.fundude) ?[*c]u8 {
-//     if (fd.mode == .SYS_FATAL) {
+// export fn fd_disassemble(fd: *base.Fundude) ?[*c]u8 {
+//     if (fd.mode == .fatal) {
 //         return null;
 //     }
 
@@ -128,35 +129,35 @@ export fn fd_input_release(fd: *c.fundude, input: u8) u8 {
 //     fd.cpu.PC._ += res.length;
 
 //     if (fd.cpu.PC._ >= fd.mmu.cart_length) {
-//         fd.mode = .SYS_FATAL;
+//         fd.mode = .fatal;
 //     }
 //     return @ptrCast([*c]u8, &fd.disassembly);
 // }
 
-export fn fd_patterns_ptr(fd: *c.fundude) *c_void {
+export fn fd_patterns_ptr(fd: *base.Fundude) *c_void {
     return &fd.patterns;
 }
 
-export fn fd_background_ptr(fd: *c.fundude) *c_void {
+export fn fd_background_ptr(fd: *base.Fundude) *c_void {
     return &fd.background;
 }
 
-export fn fd_window_ptr(fd: *c.fundude) *c_void {
+export fn fd_window_ptr(fd: *base.Fundude) *c_void {
     return &fd.window;
 }
 
-export fn fd_sprites_ptr(fd: *c.fundude) *c_void {
+export fn fd_sprites_ptr(fd: *base.Fundude) *c_void {
     return &fd.sprites;
 }
 
-export fn fd_cpu_ptr(fd: *c.fundude) *c_void {
+export fn fd_cpu_ptr(fd: *base.Fundude) *c_void {
     return &fd.cpu;
 }
 
-export fn fd_mmu_ptr(fd: *c.fundude) *c_void {
+export fn fd_mmu_ptr(fd: *base.Fundude) *c_void {
     return &fd.mmu;
 }
 
-export fn fd_set_breakpoint(fd: *c.fundude, breakpoint: u16) void {
+export fn fd_set_breakpoint(fd: *base.Fundude, breakpoint: u16) void {
     fd.breakpoint = breakpoint;
 }

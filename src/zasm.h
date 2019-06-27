@@ -2,8 +2,8 @@
 #define __GBA_H
 
 #include <stdint.h>
+#include "base.h"
 #include "cpu.h"
-#include "fundude.h"
 
 typedef enum {
   ZASM_NONE,
