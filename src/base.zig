@@ -1,4 +1,5 @@
 const cpu = @import("cpu.zig");
+const ggp = @import("ggp.zig");
 const mmu = @import("mmu.zig");
 
 pub const WIDTH = 160;
@@ -26,7 +27,7 @@ pub const Fundude = struct {
 
     interrupt_master: bool,
 
-    inputs: u8,
+    inputs: ggp.Inputs,
 
     clock: struct {
         cpu: i32,

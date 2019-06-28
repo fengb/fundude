@@ -6,7 +6,7 @@ const apu = @import("apu.zig");
 const ppu = @import("ppu.zig");
 
 pub const Io = struct {
-    P1: ggp.Io, // [$FF00]
+    ggp: ggp.Io, // [$FF00]
     lpt: lpt.Io, // [$FF01 - $FF02]
     _pad_ff03: u8,
     timer: timer.Io, // [$FF04 - $FF07]

@@ -29,7 +29,7 @@ export fn fd_reset(fd: *base.Fundude) void {
     @memset(@ptrCast([*]u8, &fd.mmu.io), 0, @sizeOf(@typeOf(fd.mmu.io)));
     fd.cpu.PC._ = 0;
     fd.interrupt_master = false;
-    fd.inputs = 0;
+    fd.inputs._ = 0;
     fd.mode = .norm;
     fd.clock.cpu = 0;
     fd.clock.ppu = 0;
@@ -104,22 +104,22 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
 }
 
 export fn fd_input_press(fd: *base.Fundude, input: u8) u8 {
-    const changed_to_true = (input ^ fd.inputs) ^ (~fd.inputs);
+    const changed_to_true = (input ^ fd.inputs._) ^ (~fd.inputs._);
     if (changed_to_true != 0) {
         if (fd.mode == .stop) {
             fd.mode = .norm;
         }
         // fd.mmu.io.IF.joypad = true;
-        fd.inputs |= input;
-        // c.ggp_sync(fd);
+        fd.inputs._ |= input;
+        fd.inputs.update(&fd.mmu.io.ggp);
     }
-    return fd.inputs;
+    return fd.inputs._;
 }
 
 export fn fd_input_release(fd: *base.Fundude, input: u8) u8 {
-    fd.inputs &= ~input;
-    // c.ggp_sync(fd);
-    return fd.inputs;
+    fd.inputs._ &= ~input;
+    fd.inputs.update(&fd.mmu.io.ggp);
+    return fd.inputs._;
 }
 
 // export fn fd_disassemble(fd: *base.Fundude) ?[*c]u8 {
