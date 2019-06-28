@@ -1,14 +1,15 @@
 const std = @import("std");
 const base = @import("base.zig");
+const cpu = @import("cpu.zig");
 
-const c = @cImport({
-    @cInclude("cpux.h");
-    @cInclude("ggpx.h");
-    @cInclude("irqx.h");
-    @cInclude("mmux.h");
-    @cInclude("ppux.h");
-    @cInclude("timerx.h");
-});
+// const c = @cImport({
+//     @cInclude("cpux.h");
+//     @cInclude("ggpx.h");
+//     @cInclude("irqx.h");
+//     @cInclude("mmux.h");
+//     @cInclude("ppux.h");
+//     @cInclude("timerx.h");
+// });
 
 const CYCLES_PER_FRAME = (4 * 16742);
 
@@ -48,21 +49,27 @@ export fn fd_step_frames(fd: *base.Fundude, frames: i16) i16 {
     return @intCast(i16, @divFloor(cycles, CYCLES_PER_FRAME));
 }
 
-fn exec_step(fd: *base.Fundude) c.cpu_result {
-    const res = c.irq_step(fd);
-    if (res.duration > 0) {
-        return res;
-    }
+fn exec_step(fd: *base.Fundude) cpu.Result {
+    return cpu.Result{
+        .jump = fd.cpu.PC._,
+        .length = 0,
+        .duration = 4,
+        .zasm = "*SKIP",
+    };
+    // const res = c.irq_step(fd);
+    // if (res.duration > 0) {
+    //     return res;
+    // }
 
-    if (fd.mode == .halt) {
-        return c.cpu_result{
-            .jump = fd.cpu.PC._,
-            .length = 0,
-            .duration = 4,
-            .zasm = c.zasm0(c"*SKIP"),
-        };
-    }
-    return c.cpu_step(fd, c.mmu_ptr(&fd.mmu, fd.cpu.PC._));
+    // if (fd.mode == .halt) {
+    //     return c.cpu_result{
+    //         .jump = fd.cpu.PC._,
+    //         .length = 0,
+    //         .duration = 4,
+    //         .zasm = c.zasm0(c"*SKIP"),
+    //     };
+    // }
+    // return c.cpu_step(fd, c.mmu_ptr(&fd.mmu, fd.cpu.PC._));
 }
 
 export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
@@ -104,14 +111,14 @@ export fn fd_input_press(fd: *base.Fundude, input: u8) u8 {
         }
         // fd.mmu.io.IF.joypad = true;
         fd.inputs |= input;
-        c.ggp_sync(fd);
+        // c.ggp_sync(fd);
     }
     return fd.inputs;
 }
 
 export fn fd_input_release(fd: *base.Fundude, input: u8) u8 {
     fd.inputs &= ~input;
-    c.ggp_sync(fd);
+    // c.ggp_sync(fd);
     return fd.inputs;
 }
 

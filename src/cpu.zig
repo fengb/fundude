@@ -1,27 +1,34 @@
-export const cpu_cond = enum(u32) {
-    CPU_COND_NZ,
-    CPU_COND_Z,
-    CPU_COND_NC,
-    CPU_COND_C,
+pub const cond = enum(u32) {
+    nz,
+    z,
+    nc,
+    c,
 };
 
-export const cpu_reg8 = extern struct {
+pub const Reg8 = packed struct {
     _: u8,
 };
 
-export const cpu_reg16 = extern union {
+pub const Reg16 = packed union {
     _: u16,
     x: struct {
-        _1: cpu_reg8,
-        _0: cpu_reg8,
+        _1: Reg8,
+        _0: Reg8,
     },
 };
 
-export const cpu = extern struct {
-    AF: cpu_reg16,
-    BC: cpu_reg16,
-    DE: cpu_reg16,
-    HL: cpu_reg16,
-    SP: cpu_reg16,
-    PC: cpu_reg16,
+pub const Cpu = packed struct {
+    AF: Reg16,
+    BC: Reg16,
+    DE: Reg16,
+    HL: Reg16,
+    SP: Reg16,
+    PC: Reg16,
+};
+
+pub const Result = struct {
+    jump: u16,
+    length: u16,
+    duration: u8,
+    zasm: []const u8,
 };

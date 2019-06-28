@@ -1,7 +1,8 @@
 const c = @cImport({
-    @cInclude("cpu.h");
     @cInclude("mmu.h");
 });
+
+const cpu = @import("cpu.zig");
 
 pub const WIDTH = 160;
 pub const HEIGHT = 144;
@@ -23,7 +24,7 @@ pub const Fundude = struct {
     background: [256][256]u8,
     window: [256][256]u8,
 
-    cpu: c.cpu,
+    cpu: cpu.Cpu,
     mmu: c.mmu,
 
     interrupt_master: bool,
