@@ -30,10 +30,10 @@ export fn fd_reset(fd: *base.Fundude) void {
     fd.cpu.PC._ = 0;
     fd.interrupt_master = false;
     fd.inputs._ = 0;
+    fd.timer._ = 0;
     fd.mode = .norm;
     fd.clock.cpu = 0;
     fd.clock.ppu = 0;
-    fd.clock.timer = 0;
 }
 
 export fn fd_step(fd: *base.Fundude) i32 {
@@ -88,7 +88,7 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
         }
 
         // c.ppu_step(fd, res.duration);
-        // c.timer_step(fd, res.duration);
+        fd.timer.step(&fd.mmu, res.duration);
 
         fd.cpu.PC._ = res.jump;
         track -= @intCast(i32, res.duration);
