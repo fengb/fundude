@@ -1,4 +1,4 @@
-pub const Io = struct {
+pub const Io = packed struct {
     NR10: u8, // $FF10
     NR11: u8, // $FF11
     NR12: u8, // $FF12
@@ -23,7 +23,10 @@ pub const Io = struct {
     NR50: u8, // $FF24
     NR51: u8, // $FF25
     NR52: u8, // $FF26
-    _pad_ff27_2f: [9]u8,
+
+    // TODO: Zig can't handle misaligned padding
+    _pad_ff27: u8,
+    _pad_ff28_2f: [8]u8,
 
     wave_pattern: [0x10]u8, // $FF30 - FF3F
 };

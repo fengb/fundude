@@ -20,7 +20,8 @@ export fn fd_alloc() ?*base.Fundude {
 
 export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) void {
     fd_reset(fd);
-    fd.mmu.cart = cart[0..cart_length];
+    fd.mmu.cart = cart;
+    fd.mmu.cart_length = cart_length;
     fd.breakpoint = 0;
 }
 
