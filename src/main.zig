@@ -26,7 +26,7 @@ export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) void {
 }
 
 export fn fd_reset(fd: *base.Fundude) void {
-    @memset(@ptrCast([*]u8, &fd.display), 0, @sizeOf(@typeOf(fd.display)));
+    fd.ppu.reset();
     @memset(@ptrCast([*]u8, &fd.mmu.io), 0, @sizeOf(@typeOf(fd.mmu.io)));
     fd.cpu.PC._ = 0;
     fd.interrupt_master = false;
@@ -34,7 +34,6 @@ export fn fd_reset(fd: *base.Fundude) void {
     fd.timer._ = 0;
     fd.mode = .norm;
     fd.clock.cpu = 0;
-    fd.clock.ppu = 0;
 }
 
 export fn fd_step(fd: *base.Fundude) i32 {
@@ -88,7 +87,7 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
             return -9999;
         }
 
-        // c.ppu_step(fd, res.duration);
+        fd.ppu.step(&fd.mmu, res.duration);
         fd.timer.step(&fd.mmu, res.duration);
 
         fd.cpu.PC._ = res.jump;
@@ -143,19 +142,19 @@ export fn fd_input_release(fd: *base.Fundude, input: u8) u8 {
 // }
 
 export fn fd_patterns_ptr(fd: *base.Fundude) *c_void {
-    return &fd.patterns;
+    return &fd.ppu.patterns;
 }
 
 export fn fd_background_ptr(fd: *base.Fundude) *c_void {
-    return &fd.background;
+    return &fd.ppu.background;
 }
 
 export fn fd_window_ptr(fd: *base.Fundude) *c_void {
-    return &fd.window;
+    return &fd.ppu.window;
 }
 
 export fn fd_sprites_ptr(fd: *base.Fundude) *c_void {
-    return &fd.sprites;
+    return &fd.ppu.sprites;
 }
 
 export fn fd_cpu_ptr(fd: *base.Fundude) *c_void {

@@ -1,4 +1,5 @@
 const cpu = @import("cpu.zig");
+const ppu = @import("ppu.zig");
 const ggp = @import("ggp.zig");
 const mmu = @import("mmu.zig");
 const timer = @import("timer.zig");
@@ -19,13 +20,7 @@ pub const SysMode = extern enum {
 };
 
 pub const Fundude = struct {
-    display: [HEIGHT][WIDTH]u8,
-
-    patterns: [128][192]u8,
-    sprites: [32][160]u8,
-    background: [256][256]u8,
-    window: [256][256]u8,
-
+    ppu: ppu.Ppu,
     cpu: cpu.Cpu,
     mmu: mmu.Mmu,
 
