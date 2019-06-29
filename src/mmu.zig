@@ -59,11 +59,11 @@ pub const Mmu = packed struct {
 
     fn get(self: *Mmu, addr: u16) u8 {
         if (self.io.boot_complete != 0 and addr < BEYOND_BOOTLOADER) {
-            return &BOOTLOADER[addr];
+            return BOOTLOADER[addr];
         }
 
-        const ptr = self.ptr(addr);
-        return ptr[0];
+        const p = self.ptr(addr);
+        return p[0];
     }
 
     fn set(self: *Mmu, addr: u16, val: u8) void {

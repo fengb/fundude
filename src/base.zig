@@ -1,4 +1,4 @@
-const cpu = @import("cpu.zig");
+pub const cpu = @import("cpu.zig");
 const ppu = @import("ppu.zig");
 const ggp = @import("ggp.zig");
 const mmu = @import("mmu.zig");
@@ -12,10 +12,11 @@ pub const HEIGHT = 144;
 
 pub const MHz = 4194304;
 
-pub const SysMode = extern enum {
+pub const Mode = extern enum {
     norm,
     halt,
     stop,
+    illegal,
     fatal, // Not a GB mode, this code is bad and we should feel bad
 };
 
@@ -37,5 +38,5 @@ pub const Fundude = struct {
     breakpoint: u16,
     disassembly: [24]u8,
 
-    mode: SysMode,
+    mode: Mode,
 };

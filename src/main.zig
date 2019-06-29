@@ -1,18 +1,17 @@
 const std = @import("std");
-const base = @import("base.zig");
-const cpu = @import("cpu.zig");
-const mmu = @import("mmu.zig");
 
-// const c = @cImport({
-//     @cInclude("cpux.h");
-//     @cInclude("ggpx.h");
-//     @cInclude("irqx.h");
-//     @cInclude("mmux.h");
-//     @cInclude("ppux.h");
-//     @cInclude("timerx.h");
-// });
+const base = @import("base.zig");
 
 const CYCLES_PER_FRAME = (4 * 16742);
+
+export fn malloc(size: usize) ?*c_void {
+    const result = std.heap.wasm_allocator.alloc(u8, size) catch return null;
+    return result.ptr;
+}
+
+export fn free(c_ptr: *c_void) void {
+    // TODO
+}
 
 export fn fd_alloc() ?*base.Fundude {
     return std.heap.wasm_allocator.create(base.Fundude) catch null;
@@ -28,7 +27,7 @@ export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) void {
 export fn fd_reset(fd: *base.Fundude) void {
     fd.ppu.reset();
     @memset(@ptrCast([*]u8, &fd.mmu.io), 0, @sizeOf(@typeOf(fd.mmu.io)));
-    fd.cpu.PC._ = 0;
+    fd.cpu._.PC._ = 0;
     fd.interrupt_master = false;
     fd.inputs._ = 0;
     fd.timer._ = 0;
@@ -49,27 +48,19 @@ export fn fd_step_frames(fd: *base.Fundude, frames: i16) i16 {
     return @intCast(i16, @divFloor(cycles, CYCLES_PER_FRAME));
 }
 
-fn exec_step(fd: *base.Fundude) cpu.Result {
-    return cpu.Result{
-        .jump = fd.cpu.PC._,
-        .length = 0,
-        .duration = 4,
-        .zasm = "*SKIP",
-    };
+fn exec_step(fd: *base.Fundude) base.cpu.Result {
     // const res = c.irq_step(fd);
     // if (res.duration > 0) {
     //     return res;
     // }
-
-    // if (fd.mode == .halt) {
-    //     return c.cpu_result{
-    //         .jump = fd.cpu.PC._,
-    //         .length = 0,
-    //         .duration = 4,
-    //         .zasm = c.zasm0(c"*SKIP"),
-    //     };
-    // }
-    // return c.cpu_step(fd, c.mmu_ptr(&fd.mmu, fd.cpu.PC._));
+    if (fd.mode == .halt) {
+        return base.cpu.Result{
+            .name = "SKIP",
+            .length = 0,
+            .duration = 4,
+        };
+    }
+    return fd.cpu.step(&fd.mmu, fd.mmu.ptr(fd.cpu._.PC._));
 }
 
 export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
@@ -90,10 +81,14 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
         fd.ppu.step(&fd.mmu, res.duration);
         fd.timer.step(&fd.mmu, res.duration);
 
-        fd.cpu.PC._ = res.jump;
+        if (res.jump) |jump| {
+            fd.cpu._.PC._ = jump;
+        } else {
+            fd.cpu._.PC._ += res.length;
+        }
         track -= @intCast(i32, res.duration);
 
-        if (fd.breakpoint == fd.cpu.PC._) {
+        if (fd.breakpoint == fd.cpu._.PC._) {
             fd.clock.cpu = 0;
             return adjusted_cycles - track;
         }
