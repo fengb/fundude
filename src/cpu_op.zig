@@ -1,4 +1,5 @@
 const base = @import("base.zig");
+pub const cb = @import("cpu_opcb.zig").cb;
 
 const Reg8 = base.cpu.Reg8;
 const Reg16 = base.cpu.Reg16;
@@ -556,10 +557,6 @@ pub fn pop_ww___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
     return Result{ .name = "POP", .length = 1, .duration = 12 };
 }
 
-pub fn cb(cpu: *base.Cpu, mmu: *base.Mmu, inst: u8) Result {
-    return Result{ .name = "TODO", .length = 2, .duration = 8 };
-}
-
 // -- internal
 
 fn willCarryInto(size: u5, a: i32, b: i32) bool {
@@ -596,14 +593,14 @@ fn push16(cpu: *base.Cpu, mmu: *base.Mmu, val: u16) void {
     push8(cpu, mmu, @intCast(u8, val >> 0 & 0xFF));
 }
 
-const Bit = struct {
+pub const Bit = struct {
     pub fn get(data: u8, bit: u3) u8 {
         return data >> bit & 1;
     }
 };
 
 // TODO: maybe rename? Not too obvious...
-fn flagShift(cpu: *base.Cpu, val: u8, carry: bool) u8 {
+pub fn flagShift(cpu: *base.Cpu, val: u8, carry: bool) u8 {
     cpu.flags = Flags{
         .Z = val == 0,
         .N = false,
@@ -613,22 +610,22 @@ fn flagShift(cpu: *base.Cpu, val: u8, carry: bool) u8 {
     return val;
 }
 
-fn doRlc(cpu: *base.Cpu, val: u8) u8 {
+pub fn doRlc(cpu: *base.Cpu, val: u8) u8 {
     const msb = Bit.get(val, 7);
     return flagShift(cpu, val << 1 | msb, msb != 0);
 }
 
-fn doRrc(cpu: *base.Cpu, val: u8) u8 {
+pub fn doRrc(cpu: *base.Cpu, val: u8) u8 {
     const lsb = Bit.get(val, 0);
     return flagShift(cpu, val >> 1 | (lsb << 7), lsb != 0);
 }
 
-fn doRl(cpu: *base.Cpu, val: u8) u8 {
+pub fn doRl(cpu: *base.Cpu, val: u8) u8 {
     const msb = Bit.get(val, 7);
     return flagShift(cpu, val << 1 | cpu.flags.c(u8), msb != 0);
 }
 
-fn doRr(cpu: *base.Cpu, val: u8) u8 {
+pub fn doRr(cpu: *base.Cpu, val: u8) u8 {
     const lsb = Bit.get(val, 0);
     return flagShift(cpu, val >> 1 | cpu.flags.c(u8) << 7, lsb != 0);
 }
