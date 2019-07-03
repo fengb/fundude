@@ -46,11 +46,6 @@ pub const Mmu = packed struct {
         @memset(@ptrCast([*]u8, &self.vram), 0, 0x8000);
     }
 
-    fn raw(self: *Mmu) []u8 {
-        const ptr = @ptrCast([*]u8, self);
-        return ptr[0..0x8000];
-    }
-
     fn ptr(self: *Mmu, addr: u16) [*]u8 {
         if (addr < BEYOND_CART) {
             return self.cart + addr;
@@ -80,6 +75,9 @@ pub const Mmu = packed struct {
             // ggp_set(fd, val);
             return;
         }
+
+        const raw = @ptrCast([*]u8, &self.vram);
+        raw[addr - BEYOND_CART] = val;
     }
 };
 
