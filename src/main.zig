@@ -117,24 +117,24 @@ export fn fd_input_release(fd: *base.Fundude, input: u8) u8 {
     return fd.inputs._;
 }
 
-// export fn fd_disassemble(fd: *base.Fundude) ?[*c]u8 {
-//     if (fd.mode == .fatal) {
-//         return null;
-//     }
+export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
+    if (fd.mode == .fatal) {
+        return null;
+    }
 
-//     fd.mmu.io.boot_complete = 1;
-//     const addr = fd.cpu.PC._;
+    fd.mmu.io.boot_complete = 1;
+    const addr = fd.cpu._.PC._;
 
-//     const res = c.cpu_step(fd, &fd.mmu.cart[addr]);
+    const res = fd.cpu.step(&fd.mmu, fd.mmu.cart + addr);
+    fd.cpu._.PC._ += res.length;
 
-//     _ = c.zasm_puts(@ptrCast([*c]u8, &fd.disassembly), @sizeOf(@typeOf(fd.disassembly)), res.zasm);
-//     fd.cpu.PC._ += res.length;
-
-//     if (fd.cpu.PC._ >= fd.mmu.cart_length) {
-//         fd.mode = .fatal;
-//     }
-//     return @ptrCast([*c]u8, &fd.disassembly);
-// }
+    if (fd.cpu._.PC._ >= fd.mmu.cart_length) {
+        fd.mode = .fatal;
+    }
+    std.mem.copy(u8, fd.disassembly[0..], res.name);
+    fd.disassembly[res.name.len] = 0;
+    return fd.disassembly[0..].ptr;
+}
 
 export fn fd_patterns_ptr(fd: *base.Fundude) *c_void {
     return &fd.ppu.patterns;
