@@ -39,6 +39,10 @@ pub const Cpu = packed union {
 
     flags: Flags,
 
+    pub fn reset(cpu: *Cpu) void {
+        cpu._.PC._ = 0;
+    }
+
     pub fn step(cpu: *Cpu, mmu: *base.Mmu, inst: [*]u8) Result {
         return switch (inst[0]) {
             0x00 => op.nop(cpu, mmu),

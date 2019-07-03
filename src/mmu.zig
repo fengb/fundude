@@ -41,6 +41,11 @@ pub const Mmu = packed struct {
     cart: [*]u8, // 0x0000 - 0x8000
     cart_length: usize,
 
+    pub fn reset(self: *Mmu) void {
+        // @memset(@ptrCast([*]u8, &self.io), 0, @sizeOf(@typeOf(self.io)));
+        @memset(@ptrCast([*]u8, &self.vram), 0, 0x8000);
+    }
+
     fn raw(self: *Mmu) []u8 {
         const ptr = @ptrCast([*]u8, self);
         return ptr[0..0x8000];

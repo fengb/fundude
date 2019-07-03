@@ -25,9 +25,9 @@ export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) void {
 }
 
 export fn fd_reset(fd: *base.Fundude) void {
+    fd.mmu.reset();
     fd.ppu.reset();
-    @memset(@ptrCast([*]u8, &fd.mmu.io), 0, @sizeOf(@typeOf(fd.mmu.io)));
-    fd.cpu._.PC._ = 0;
+    fd.cpu.reset();
     fd.interrupt_master = false;
     fd.inputs._ = 0;
     fd.timer._ = 0;
