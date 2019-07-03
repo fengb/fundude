@@ -335,7 +335,7 @@ pub fn ldh_rr_A8(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8, src: u8) Result {
 }
 
 pub fn inc_ww___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
-    tgt._ += 1;
+    tgt._ +%= 1;
     return Result{ .name = "INC", .length = 1, .duration = 8 };
 }
 
@@ -359,12 +359,12 @@ pub fn inc_rr___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8) Result {
         .H = willCarryInto(4, tgt._, 1),
         .C = cpu.flags.C,
     };
-    tgt._ += 1;
+    tgt._ +%= 1;
     return Result{ .name = "INC", .length = 1, .duration = 4 };
 }
 
 pub fn dec_ww___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
-    tgt._ -= 1;
+    tgt._ -%= 1;
     return Result{ .name = "DEC", .length = 1, .duration = 8 };
 }
 
@@ -388,7 +388,7 @@ pub fn dec_rr___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8) Result {
         .H = willBorrowFrom(4, tgt._, 1),
         .C = cpu.flags.C,
     };
-    tgt._ -= 1;
+    tgt._ -%= 1;
     return Result{ .name = "DEC", .length = 1, .duration = 4 };
 }
 

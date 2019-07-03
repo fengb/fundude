@@ -27,7 +27,7 @@ pub const Timer = struct {
         const overflowed = mmu.io.timer.TIMA < start;
         if (overflowed) {
             // TODO: this effect actually happen 1 cycle later
-            mmu.io.timer.TIMA += mmu.io.timer.TMA;
+            mmu.io.timer.TIMA +%= mmu.io.timer.TMA;
             mmu.io.IF.timer = true;
         }
     }
