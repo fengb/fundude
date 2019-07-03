@@ -8,7 +8,7 @@ interface Item {
 }
 
 interface Props {
-  loading?: React.ReactNode;
+  autoBoot: boolean,
   bootCart: Uint8Array;
   children: React.ReactNode;
 }
@@ -38,13 +38,15 @@ export class Provider extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    this.run();
+    if (this.props.autoBoot) {
+      this.run();
+    } else {
+      this.state.fd.changed.add(this.handleChange);
+    }
   }
 
   handleChange() {
-    if (!this.state.isRunning) {
-      this.forceUpdate();
-    }
+    this.forceUpdate();
   }
 
   spin() {
@@ -76,7 +78,7 @@ export class Provider extends React.Component<Props, State> {
 
   render() {
     if (!this.state.fd) {
-      return this.props.loading || null;
+      return null;
     }
 
     return (

@@ -117,7 +117,7 @@ export default function(props: { debug?: boolean }) {
     setDebug(window.location.hash.includes("debug"))
   );
   return (
-    <FD.Provider bootCart={BOOTLOADER}>
+    <FD.Provider bootCart={BOOTLOADER} autoBoot={!debug}>
       <div className={CSS.root}>
         {debug && <Debug.Left />}
         <App debug={debug} />
