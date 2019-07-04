@@ -5,17 +5,23 @@ pub fn Matrix(comptime T: type, width: usize, height: usize) type {
         const Self = @This();
 
         array: [height * width]T,
-        width: usize = width,
-        height: usize = height,
+        slice: MatrixSlice(T),
 
-        slice: MatrixSlice(T) = MatrixSlice(T){
-            .slice = array[0..],
-            .width = width,
-            .height = height,
-        },
+        pub fn width(self: Self) usize {
+            return width;
+        }
 
-        pub fn setAll(self: *Self, val: T) void {
+        pub fn height(self: Self) usize {
+            return height;
+        }
+
+        pub fn reset(self: *Self, val: T) void {
             std.mem.set(T, self.array[0..], val);
+            self.slice = MatrixSlice(T){
+                .slice = self.array[0..],
+                .width = width,
+                .height = height,
+            };
         }
 
         pub fn get(self: Self, x: usize, y: usize) T {
@@ -47,6 +53,8 @@ pub fn MatrixSlice(comptime T: type) type {
         }
 
         fn idx(self: Self, x: usize, y: usize) usize {
+            std.debug.assert(x < self.width);
+            std.debug.assert(y < self.height);
             return x + y * self.width;
         }
     };

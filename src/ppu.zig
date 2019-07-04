@@ -10,6 +10,45 @@ const DOTS_PER_LINE = 456;
 const BUFFER_LINES = 10;
 const DOTS_PER_FRAME = (SCREEN_HEIGHT + BUFFER_LINES) * DOTS_PER_LINE;
 
+pub const Io = packed struct {
+    LCDC: packed struct {
+        bg_enable: bool,
+        obj_enable: bool,
+        obj_size: u1,
+        bg_tile_map: TileMapAddressing,
+        bg_window_tile_data: TileAddressing,
+        window_enable: bool,
+        window_tile_map: TileMapAddressing,
+        lcd_enable: bool,
+    },
+    STAT: packed struct {
+        mode: LcdcMode,
+        coincidence: bool,
+        irq_hblank: bool,
+        irq_vblank: bool,
+        irq_oam: bool,
+        irq_coincidence: bool,
+        _pad: u1,
+    },
+    SCY: u8, // $FF42
+    SCX: u8, // $FF43
+    LY: u8, // $FF44
+    LYC: u8, // $FF45
+    DMA: u8, // $FF46
+    BGP: ColorPalette, // $FF47
+    OBP0: ColorPalette, // $FF48
+    OBP1: ColorPalette, // $FF49
+    WY: u8, // $FF4A
+    WX: u8, // $FF4B
+
+    fn spritePalette(self: Io, selection: SpritePalette) ColorPalette {
+        return switch (selection) {
+            .OBP0 => self.OBP0,
+            .OBP1 => self.OBP1,
+        };
+    }
+};
+
 const LcdcMode = enum(u2) {
     hblank = 0,
     vblank = 1,
@@ -18,10 +57,10 @@ const LcdcMode = enum(u2) {
 };
 
 const Color = enum(u2) {
-    _0,
-    _1,
-    _2,
-    _3,
+    _0 = 0,
+    _1 = 1,
+    _2 = 2,
+    _3 = 3,
 
     pub fn init(val: u16, bit: u4) Color {
         const hi = @intCast(u2, val >> bit & 1);
@@ -34,20 +73,25 @@ const ColorPalette = packed struct {
     _: u8,
 
     pub fn none() ColorPalette {
-        return ColorPalette{ ._ = 0b00011011 };
+        return ColorPalette{ ._ = 0b11100100 };
     }
 
     pub fn toShade(self: ColorPalette, color: Color) u2 {
-        const int = @enumToInt(color);
+        const int = @intCast(u3, @enumToInt(color));
         return @intCast(u2, self._ >> (int * 2) & 0b11);
     }
 };
+
+test "ColorPalette" {
+    const pal = ColorPalette.none();
+    std.debug.warn("{} {} {} {}\n", pal.toShade(._0), pal.toShade(._1), pal.toShade(._2), pal.toShade(._3));
+}
 
 const Pattern = packed struct {
     _: [8]u16,
 
     pub fn pixelSize() comptime_int {
-        return @sizeOf(Pattern);
+        return 8;
     }
 };
 
@@ -125,7 +169,7 @@ pub const Vram = packed struct {
 pub const Ppu = struct {
     screen: Matrix(u8, SCREEN_WIDTH, SCREEN_HEIGHT),
 
-    patterns: Matrix(u8, 160, 32),
+    patterns: Matrix(u8, 192, 128),
     sprites: Matrix(u8, 160, 32),
     background: Matrix(u8, 256, 256),
     window: Matrix(u8, 256, 256),
@@ -135,11 +179,11 @@ pub const Ppu = struct {
     pub fn reset(self: *Ppu) void {
         self.clock = 0;
 
-        self.screen.setAll(0);
-        self.patterns.setAll(0);
-        self.sprites.setAll(0);
-        self.background.setAll(0);
-        self.window.setAll(0);
+        self.screen.reset(0);
+        self.patterns.reset(0);
+        self.sprites.reset(0);
+        self.background.reset(0);
+        self.window.reset(0);
     }
 
     pub fn step(self: *Ppu, mmu: *base.Mmu, cycles: u16) void {
@@ -224,7 +268,7 @@ pub const Ppu = struct {
             while (y < SCREEN_HEIGHT) : (y += 1) {
                 var x = usize(0);
                 while (x < SCREEN_HEIGHT) : (x += 1) {
-                    const pixel = self.background.get((scx + x) % self.background.width, (scy + y) % self.background.height);
+                    const pixel = self.background.get((scx + x) % self.background.width(), (scy + y) % self.background.height());
                     self.screen.set(x, y, pixel);
                 }
             }
@@ -289,44 +333,5 @@ pub const Ppu = struct {
                 matrix.set(x, y, palette.toShade(color));
             }
         }
-    }
-};
-
-pub const Io = packed struct {
-    LCDC: packed struct {
-        bg_enable: bool,
-        obj_enable: bool,
-        obj_size: u1,
-        bg_tile_map: TileMapAddressing,
-        bg_window_tile_data: TileAddressing,
-        window_enable: bool,
-        window_tile_map: TileMapAddressing,
-        lcd_enable: bool,
-    },
-    STAT: packed struct {
-        mode: LcdcMode,
-        coincidence: bool,
-        irq_hblank: bool,
-        irq_vblank: bool,
-        irq_oam: bool,
-        irq_coincidence: bool,
-        _pad: u1,
-    },
-    SCY: u8, // $FF42
-    SCX: u8, // $FF43
-    LY: u8, // $FF44
-    LYC: u8, // $FF45
-    DMA: u8, // $FF46
-    BGP: ColorPalette, // $FF47
-    OBP0: ColorPalette, // $FF48
-    OBP1: ColorPalette, // $FF49
-    WY: u8, // $FF4A
-    WX: u8, // $FF4B
-
-    fn spritePalette(self: Io, selection: SpritePalette) ColorPalette {
-        return switch (selection) {
-            .OBP0 => self.OBP0,
-            .OBP1 => self.OBP1,
-        };
     }
 };
