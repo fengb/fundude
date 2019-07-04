@@ -1,3 +1,5 @@
+const std = @import("std");
+
 const ggp = @import("ggp.zig");
 const lpt = @import("lpt.zig");
 const timer = @import("timer.zig");
@@ -48,7 +50,8 @@ pub const Mmu = packed struct {
 
     fn ptr(self: *Mmu, addr: u16) [*]u8 {
         if (addr < BEYOND_CART) {
-            return self.cart + addr;
+            // TODO: remove min check once MBC is complete
+            return self.cart + std.math.min(addr, self.cart_length);
         } else if (0xE000 <= addr and addr < 0xFE00) {
             // Echo of 8kB Internal RAM
             return self.ram[0..].ptr + (addr - 0xE000);
