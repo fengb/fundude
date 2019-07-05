@@ -305,9 +305,9 @@ pub const Ppu = struct {
         const tile_map = mmu.vram.tile_maps.get(tile_map_addr);
         const tile_addressing = mmu.io.ppu.LCDC.bg_window_tile_data;
 
-        var i = usize(0);
-        while (i < BG_TILES) : (i += 0) {
-            const tile = mmu.vram.patterns.get(tile_addressing, @intCast(u8, i));
+        var i = u16(0);
+        while (i < BG_TILES) : (i += 1) {
+            const tile = mmu.vram.patterns.get(tile_addressing, tile_map._[i]);
             drawPattern(matrix, i, tile, mmu.io.ppu.BGP);
         }
     }
