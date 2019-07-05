@@ -69,6 +69,7 @@ pub const Cpu = struct {
                 .duration = 4,
             };
         } else {
+            // TODO: optimize
             return self.opStep(mmu, mmu.ptr(self.reg._16.PC._));
         }
     }
@@ -112,7 +113,7 @@ pub const Cpu = struct {
         return self.opStep(mmu, &inst);
     }
 
-    fn opStep(cpu: *Cpu, mmu: *base.Mmu, inst: [*]u8) Result {
+    fn opStep(cpu: *Cpu, mmu: *base.Mmu, inst: [*]const u8) Result {
         return switch (inst[0]) {
             0x00 => op.nop(cpu, mmu),
             0x01 => op.ld__ww_df(cpu, mmu, &cpu.reg._16.BC, with16(inst)),
@@ -389,10 +390,10 @@ pub const Cpu = struct {
     }
 };
 
-fn with8(inst: [*]u8) u8 {
+fn with8(inst: [*]const u8) u8 {
     return inst[1];
 }
 
-fn with16(inst: [*]u8) u16 {
+fn with16(inst: [*]const u8) u16 {
     return @intCast(u16, inst[2]) << 8 | inst[1];
 }

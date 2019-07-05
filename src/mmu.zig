@@ -48,7 +48,11 @@ pub const Mmu = packed struct {
         @memset(@ptrCast([*]u8, &self.vram), 0, 0x8000);
     }
 
-    fn ptr(self: *Mmu, addr: u16) [*]u8 {
+    fn ptr(self: *Mmu, addr: u16) [*]const u8 {
+        if (self.io.boot_complete == 0 and addr < BEYOND_BOOTLOADER) {
+            return BOOTLOADER.ptr + addr;
+        }
+
         if (addr < BEYOND_CART) {
             // TODO: remove min check once MBC is complete
             return self.cart + std.math.min(addr, self.cart_length);
@@ -61,10 +65,6 @@ pub const Mmu = packed struct {
     }
 
     fn get(self: *Mmu, addr: u16) u8 {
-        if (self.io.boot_complete != 0 and addr < BEYOND_BOOTLOADER) {
-            return BOOTLOADER[addr];
-        }
-
         const p = self.ptr(addr);
         return p[0];
     }
@@ -84,7 +84,7 @@ pub const Mmu = packed struct {
     }
 };
 
-const BOOTLOADER = [0x100]u8{
+const BOOTLOADER: []const u8 = [0x100]u8{
     0x31, 0xfe, 0xff, 0xaf, 0x21, 0xff, 0x9f, 0x32, 0xcb, 0x7c, 0x20, 0xfb, 0x21, 0x26, 0xff, 0x0e,
     0x11, 0x3e, 0x80, 0x32, 0xe2, 0x0c, 0x3e, 0xf3, 0xe2, 0x32, 0x3e, 0x77, 0x77, 0x3e, 0xfc, 0xe0,
     0x47, 0x11, 0x04, 0x01, 0x21, 0x10, 0x80, 0x1a, 0xcd, 0x95, 0x00, 0xcd, 0x96, 0x00, 0x13, 0x7b,
