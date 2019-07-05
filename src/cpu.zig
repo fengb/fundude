@@ -1,5 +1,6 @@
 const base = @import("base.zig");
 const op = @import("cpu_op.zig");
+const irq = @import("irq.zig");
 
 pub const Result = op.Result;
 
@@ -43,12 +44,58 @@ pub const Cpu = struct {
         flags: Flags,
     },
 
-    pub fn reset(cpu: *Cpu) void {
-        cpu.interrupt_master = false;
-        cpu.reg._16.PC._ = 0;
+    pub fn reset(self: *Cpu) void {
+        self.interrupt_master = false;
+        self.reg._16.PC._ = 0;
     }
 
-    pub fn step(cpu: *Cpu, mmu: *base.Mmu, inst: [*]u8) Result {
+    pub fn step(self: *Cpu, mmu: *base.Mmu) Result {
+        if (self.irqStep(mmu)) |res| {
+            return res;
+        } else {
+            return self.opStep(mmu, mmu.ptr(self.reg._16.PC._));
+        }
+    }
+
+    fn irqStep(self: *Cpu, mmu: *base.Mmu) ?Result {
+        if (!self.interrupt_master) {
+            return null;
+        }
+
+        const OP_CALL = 0xCD;
+        const cmp = mmu.io.IF.cmp(mmu.interrupt_enable);
+        const addr = switch (cmp.active() orelse return null) {
+            .vblank => blk: {
+                mmu.io.IF.vblank = false;
+                break :blk u8(0x40);
+            },
+            .lcd_stat => blk: {
+                mmu.io.IF.vblank = false;
+                break :blk u8(0x40);
+            },
+            .timer => blk: {
+                mmu.io.IF.vblank = false;
+                break :blk u8(0x40);
+            },
+            .serial => blk: {
+                mmu.io.IF.vblank = false;
+                break :blk u8(0x40);
+            },
+            .joypad => blk: {
+                mmu.io.IF.vblank = false;
+                break :blk u8(0x40);
+            },
+        };
+
+        self.interrupt_master = false;
+        // TODO: this is silly -- we reverse the hacked offset in OP CALL
+        self.reg._16.PC._ -= 3;
+
+        const inst = [_]u8{ OP_CALL, addr, 0 };
+        return self.opStep(mmu, &inst);
+    }
+
+    fn opStep(cpu: *Cpu, mmu: *base.Mmu, inst: [*]u8) Result {
         return switch (inst[0]) {
             0x00 => op.nop(cpu, mmu),
             0x01 => op.ld__ww_df(cpu, mmu, &cpu.reg._16.BC, with16(inst)),

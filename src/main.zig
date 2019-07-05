@@ -48,10 +48,6 @@ export fn fd_step_frames(fd: *base.Fundude, frames: i16) i16 {
 }
 
 fn exec_step(fd: *base.Fundude) base.cpu.Result {
-    // const res = c.irq_step(fd);
-    // if (res.duration > 0) {
-    //     return res;
-    // }
     if (fd.mode == .halt) {
         return base.cpu.Result{
             .name = "SKIP",
@@ -59,7 +55,7 @@ fn exec_step(fd: *base.Fundude) base.cpu.Result {
             .duration = 4,
         };
     }
-    return fd.cpu.step(&fd.mmu, fd.mmu.ptr(fd.cpu.reg._16.PC._));
+    return fd.cpu.step(&fd.mmu);
 }
 
 export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
@@ -103,7 +99,7 @@ export fn fd_input_press(fd: *base.Fundude, input: u8) u8 {
         if (fd.mode == .stop) {
             fd.mode = .norm;
         }
-        // fd.mmu.io.IF.joypad = true;
+        fd.mmu.io.IF.joypad = true;
         fd.inputs._ |= input;
         fd.inputs.update(&fd.mmu.io.ggp);
     }
@@ -124,7 +120,8 @@ export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
     fd.mmu.io.boot_complete = 1;
     const addr = fd.cpu.reg._16.PC._;
 
-    const res = fd.cpu.step(&fd.mmu, fd.mmu.cart + addr);
+    // TODO: explicitly decode
+    const res = fd.cpu.opStep(&fd.mmu, fd.mmu.cart + addr);
     fd.cpu.reg._16.PC._ += res.length;
 
     if (fd.cpu.reg._16.PC._ >= fd.mmu.cart_length) {
@@ -151,8 +148,9 @@ export fn fd_sprites_ptr(fd: *base.Fundude) *c_void {
     return &fd.ppu.sprites;
 }
 
+// TODO: rename?
 export fn fd_cpu_ptr(fd: *base.Fundude) *c_void {
-    return &fd.cpu;
+    return &fd.cpu.reg;
 }
 
 export fn fd_mmu_ptr(fd: *base.Fundude) *c_void {
