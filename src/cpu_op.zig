@@ -62,7 +62,7 @@ pub fn ccf(cpu: *base.Cpu, mmu: *base.Mmu) Result {
 }
 
 pub fn int______(cpu: *base.Cpu, mmu: *base.Mmu, set: bool) Result {
-    // fd.interrupt_master = set;
+    cpu.interrupt_master = set;
     return Result{ .length = 1, .duration = 4, .name = if (set) "EI" else "DI" };
 }
 
@@ -164,7 +164,7 @@ pub fn ret______(cpu: *base.Cpu, mmu: *base.Mmu) Result {
 
 pub fn rti______(cpu: *base.Cpu, mmu: *base.Mmu) Result {
     const target = pop16(cpu, mmu);
-    // fd->interrupt_master = true;
+    cpu.interrupt_master = true;
     return Result{ .name = "RETI", .length = 1, .duration = 16, .jump = target };
 }
 

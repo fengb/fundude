@@ -25,8 +25,6 @@ pub const Fundude = struct {
     cpu: cpu.Cpu,
     mmu: mmu.Mmu,
 
-    interrupt_master: bool,
-
     inputs: ggp.Inputs,
     timer: timer.Timer,
 

@@ -28,6 +28,8 @@ pub const Flags = packed struct {
 };
 
 pub const Cpu = struct {
+    interrupt_master: bool,
+
     reg: packed union {
         _16: packed struct {
             AF: Reg16,
@@ -42,6 +44,7 @@ pub const Cpu = struct {
     },
 
     pub fn reset(cpu: *Cpu) void {
+        cpu.interrupt_master = false;
         cpu.reg._16.PC._ = 0;
     }
 

@@ -28,7 +28,6 @@ export fn fd_reset(fd: *base.Fundude) void {
     fd.mmu.reset();
     fd.ppu.reset();
     fd.cpu.reset();
-    fd.interrupt_master = false;
     fd.inputs._ = 0;
     fd.timer._ = 0;
     fd.mode = .norm;
