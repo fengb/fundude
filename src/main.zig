@@ -60,7 +60,7 @@ fn exec_step(fd: *base.Fundude) base.cpu.Result {
             .duration = 4,
         };
     }
-    return fd.cpu.step(&fd.mmu, fd.mmu.ptr(fd.cpu._.PC._));
+    return fd.cpu.step(&fd.mmu, fd.mmu.ptr(fd.cpu.reg._16.PC._));
 }
 
 export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
@@ -82,13 +82,13 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
         fd.timer.step(&fd.mmu, res.duration);
 
         if (res.jump) |jump| {
-            fd.cpu._.PC._ = jump;
+            fd.cpu.reg._16.PC._ = jump;
         } else {
-            fd.cpu._.PC._ += res.length;
+            fd.cpu.reg._16.PC._ += res.length;
         }
         track -= @intCast(i32, res.duration);
 
-        if (fd.breakpoint == fd.cpu._.PC._) {
+        if (fd.breakpoint == fd.cpu.reg._16.PC._) {
             fd.clock.cpu = 0;
             return adjusted_cycles - track;
         }
@@ -123,12 +123,12 @@ export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
     }
 
     fd.mmu.io.boot_complete = 1;
-    const addr = fd.cpu._.PC._;
+    const addr = fd.cpu.reg._16.PC._;
 
     const res = fd.cpu.step(&fd.mmu, fd.mmu.cart + addr);
-    fd.cpu._.PC._ += res.length;
+    fd.cpu.reg._16.PC._ += res.length;
 
-    if (fd.cpu._.PC._ >= fd.mmu.cart_length) {
+    if (fd.cpu.reg._16.PC._ >= fd.mmu.cart_length) {
         fd.mode = .fatal;
     }
     std.mem.copy(u8, fd.disassembly[0..], res.name);

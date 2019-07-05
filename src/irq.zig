@@ -6,3 +6,7 @@ pub const Flags = packed struct {
     joypad: bool,
     _pad: u3,
 };
+
+pub const Irq = struct {
+    master: bool,
+};

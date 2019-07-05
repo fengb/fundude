@@ -21,10 +21,10 @@ pub const Cond = enum(u32) {
 
     pub fn check(self: Cond, cpu: base.Cpu) bool {
         return switch (self) {
-            .nz => !cpu.flags.Z,
-            .z => cpu.flags.Z,
-            .nc => !cpu.flags.C,
-            .c => cpu.flags.C,
+            .nz => !cpu.reg.flags.Z,
+            .z => cpu.reg.flags.Z,
+            .nc => !cpu.reg.flags.C,
+            .c => cpu.reg.flags.C,
         };
     }
 };
@@ -42,8 +42,8 @@ pub fn sys(cpu: *base.Cpu, mmu: *base.Mmu, mode: base.Mode) Result {
 }
 
 pub fn scf(cpu: *base.Cpu, mmu: *base.Mmu) Result {
-    cpu.flags = Flags{
-        .Z = cpu.flags.Z,
+    cpu.reg.flags = Flags{
+        .Z = cpu.reg.flags.Z,
         .N = false,
         .H = false,
         .C = true,
@@ -52,11 +52,11 @@ pub fn scf(cpu: *base.Cpu, mmu: *base.Mmu) Result {
 }
 
 pub fn ccf(cpu: *base.Cpu, mmu: *base.Mmu) Result {
-    cpu.flags = Flags{
-        .Z = cpu.flags.Z,
+    cpu.reg.flags = Flags{
+        .Z = cpu.reg.flags.Z,
         .N = false,
         .H = false,
-        .C = !cpu.flags.C,
+        .C = !cpu.reg.flags.C,
     };
     return Result{ .length = 1, .duration = 4, .name = "CCF" };
 }
@@ -78,15 +78,15 @@ pub fn daa_rr___(cpu: *base.Cpu, mmu: *base.Mmu, dst: *Reg8) Result {
     // H is always cleared (for both add and subtract)
     // N is preserved, Z is set the usual way, and the rest of the Z80 flags don't exist
     var val = dst._;
-    var carry = cpu.flags.C;
+    var carry = cpu.reg.flags.C;
 
-    if (cpu.flags.N) {
+    if (cpu.reg.flags.N) {
         // SUB -> DAA
-        if (cpu.flags.H) {
+        if (cpu.reg.flags.H) {
             val -%= 0x6;
         }
 
-        if (cpu.flags.C) {
+        if (cpu.reg.flags.C) {
             val -%= 0x60;
         }
 
@@ -95,11 +95,11 @@ pub fn daa_rr___(cpu: *base.Cpu, mmu: *base.Mmu, dst: *Reg8) Result {
         }
     } else {
         // ADD -> DAA
-        if (cpu.flags.H or (dst._ >> 0 & 0xF) > 0x9) {
+        if (cpu.reg.flags.H or (dst._ >> 0 & 0xF) > 0x9) {
             val +%= 0x6;
         }
 
-        if (cpu.flags.C or (dst._ >> 4 & 0xF) > 0x9) {
+        if (cpu.reg.flags.C or (dst._ >> 4 & 0xF) > 0x9) {
             val +%= 0x60;
         }
 
@@ -109,9 +109,9 @@ pub fn daa_rr___(cpu: *base.Cpu, mmu: *base.Mmu, dst: *Reg8) Result {
     }
 
     dst._ = val;
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = dst._ == 0,
-        .N = cpu.flags.N,
+        .N = cpu.reg.flags.N,
         .H = false,
         .C = carry,
     };
@@ -125,7 +125,7 @@ pub fn jr__R8___(cpu: *base.Cpu, mmu: *base.Mmu, val: u8) Result {
         .name = "JR",
         .length = INST_LENGTH,
         .duration = 12,
-        .jump = magicAdd(cpu._.PC._ + INST_LENGTH, offset),
+        .jump = magicAdd(cpu.reg._16.PC._ + INST_LENGTH, offset),
     };
 }
 
@@ -136,7 +136,7 @@ pub fn jr__if_R8(cpu: *base.Cpu, mmu: *base.Mmu, cond: Cond, val: u8) Result {
         .name = "JR",
         .length = INST_LENGTH,
         .duration = 12,
-        .jump = if (cond.check(cpu.*)) magicAdd(cpu._.PC._ + INST_LENGTH, offset) else null,
+        .jump = if (cond.check(cpu.*)) magicAdd(cpu.reg._16.PC._ + INST_LENGTH, offset) else null,
     };
 }
 
@@ -178,7 +178,7 @@ pub fn ret_if___(cpu: *base.Cpu, mmu: *base.Mmu, cond: Cond) Result {
 }
 
 pub fn rst_d8___(cpu: *base.Cpu, mmu: *base.Mmu, target: u8) Result {
-    push16(cpu, mmu, cpu._.PC._ + 1);
+    push16(cpu, mmu, cpu.reg._16.PC._ + 1);
     return Result{
         .name = "RST",
         .length = 1,
@@ -188,7 +188,7 @@ pub fn rst_d8___(cpu: *base.Cpu, mmu: *base.Mmu, target: u8) Result {
 }
 
 pub fn cal_AF___(cpu: *base.Cpu, mmu: *base.Mmu, target: u16) Result {
-    push16(cpu, mmu, cpu._.PC._ + 3);
+    push16(cpu, mmu, cpu.reg._16.PC._ + 3);
     return Result{
         .name = "CALL",
         .length = 3,
@@ -203,7 +203,7 @@ pub fn cal_if_AF(cpu: *base.Cpu, mmu: *base.Mmu, cond: Cond, target: u16) Result
         .length = 3,
         .duration = 24,
         .jump = if (!cond.check(cpu.*)) null else blk: {
-            push16(cpu, mmu, cpu._.PC._ + 3);
+            push16(cpu, mmu, cpu.reg._16.PC._ + 3);
             break :blk target;
         },
     };
@@ -211,25 +211,25 @@ pub fn cal_if_AF(cpu: *base.Cpu, mmu: *base.Mmu, cond: Cond, target: u16) Result
 
 pub fn rlc_rr___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8) Result {
     tgt._ = doRlc(cpu, tgt._);
-    cpu.flags.Z = false;
+    cpu.reg.flags.Z = false;
     return Result{ .name = "RLCA", .length = 1, .duration = 4 };
 }
 
 pub fn rla_rr___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8) Result {
     tgt._ = doRl(cpu, tgt._);
-    cpu.flags.Z = false;
+    cpu.reg.flags.Z = false;
     return Result{ .name = "RLA", .length = 1, .duration = 4 };
 }
 
 pub fn rrc_rr___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8) Result {
     tgt._ = doRrc(cpu, tgt._);
-    cpu.flags.Z = false;
+    cpu.reg.flags.Z = false;
     return Result{ .name = "RRC", .length = 1, .duration = 4 };
 }
 
 pub fn rra_rr___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8) Result {
     tgt._ = doRr(cpu, tgt._);
-    cpu.flags.Z = false;
+    cpu.reg.flags.Z = false;
     return Result{ .name = "RRA", .length = 1, .duration = 4 };
 }
 
@@ -296,7 +296,7 @@ pub fn ld__ww_ww(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16, src: *ali
 
 pub fn ldh_ww_R8(cpu: *base.Cpu, mmu: *base.Mmu, src: *align(1) Reg16, val: u8) Result {
     const offset = @bitCast(i8, val);
-    cpu._.HL._ = magicAdd(src._, offset);
+    cpu.reg._16.HL._ = magicAdd(src._, offset);
     return Result{ .name = "LDHL", .length = 2, .duration = 16 };
 }
 
@@ -341,11 +341,11 @@ pub fn inc_ww___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
 
 pub fn inc_WW___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
     const val = mmu.get(tgt._);
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = (val +% 1) == 0,
         .N = false,
         .H = willCarryInto(4, val, 1),
-        .C = cpu.flags.C,
+        .C = cpu.reg.flags.C,
     };
 
     mmu.set(tgt._, val +% 1);
@@ -353,11 +353,11 @@ pub fn inc_WW___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
 }
 
 pub fn inc_rr___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8) Result {
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = (tgt._ +% 1) == 0,
         .N = false,
         .H = willCarryInto(4, tgt._, 1),
-        .C = cpu.flags.C,
+        .C = cpu.reg.flags.C,
     };
     tgt._ +%= 1;
     return Result{ .name = "INC", .length = 1, .duration = 4 };
@@ -371,22 +371,22 @@ pub fn dec_ww___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
 pub fn dec_WW___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
     const val = mmu.get(tgt._);
 
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = (val -% 1) == 0,
         .N = true,
         .H = willBorrowFrom(4, val, 1),
-        .C = cpu.flags.C,
+        .C = cpu.reg.flags.C,
     };
     mmu.set(tgt._, val -% 1);
     return Result{ .name = "DEC", .length = 1, .duration = 12 };
 }
 
 pub fn dec_rr___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8) Result {
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = (tgt._ -% 1) == 0,
         .N = true,
         .H = willBorrowFrom(4, tgt._, 1),
-        .C = cpu.flags.C,
+        .C = cpu.reg.flags.C,
     };
     tgt._ -%= 1;
     return Result{ .name = "DEC", .length = 1, .duration = 4 };
@@ -408,8 +408,8 @@ pub fn add_rr_d8(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8, val: u8) Result {
 }
 
 pub fn add_ww_ww(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16, src: *align(1) Reg16) Result {
-    cpu.flags = Flags{
-        .Z = cpu.flags.Z,
+    cpu.reg.flags = Flags{
+        .Z = cpu.reg.flags.Z,
         .N = false,
         .H = willCarryInto(12, tgt._, src._),
         .C = willCarryInto(16, tgt._, src._),
@@ -420,7 +420,7 @@ pub fn add_ww_ww(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16, src: *ali
 
 pub fn add_ww_R8(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16, val: u8) Result {
     const offset = @bitCast(i8, val);
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = false,
         .N = false,
         .H = willCarryInto(12, tgt._, offset),
@@ -536,11 +536,11 @@ pub fn cp__rr_d8(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8, val: u8) Result {
 }
 
 pub fn cpl_rr___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8) Result {
-    cpu.flags = Flags{
-        .Z = cpu.flags.Z,
+    cpu.reg.flags = Flags{
+        .Z = cpu.reg.flags.Z,
         .N = true,
         .H = true,
-        .C = cpu.flags.C,
+        .C = cpu.reg.flags.C,
     };
     tgt._ = ~tgt._;
     return Result{ .name = "CPL", .length = 1, .duration = 4 };
@@ -553,7 +553,7 @@ pub fn psh_ww___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
 
 pub fn pop_ww___(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16) Result {
     tgt._ = pop16(cpu, mmu);
-    cpu.flags._pad = 0;
+    cpu.reg.flags._pad = 0;
     return Result{ .name = "POP", .length = 1, .duration = 12 };
 }
 
@@ -573,8 +573,8 @@ fn willBorrowFrom(size: u5, a: u16, b: u16) bool {
 }
 
 fn pop8(cpu: *base.Cpu, mmu: *base.Mmu) u8 {
-    defer cpu._.SP._ += 1;
-    return mmu.get(cpu._.SP._);
+    defer cpu.reg._16.SP._ += 1;
+    return mmu.get(cpu.reg._16.SP._);
 }
 
 fn pop16(cpu: *base.Cpu, mmu: *base.Mmu) u16 {
@@ -584,8 +584,8 @@ fn pop16(cpu: *base.Cpu, mmu: *base.Mmu) u16 {
 }
 
 fn push8(cpu: *base.Cpu, mmu: *base.Mmu, val: u8) void {
-    cpu._.SP._ -= 1;
-    mmu.set(cpu._.SP._, val);
+    cpu.reg._16.SP._ -= 1;
+    mmu.set(cpu.reg._16.SP._, val);
 }
 
 fn push16(cpu: *base.Cpu, mmu: *base.Mmu, val: u16) void {
@@ -601,7 +601,7 @@ pub const Bit = struct {
 
 // TODO: maybe rename? Not too obvious...
 pub fn flagShift(cpu: *base.Cpu, val: u8, carry: bool) u8 {
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = val == 0,
         .N = false,
         .H = false,
@@ -622,16 +622,16 @@ pub fn doRrc(cpu: *base.Cpu, val: u8) u8 {
 
 pub fn doRl(cpu: *base.Cpu, val: u8) u8 {
     const msb = Bit.get(val, 7);
-    return flagShift(cpu, val << 1 | cpu.flags.c(u8), msb != 0);
+    return flagShift(cpu, val << 1 | cpu.reg.flags.c(u8), msb != 0);
 }
 
 pub fn doRr(cpu: *base.Cpu, val: u8) u8 {
     const lsb = Bit.get(val, 0);
-    return flagShift(cpu, val >> 1 | cpu.flags.c(u8) << 7, lsb != 0);
+    return flagShift(cpu, val >> 1 | cpu.reg.flags.c(u8) << 7, lsb != 0);
 }
 
 fn doAddRr(cpu: *base.Cpu, tgt: *Reg8, val: u8) void {
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = (tgt._ +% val) == 0,
         .N = false,
         .H = willCarryInto(4, tgt._, val),
@@ -641,8 +641,8 @@ fn doAddRr(cpu: *base.Cpu, tgt: *Reg8, val: u8) void {
 }
 
 fn doAdcRr(cpu: *base.Cpu, tgt: *Reg8, val: u8) void {
-    const carry = cpu.flags.c(u1);
-    cpu.flags = Flags{
+    const carry = cpu.reg.flags.c(u1);
+    cpu.reg.flags = Flags{
         .Z = (tgt._ +% val +% carry) == 0,
         .N = false,
         .H = willCarryInto(4, tgt._, val) or willCarryInto(4, tgt._, val +% carry),
@@ -657,8 +657,8 @@ fn doSubRr(cpu: *base.Cpu, tgt: *Reg8, val: u8) void {
 }
 
 fn doSbcRr(cpu: *base.Cpu, tgt: *Reg8, val: u8) void {
-    const carry = cpu.flags.c(u1);
-    cpu.flags = Flags{
+    const carry = cpu.reg.flags.c(u1);
+    cpu.reg.flags = Flags{
         .Z = (tgt._ -% val -% carry) == 0,
         .N = true,
         .H = willBorrowFrom(4, tgt._, val) or willBorrowFrom(4, tgt._ -% val, carry),
@@ -668,7 +668,7 @@ fn doSbcRr(cpu: *base.Cpu, tgt: *Reg8, val: u8) void {
 }
 
 fn doCpRr(cpu: *base.Cpu, tgt: *Reg8, val: u8) void {
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = (tgt._ -% val) == 0,
         .N = true,
         .H = willBorrowFrom(4, tgt._, val),
@@ -677,7 +677,7 @@ fn doCpRr(cpu: *base.Cpu, tgt: *Reg8, val: u8) void {
 }
 
 fn doAndRr(cpu: *base.Cpu, tgt: *Reg8, val: u8) void {
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = (tgt._ & val) == 0,
         .N = false,
         .H = true,

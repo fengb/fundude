@@ -58,11 +58,11 @@ fn nameGlue(comptime prefix: []const u8, val: u3) []const u8 {
 }
 
 fn cb_bit(cpu: *base.Cpu, val: u8, bit: u3) Result {
-    cpu.flags = Flags{
+    cpu.reg.flags = Flags{
         .Z = cpu_op.Bit.get(val, bit) == 0,
         .N = false,
         .H = true,
-        .C = cpu.flags.C,
+        .C = cpu.reg.flags.C,
     };
     return Result{ .name = nameGlue("BIT", bit), .val = val };
 }
@@ -79,14 +79,14 @@ fn cb_set(cpu: *base.Cpu, val: u8, bit: u3) Result {
 
 fn cb_tgt(cpu: *base.Cpu, op: u8) ?*Reg8 {
     return switch (op & 7) {
-        0 => &cpu._.BC.x._0,
-        1 => &cpu._.BC.x._1,
-        2 => &cpu._.DE.x._0,
-        3 => &cpu._.DE.x._1,
-        4 => &cpu._.HL.x._0,
-        5 => &cpu._.HL.x._1,
+        0 => &cpu.reg._16.BC.x._0,
+        1 => &cpu.reg._16.BC.x._1,
+        2 => &cpu.reg._16.DE.x._0,
+        3 => &cpu.reg._16.DE.x._1,
+        4 => &cpu.reg._16.HL.x._0,
+        5 => &cpu.reg._16.HL.x._1,
         6 => null,
-        7 => &cpu._.AF.x._0,
+        7 => &cpu.reg._16.AF.x._0,
         else => unreachable,
     };
 }
@@ -139,8 +139,8 @@ pub fn cb(cpu: *base.Cpu, mmu: *base.Mmu, op: u8) cpu_op.Result {
         reg._ = res.val;
         return cpu_op.Result{ .name = res.name, .length = 2, .duration = 8 };
     } else {
-        const res = cb_run(cpu, op, mmu.get(cpu._.HL._));
-        mmu.set(cpu._.HL._, res.val);
+        const res = cb_run(cpu, op, mmu.get(cpu.reg._16.HL._));
+        mmu.set(cpu.reg._16.HL._, res.val);
         return cpu_op.Result{ .name = res.name, .length = 2, .duration = 16 };
     }
 }
