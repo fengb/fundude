@@ -4,6 +4,14 @@ const irq = @import("irq.zig");
 
 pub const Result = op.Result;
 
+pub const Mode = enum {
+    norm,
+    halt,
+    stop,
+    illegal,
+    fatal, // Not a GB mode, this code is bad and we should feel bad
+};
+
 pub const Reg8 = packed struct {
     _: u8,
 };
@@ -29,6 +37,7 @@ pub const Flags = packed struct {
 };
 
 pub const Cpu = struct {
+    mode: Mode,
     interrupt_master: bool,
 
     reg: packed union {
@@ -45,6 +54,7 @@ pub const Cpu = struct {
     },
 
     pub fn reset(self: *Cpu) void {
+        self.mode = .norm;
         self.interrupt_master = false;
         self.reg._16.PC._ = 0;
     }
@@ -52,6 +62,12 @@ pub const Cpu = struct {
     pub fn step(self: *Cpu, mmu: *base.Mmu) Result {
         if (self.irqStep(mmu)) |res| {
             return res;
+        } else if (self.mode == .halt) {
+            return base.cpu.Result{
+                .name = "SKIP",
+                .length = 0,
+                .duration = 4,
+            };
         } else {
             return self.opStep(mmu, mmu.ptr(self.reg._16.PC._));
         }
@@ -87,6 +103,7 @@ pub const Cpu = struct {
             },
         };
 
+        self.mode = .norm;
         self.interrupt_master = false;
         // TODO: this is silly -- we reverse the hacked offset in OP CALL
         self.reg._16.PC._ -= 3;

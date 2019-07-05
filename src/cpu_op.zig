@@ -9,7 +9,6 @@ pub const Result = struct {
     length: u16,
     duration: u8,
     name: []const u8,
-    mode: ?base.Mode = null,
     jump: ?u16 = null,
 };
 
@@ -30,15 +29,17 @@ pub const Cond = enum(u32) {
 };
 
 pub fn ILLEGAL(cpu: *base.Cpu, mmu: *base.Mmu) Result {
-    return Result{ .length = 1, .duration = 4, .name = "ILLEGAL", .mode = .illegal };
+    cpu.mode = .illegal;
+    return Result{ .length = 1, .duration = 4, .name = "ILLEGAL" };
 }
 
 pub fn nop(cpu: *base.Cpu, mmu: *base.Mmu) Result {
     return Result{ .length = 1, .duration = 4, .name = "NOP" };
 }
 
-pub fn sys(cpu: *base.Cpu, mmu: *base.Mmu, mode: base.Mode) Result {
-    return Result{ .length = 1, .duration = 4, .name = "MODE", .mode = mode };
+pub fn sys(cpu: *base.Cpu, mmu: *base.Mmu, mode: base.cpu.Mode) Result {
+    cpu.mode = mode;
+    return Result{ .length = 1, .duration = 4, .name = "MODE" };
 }
 
 pub fn scf(cpu: *base.Cpu, mmu: *base.Mmu) Result {

@@ -12,14 +12,6 @@ pub const HEIGHT = 144;
 
 pub const MHz = 4194304;
 
-pub const Mode = extern enum {
-    norm,
-    halt,
-    stop,
-    illegal,
-    fatal, // Not a GB mode, this code is bad and we should feel bad
-};
-
 pub const Fundude = struct {
     ppu: ppu.Ppu,
     cpu: cpu.Cpu,
@@ -35,6 +27,4 @@ pub const Fundude = struct {
 
     breakpoint: u16,
     disassembly: [24]u8,
-
-    mode: Mode,
 };
