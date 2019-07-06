@@ -111,8 +111,8 @@ pub const SpriteAttr = packed struct {
         priority: bool,
     },
 
-    pub fn isBlank(self: SpriteAttr) bool {
-        return self.x_pos == 0 and self.y_pos == 0 and self.pattern == 0;
+    pub fn isOffScreen(self: SpriteAttr) bool {
+        return self.x_pos == 0 and self.y_pos == 0;
     }
 };
 
@@ -248,17 +248,6 @@ pub const Ppu = struct {
         renderBg(mmu, self.background.slice, mmu.io.ppu.LCDC.bg_tile_map);
         renderBg(mmu, self.window.slice, mmu.io.ppu.LCDC.window_tile_map);
 
-        for (mmu.oam) |sprite_attr, i| {
-            if (sprite_attr.isBlank()) {
-                continue;
-            }
-
-            const pattern = mmu.vram.patterns.get(._8000, sprite_attr.pattern);
-            const palette = mmu.io.ppu.spritePalette(sprite_attr.flags.palette);
-
-            drawPattern(self.sprites.slice, i, pattern, palette);
-        }
-
         // TODO: use memcpy
         if (mmu.io.ppu.LCDC.bg_enable) {
             const scx = mmu.io.ppu.SCX;
@@ -267,7 +256,7 @@ pub const Ppu = struct {
             var y = usize(0);
             while (y < SCREEN_HEIGHT) : (y += 1) {
                 var x = usize(0);
-                while (x < SCREEN_HEIGHT) : (x += 1) {
+                while (x < SCREEN_WIDTH) : (x += 1) {
                     const pixel = self.background.get((scx + x) % self.background.width(), (scy + y) % self.background.height());
                     self.screen.set(x, y, pixel);
                 }
@@ -289,7 +278,8 @@ pub const Ppu = struct {
         }
 
         for (mmu.oam) |sprite_attr, i| {
-            if (sprite_attr.isBlank()) {
+            // if (sprite_attr.isOffScreen() and sprite_attr.pattern == 0) {
+            if (sprite_attr.pattern == 0) {
                 continue;
             }
 
@@ -297,7 +287,9 @@ pub const Ppu = struct {
             const palette = mmu.io.ppu.spritePalette(sprite_attr.flags.palette);
 
             drawPattern(self.sprites.slice, i, pattern, palette);
-            drawPatternXy(self.screen.slice, sprite_attr.x_pos - 8, sprite_attr.y_pos - 16, pattern, palette);
+            if (!sprite_attr.isOffScreen()) {
+                drawPatternXy(self.screen.slice, @intCast(isize, sprite_attr.x_pos) - 8, @intCast(isize, sprite_attr.y_pos) - 16, pattern, palette);
+            }
         }
     }
 
@@ -315,12 +307,12 @@ pub const Ppu = struct {
     // TODO: refactor all of this
     fn drawPattern(matrix: MatrixSlice(u8), idx: usize, pattern: Pattern, palette: ColorPalette) void {
         const transform = matrix.width / Pattern.pixelSize();
-        const tx = idx % transform;
-        const ty = idx / transform;
+        const tx = @intCast(isize, idx % transform);
+        const ty = @intCast(isize, idx / transform);
         drawPatternXy(matrix, tx * Pattern.pixelSize(), ty * Pattern.pixelSize(), pattern, palette);
     }
 
-    fn drawPatternXy(matrix: MatrixSlice(u8), x0: usize, y0: usize, pattern: Pattern, palette: ColorPalette) void {
+    fn drawPatternXy(matrix: MatrixSlice(u8), x0: isize, y0: isize, pattern: Pattern, palette: ColorPalette) void {
         var py = usize(0);
         while (py < Pattern.pixelSize()) : (py += 1) {
             const line = pattern._[py];
@@ -328,9 +320,13 @@ pub const Ppu = struct {
             var px = usize(0);
             while (px < Pattern.pixelSize()) : (px += 1) {
                 const color = Color.init(line, @intCast(u4, Pattern.pixelSize() - px - 1));
-                const x = x0 + px;
-                const y = y0 + py;
-                matrix.set(x, y, palette.toShade(color));
+                // TODO: review these bounds checks
+                // @bitCast will overflow negative into HUGE, which should be fine
+                const x = @bitCast(usize, x0 + @intCast(isize, px));
+                const y = @bitCast(usize, y0 + @intCast(isize, py));
+                if (x < matrix.width and y < matrix.height) {
+                    matrix.set(x, y, palette.toShade(color));
+                }
             }
         }
     }
