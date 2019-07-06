@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const base = @import("base.zig");
+
 const ggp = @import("ggp.zig");
 const lpt = @import("lpt.zig");
 const timer = @import("timer.zig");
@@ -74,8 +76,9 @@ pub const Mmu = packed struct {
             return;
         }
         if (addr == 0xFF00) {
-            // Joypad
-            // ggp_set(fd, val);
+            // TODO: replace magic with sibling references
+            const fd = @fieldParentPtr(base.Fundude, "mmu", self);
+            self.io.ggp.set(val, fd.inputs);
             return;
         }
 

@@ -16,12 +16,13 @@ pub const Io = packed union {
     }
 
     pub fn sync(self: *Io, inputs: Inputs) void {
+        // Hardware quirk: 0 == active
         if (self.bitfields.buttons == 0) {
-            self.bitfields.read = inputs.nibbles.buttons;
+            self.bitfields.read = ~inputs.nibbles.buttons;
             return;
         }
         if (self.bitfields.dpad == 0) {
-            self.bitfields.read = inputs.nibbles.dpad;
+            self.bitfields.read = ~inputs.nibbles.dpad;
             return;
         }
     }
