@@ -1,6 +1,0 @@
----
-BasedOnStyle: Chromium
-AllowShortCaseLabelsOnASingleLine: true
-ColumnLimit: 100
-...
-
