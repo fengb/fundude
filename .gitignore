@@ -1,4 +1,4 @@
 .*
-/build
+/zig-cache
 /dist
 /node_modules

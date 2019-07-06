@@ -1,5 +1,5 @@
 //@ts-ignore
-import WASM from "../../build/fundude.wasm";
+import WASM from "../../zig-cache/fundude.wasm";
 
 import { Signal } from "micro-signals";
 
