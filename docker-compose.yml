@@ -3,4 +3,5 @@ services:
   builder:
     build: .
     volumes:
-      - ".:/opt/fundude"
+      - ".:/app"
+    command: zig build
