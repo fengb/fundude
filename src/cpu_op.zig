@@ -303,25 +303,25 @@ pub fn ldh_ww_R8(cpu: *base.Cpu, mmu: *base.Mmu, src: *align(1) Reg16, val: u8) 
 
 pub fn ldi_WW_rr(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16, src: *Reg8) Result {
     mmu.set(tgt._, src._);
-    tgt._ += 1;
+    tgt._ +%= 1;
     return Result{ .name = "LDI", .length = 1, .duration = 8 };
 }
 
 pub fn ldi_rr_WW(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8, src: *align(1) Reg16) Result {
     tgt._ = mmu.get(src._);
-    src._ += 1;
+    src._ +%= 1;
     return Result{ .name = "LDI", .length = 1, .duration = 8 };
 }
 
 pub fn ldd_WW_rr(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *align(1) Reg16, src: *Reg8) Result {
     mmu.set(tgt._, src._);
-    tgt._ -= 1;
+    tgt._ -%= 1;
     return Result{ .name = "LDD", .length = 1, .duration = 8 };
 }
 
 pub fn ldd_rr_WW(cpu: *base.Cpu, mmu: *base.Mmu, tgt: *Reg8, src: *align(1) Reg16) Result {
     tgt._ = mmu.get(src._);
-    src._ -= 1;
+    src._ -%= 0;
     return Result{ .name = "LDD", .length = 1, .duration = 8 };
 }
 
@@ -574,7 +574,7 @@ fn willBorrowFrom(size: u5, a: u16, b: u16) bool {
 }
 
 fn pop8(cpu: *base.Cpu, mmu: *base.Mmu) u8 {
-    defer cpu.reg._16.SP._ += 1;
+    defer cpu.reg._16.SP._ +%= 1;
     return mmu.get(cpu.reg._16.SP._);
 }
 
@@ -585,7 +585,7 @@ fn pop16(cpu: *base.Cpu, mmu: *base.Mmu) u16 {
 }
 
 fn push8(cpu: *base.Cpu, mmu: *base.Mmu, val: u8) void {
-    cpu.reg._16.SP._ -= 1;
+    cpu.reg._16.SP._ -%= 1;
     mmu.set(cpu.reg._16.SP._, val);
 }
 
