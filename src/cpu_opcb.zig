@@ -77,16 +77,16 @@ fn cb_set(cpu: *base.Cpu, val: u8, bit: u3) Result {
     return Result{ .name = nameGlue("SET", bit), .val = val | mask };
 }
 
-fn cb_tgt(cpu: *base.Cpu, op: u8) ?*Reg8 {
+fn cb_tgt(cpu: *base.Cpu, op: u8) ?Reg8 {
     return switch (op & 7) {
-        0 => &cpu.reg._16.BC.x._0,
-        1 => &cpu.reg._16.BC.x._1,
-        2 => &cpu.reg._16.DE.x._0,
-        3 => &cpu.reg._16.DE.x._1,
-        4 => &cpu.reg._16.HL.x._0,
-        5 => &cpu.reg._16.HL.x._1,
+        0 => Reg8.B,
+        1 => Reg8.C,
+        2 => Reg8.D,
+        3 => Reg8.E,
+        4 => Reg8.H,
+        5 => Reg8.L,
         6 => null,
-        7 => &cpu.reg._16.AF.x._0,
+        7 => Reg8.A,
         else => unreachable,
     };
 }
@@ -135,12 +135,14 @@ fn cb_run(cpu: *base.Cpu, op: u8, val: u8) Result {
 pub fn cb(cpu: *base.Cpu, mmu: *base.Mmu, op: u8) cpu_op.Result {
     var tgt = cb_tgt(cpu, op);
     if (tgt) |reg| {
-        const res = cb_run(cpu, op, reg._);
-        reg._ = res.val;
+        const val = cpu.reg._8.get(reg);
+        const res = cb_run(cpu, op, val);
+        cpu.reg._8.set(reg, res.val);
         return cpu_op.Result{ .name = res.name, .length = 2, .duration = 8 };
     } else {
-        const res = cb_run(cpu, op, mmu.get(cpu.reg._16.HL._));
-        mmu.set(cpu.reg._16.HL._, res.val);
+        const addr = cpu.reg._16.get(.HL);
+        const res = cb_run(cpu, op, mmu.get(addr));
+        mmu.set(addr, res.val);
         return cpu_op.Result{ .name = res.name, .length = 2, .duration = 16 };
     }
 }

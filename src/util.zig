@@ -59,3 +59,22 @@ pub fn MatrixSlice(comptime T: type) type {
         }
     };
 }
+
+// Adapted from https://github.com/ziglang/zig/issues/793#issuecomment-482927820
+pub fn EnumArray(comptime E: type, comptime T: type) type {
+    return packed struct {
+        data: [@memberCount(E)]T,
+
+        fn get(self: @This(), tag: E) T {
+            return self.data[@enumToInt(tag)];
+        }
+
+        fn set(self: *@This(), tag: E, value: T) void {
+            self.data[@enumToInt(tag)] = value;
+        }
+
+        fn copy(self: *@This(), dst: E, src: E) void {
+            self.set(dst, self.get(src));
+        }
+    };
+}

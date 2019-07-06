@@ -61,14 +61,16 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
         fd.ppu.step(&fd.mmu, res.duration);
         fd.timer.step(&fd.mmu, res.duration);
 
-        if (res.jump) |jump| {
-            fd.cpu.reg._16.PC._ = jump;
-        } else {
-            fd.cpu.reg._16.PC._ += res.length;
-        }
+        const pc_val = if (res.jump) |jump|
+            jump
+        else
+            fd.cpu.reg._16.get(.PC) + res.length;
+
+        fd.cpu.reg._16.set(.PC, pc_val);
+
         track -= @intCast(i32, res.duration);
 
-        if (fd.breakpoint == fd.cpu.reg._16.PC._) {
+        if (fd.breakpoint == pc_val) {
             fd.clock.cpu = 0;
             return adjusted_cycles - track;
         }
@@ -103,13 +105,14 @@ export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
     }
 
     fd.mmu.io.boot_complete = 1;
-    const addr = fd.cpu.reg._16.PC._;
+    const addr = fd.cpu.reg._16.get(.PC);
 
     // TODO: explicitly decode
     const res = fd.cpu.opStep(&fd.mmu, fd.mmu.cart + addr);
-    fd.cpu.reg._16.PC._ += res.length;
+    const new_addr = addr + res.length;
+    fd.cpu.reg._16.set(.PC, new_addr);
 
-    if (fd.cpu.reg._16.PC._ >= fd.mmu.cart_length) {
+    if (new_addr >= fd.mmu.cart_length) {
         fd.cpu.mode = .fatal;
     }
     std.mem.copy(u8, fd.disassembly[0..], res.name);
