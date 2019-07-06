@@ -165,6 +165,11 @@ export default class FundudeWasm {
     this.changed.dispatch();
   }
 
+  reset() {
+    WASM.fd_reset(this.pointer);
+    this.changed.dispatch();
+  }
+
   step(): number {
     const cycles = WASM.fd_step(this.pointer);
     this.changed.dispatch();
