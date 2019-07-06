@@ -152,6 +152,6 @@ var r=require("./bundle-url").getBundleURL;function e(r){Array.isArray(r)||(r=[r
 },{"./bundle-url":"ARet"}],"ZgCQ":[function(require,module,exports) {
 module.exports=function(t){return fetch(t).then(function(t){return WebAssembly.instantiateStreaming?WebAssembly.instantiateStreaming(t):t.arrayBuffer().then(function(t){return WebAssembly.instantiate(t)})}).then(function(t){return t.instance.exports})};
 },{}],0:[function(require,module,exports) {
-var b=require("yU0Q");b.register("wasm",require("ZgCQ"));b.load([["fundude.52c72d7c.wasm","qiaq"]]).then(function(){require("zo2T");});
+var b=require("yU0Q");b.register("wasm",require("ZgCQ"));b.load([["fundude.ff9eeb94.wasm","qiaq"]]).then(function(){require("zo2T");});
 },{}]},{},[0], null)
 //# sourceMappingURL=web.83295931.js.map
