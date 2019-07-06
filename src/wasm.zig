@@ -1,20 +1,23 @@
 const std = @import("std");
+const zee_alloc = @import("vendor/zee_alloc.zig");
 
 const base = @import("base.zig");
 
 const CYCLES_PER_FRAME = (4 * 16742);
 
 export fn malloc(size: usize) ?*c_void {
-    const result = std.heap.wasm_allocator.alloc(u8, size) catch return null;
+    const result = zee_alloc.wasm_allocator.alloc(u8, size) catch return null;
     return result.ptr;
 }
 
 export fn free(c_ptr: *c_void) void {
-    // TODO
+    // Use a synthetic slice. zee_alloc will free via corresponding metadata.
+    const ptr = @ptrCast([*]u8, c_ptr);
+    zee_alloc.wasm_allocator.free(ptr[0..1]);
 }
 
 export fn fd_alloc() ?*base.Fundude {
-    return std.heap.wasm_allocator.create(base.Fundude) catch null;
+    return zee_alloc.wasm_allocator.create(base.Fundude) catch null;
 }
 
 export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) void {
