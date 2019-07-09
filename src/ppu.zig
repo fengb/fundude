@@ -124,6 +124,10 @@ const SpritePalette = enum(u1) {
 const TileAddressing = enum(u1) {
     _8800 = 0,
     _8000 = 1,
+
+    pub fn translate(self: TileAddressing, idx: u8) u9 {
+        return if (idx >= 128 or self == ._8000) idx else idx + u9(256);
+    }
 };
 
 const TileMapAddressing = enum(u1) {
@@ -132,26 +136,7 @@ const TileMapAddressing = enum(u1) {
 };
 
 pub const Vram = packed struct {
-    patterns: packed struct {
-        _8000: [128]Pattern, // $8000-87FF
-        _8800: [128]Pattern, // $8800-8FFF
-        _9000: [128]Pattern, // $9000-97FF
-
-        pub fn all(self: *@This()) []Pattern {
-            const ptr = @ptrCast([*]Pattern, self);
-            return ptr[0..(128 * 3)];
-        }
-
-        pub fn get(self: @This(), addressing: TileAddressing, idx: u8) Pattern {
-            if (idx >= 128) {
-                return self._8800[idx - 128];
-            } else if (addressing == ._8000) {
-                return self._8000[idx];
-            } else {
-                return self._9000[idx];
-            }
-        }
-    },
+    patterns: [3 * 128]Pattern,
 
     tile_maps: packed struct {
         _9800: PatternMap, // $9800-9BFF
@@ -169,10 +154,9 @@ pub const Vram = packed struct {
 pub const Ppu = struct {
     screen: Matrix(u8, SCREEN_WIDTH, SCREEN_HEIGHT),
 
-    patterns: [3 * 128]Matrix(u8, 8, 8),
+    patterns: [3 * 128]Matrix(Color, 8, 8),
 
-    // patterns: Matrix(u8, 192, 128),
-    sprites: Matrix(u8, 160, 32),
+    spritesheet: [40]Matrix(u8, 8, 8),
     background: Matrix(u8, 256, 256),
     window: Matrix(u8, 256, 256),
 
@@ -183,9 +167,11 @@ pub const Ppu = struct {
 
         self.screen.reset(0);
         for (self.patterns) |*patterns| {
-            patterns.reset(0);
+            patterns.reset(._0);
         }
-        self.sprites.reset(0);
+        for (self.spritesheet) |*sprite| {
+            sprite.reset(0);
+        }
         self.background.reset(0);
         self.window.reset(0);
     }
@@ -244,8 +230,8 @@ pub const Ppu = struct {
         }
     }
 
-    fn renderPatterns(self: *Ppu, raw_patterns: []Pattern) void {
-        for (raw_patterns) |raw_pattern, i| {
+    fn renderPatterns(self: *Ppu, mmu: *base.Mmu) void {
+        for (mmu.vram.patterns) |raw_pattern, i| {
             var patterns = &self.patterns[i];
 
             var y = usize(0);
@@ -257,9 +243,24 @@ pub const Ppu = struct {
                     const bit = @intCast(u4, Pattern.pixelSize() - x - 1);
                     const hi = @intCast(u2, line >> bit & 1);
                     const lo = @intCast(u2, line >> (bit + 8) & 1);
-                    const color = hi << 1 | lo;
-                    patterns.set(x, y, color);
+                    patterns.set(x, y, @intToEnum(Color, hi << 1 | lo));
                 }
+            }
+        }
+    }
+
+    fn renderSprites(self: *Ppu, mmu: *base.Mmu) void {
+        for (mmu.oam) |sprite_attr, i| {
+            if (sprite_attr.isOffScreen() and sprite_attr.pattern == 0) {
+                continue;
+            }
+
+            const sprite = &self.spritesheet[i];
+            const palette = mmu.io.ppu.spritePalette(sprite_attr.flags.palette);
+
+            const pattern = self.patterns[sprite_attr.pattern];
+            for (pattern.data) |pixel, j| {
+                sprite.data[j] = palette.toShade(pixel);
             }
         }
     }
@@ -267,7 +268,8 @@ pub const Ppu = struct {
     // TODO: audit everything below
 
     fn render(self: *Ppu, mmu: *base.Mmu) void {
-        self.renderPatterns(mmu.vram.patterns.all());
+        self.renderPatterns(mmu);
+        self.renderSprites(mmu);
 
         renderBg(mmu, self.background.slice(), mmu.io.ppu.LCDC.bg_tile_map);
         renderBg(mmu, self.window.slice(), mmu.io.ppu.LCDC.window_tile_map);
@@ -307,10 +309,10 @@ pub const Ppu = struct {
                 continue;
             }
 
-            const pattern = mmu.vram.patterns.get(._8000, sprite_attr.pattern);
+            const pattern = mmu.vram.patterns[sprite_attr.pattern];
             const palette = mmu.io.ppu.spritePalette(sprite_attr.flags.palette);
 
-            drawPattern(self.sprites.slice(), i, pattern, palette);
+            // drawPattern(self.spritesheet.slice(), i, pattern, palette);
             if (!sprite_attr.isOffScreen()) {
                 drawPatternXy(self.screen.slice(), @intCast(isize, sprite_attr.x_pos) - 8, @intCast(isize, sprite_attr.y_pos) - 16, pattern, palette);
             }
@@ -323,7 +325,8 @@ pub const Ppu = struct {
 
         var i = u16(0);
         while (i < BG_TILES) : (i += 1) {
-            const tile = mmu.vram.patterns.get(tile_addressing, tile_map._[i]);
+            const idx = tile_addressing.translate(tile_map._[i]);
+            const tile = mmu.vram.patterns[idx];
             drawPattern(matrix, i, tile, mmu.io.ppu.BGP);
         }
     }

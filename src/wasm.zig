@@ -135,8 +135,8 @@ export fn fd_window_ptr(fd: *base.Fundude) *c_void {
     return &fd.ppu.window;
 }
 
-export fn fd_sprites_ptr(fd: *base.Fundude) *c_void {
-    return &fd.ppu.sprites;
+export fn fd_spritesheet_ptr(fd: *base.Fundude) *c_void {
+    return &fd.ppu.spritesheet;
 }
 
 // TODO: rename?
