@@ -242,11 +242,11 @@ pub const Ppu = struct {
 
     fn render(self: *Ppu, mmu: *base.Mmu) void {
         for (mmu.vram.patterns.all()) |pattern, i| {
-            drawPattern(self.patterns.slice, i, pattern, ColorPalette.none());
+            drawPattern(self.patterns.slice(), i, pattern, ColorPalette.none());
         }
 
-        renderBg(mmu, self.background.slice, mmu.io.ppu.LCDC.bg_tile_map);
-        renderBg(mmu, self.window.slice, mmu.io.ppu.LCDC.window_tile_map);
+        renderBg(mmu, self.background.slice(), mmu.io.ppu.LCDC.bg_tile_map);
+        renderBg(mmu, self.window.slice(), mmu.io.ppu.LCDC.window_tile_map);
 
         // TODO: use memcpy
         if (mmu.io.ppu.LCDC.bg_enable) {
@@ -286,9 +286,9 @@ pub const Ppu = struct {
             const pattern = mmu.vram.patterns.get(._8000, sprite_attr.pattern);
             const palette = mmu.io.ppu.spritePalette(sprite_attr.flags.palette);
 
-            drawPattern(self.sprites.slice, i, pattern, palette);
+            drawPattern(self.sprites.slice(), i, pattern, palette);
             if (!sprite_attr.isOffScreen()) {
-                drawPatternXy(self.screen.slice, @intCast(isize, sprite_attr.x_pos) - 8, @intCast(isize, sprite_attr.y_pos) - 16, pattern, palette);
+                drawPatternXy(self.screen.slice(), @intCast(isize, sprite_attr.x_pos) - 8, @intCast(isize, sprite_attr.y_pos) - 16, pattern, palette);
             }
         }
     }
