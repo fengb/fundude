@@ -169,7 +169,9 @@ pub const Vram = packed struct {
 pub const Ppu = struct {
     screen: Matrix(u8, SCREEN_WIDTH, SCREEN_HEIGHT),
 
-    patterns: Matrix(u8, 192, 128),
+    patterns: [3 * 128]Matrix(u8, 8, 8),
+
+    // patterns: Matrix(u8, 192, 128),
     sprites: Matrix(u8, 160, 32),
     background: Matrix(u8, 256, 256),
     window: Matrix(u8, 256, 256),
@@ -180,7 +182,9 @@ pub const Ppu = struct {
         self.clock = 0;
 
         self.screen.reset(0);
-        self.patterns.reset(0);
+        for (self.patterns) |*patterns| {
+            patterns.reset(0);
+        }
         self.sprites.reset(0);
         self.background.reset(0);
         self.window.reset(0);
@@ -240,10 +244,30 @@ pub const Ppu = struct {
         }
     }
 
-    fn render(self: *Ppu, mmu: *base.Mmu) void {
-        for (mmu.vram.patterns.all()) |pattern, i| {
-            drawPattern(self.patterns.slice(), i, pattern, ColorPalette.none());
+    fn renderPatterns(self: *Ppu, raw_patterns: []Pattern) void {
+        for (raw_patterns) |raw_pattern, i| {
+            var patterns = &self.patterns[i];
+
+            var y = usize(0);
+            while (y < patterns.height()) : (y += 1) {
+                const line = raw_pattern._[y];
+
+                var x = usize(0);
+                while (x < patterns.width()) : (x += 1) {
+                    const bit = @intCast(u4, Pattern.pixelSize() - x - 1);
+                    const hi = @intCast(u2, line >> bit & 1);
+                    const lo = @intCast(u2, line >> (bit + 8) & 1);
+                    const color = hi << 1 | lo;
+                    patterns.set(x, y, color);
+                }
+            }
         }
+    }
+
+    // TODO: audit everything below
+
+    fn render(self: *Ppu, mmu: *base.Mmu) void {
+        self.renderPatterns(mmu.vram.patterns.all());
 
         renderBg(mmu, self.background.slice(), mmu.io.ppu.LCDC.bg_tile_map);
         renderBg(mmu, self.window.slice(), mmu.io.ppu.LCDC.window_tile_map);

@@ -120,7 +120,7 @@ export default class FundudeWasm {
   }
 
   patterns() {
-    return PtrArray.matrix(WASM.fd_patterns_ptr(this.pointer), 192, 128);
+    return PtrArray.matrix(WASM.fd_patterns_ptr(this.pointer), 8, 8 * 128 * 3);
   }
 
   cpu() {
