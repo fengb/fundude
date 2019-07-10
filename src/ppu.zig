@@ -278,12 +278,20 @@ pub const Ppu = struct {
                 continue;
             }
 
-            const sprite = &self.spritesheet[i];
             const palette = mmu.io.ppu.spritePalette(sprite_attr.flags.palette);
 
+            const sprite = &self.spritesheet[i];
             const pattern = self.patterns[sprite_attr.pattern];
-            for (pattern.data) |pixel, j| {
-                sprite.data[j] = palette.toShade(pixel);
+
+            var x = usize(0);
+            while (x < pattern.width()) : (x += 1) {
+                const xs = if (sprite_attr.flags.x_flip) pattern.width() - x - 1 else x;
+                var y = usize(0);
+                while (y < pattern.height()) : (y += 1) {
+                    const ys = if (sprite_attr.flags.y_flip) pattern.width() - y - 1 else y;
+                    const pixel = palette.toShade(pattern.get(x, y));
+                    sprite.set(xs, ys, pixel);
+                }
             }
         }
     }
