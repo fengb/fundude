@@ -156,9 +156,15 @@ pub const Ppu = struct {
     window: Matrix(u8, 256, 256),
 
     clock: u32,
+    dirtyPatterns: bool,
+    dirtyBackground: bool,
+    dirtySpritesheet: bool,
 
     pub fn reset(self: *Ppu) void {
         self.clock = 0;
+        self.dirtyPatterns = true;
+        self.dirtyBackground = true;
+        self.dirtySpritesheet = true;
 
         self.screen.reset(0);
         for (self.patterns) |*patterns| {
@@ -169,6 +175,28 @@ pub const Ppu = struct {
         }
         self.background.reset(0);
         self.window.reset(0);
+    }
+
+    pub fn updatedVram(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
+        if (addr < 0x9800) {
+            self.dirtyPatterns = true;
+            self.dirtyBackground = true;
+            self.dirtySpritesheet = true;
+        } else {
+            self.dirtyBackground = true;
+        }
+    }
+
+    pub fn updatedOam(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
+        self.dirtySpritesheet = true;
+    }
+
+    pub fn updatedIo(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
+        switch (addr) {
+            0xFF40, 0xFF47 => self.dirtyBackground = true,
+            0xFF46, 0xFF48, 0xFF49 => self.dirtySpritesheet = true,
+            else => {},
+        }
     }
 
     pub fn step(self: *Ppu, mmu: *base.Mmu, cycles: u16) void {
@@ -299,10 +327,21 @@ pub const Ppu = struct {
     // TODO: audit everything below
 
     fn render(self: *Ppu, mmu: *base.Mmu) void {
-        self.renderPatterns(mmu);
-        self.renderSprites(mmu);
-        self.renderBg(mmu, self.background.slice(), mmu.io.ppu.LCDC.bg_tile_map);
-        self.renderBg(mmu, self.window.slice(), mmu.io.ppu.LCDC.window_tile_map);
+        if (self.dirtyPatterns) {
+            self.renderPatterns(mmu);
+            self.dirtyPatterns = false;
+        }
+
+        if (self.dirtySpritesheet) {
+            self.renderSprites(mmu);
+            self.dirtySpritesheet = false;
+        }
+
+        if (self.dirtyBackground) {
+            self.renderBg(mmu, self.background.slice(), mmu.io.ppu.LCDC.bg_tile_map);
+            self.renderBg(mmu, self.window.slice(), mmu.io.ppu.LCDC.window_tile_map);
+            self.dirtyBackground = false;
+        }
 
         // TODO: use memcpy
         if (mmu.io.ppu.LCDC.bg_enable) {
