@@ -366,7 +366,13 @@ pub const Ppu = struct {
             while (y < SCREEN_HEIGHT) : (y += 1) {
                 var x = usize(0);
                 while (x < SCREEN_WIDTH) : (x += 1) {
-                    const pixel = self.window.get(x - (wx - 7), wy - y);
+                    const xw = x -% (mmu.io.ppu.WX -% 7);
+                    const yw = y -% mmu.io.ppu.WY;
+                    if (xw >= self.window.width() or yw >= self.window.height()) {
+                        continue;
+                    }
+
+                    const pixel = self.window.get(xw, yw);
                     self.screen.set(x, y, pixel);
                 }
             }
@@ -390,7 +396,7 @@ pub const Ppu = struct {
                 var y = usize(0);
                 while (y < sprite.height()) : (y += 1) {
                     const ys = sprite_attr.y_pos + y -% 16;
-                    if (ys >= self.screen.width()) {
+                    if (ys >= self.screen.height()) {
                         continue;
                     }
 

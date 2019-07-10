@@ -64,10 +64,7 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
         fd.ppu.step(&fd.mmu, res.duration);
         fd.timer.step(&fd.mmu, res.duration);
 
-        const pc_val = if (res.jump) |jump|
-            jump
-        else
-            fd.cpu.reg._16.get(.PC) + res.length;
+        const pc_val = res.jump orelse fd.cpu.reg._16.get(.PC) + res.length;
 
         fd.cpu.reg._16.set(.PC, pc_val);
 

@@ -77,6 +77,7 @@ export function Right() {
       <Display pixels={fd.spritesheet()} />
       <div className={CSS.displays}>
         <Display pixels={fd.background()} />
+        <Display pixels={fd.window()} />
       </div>
       <Mmu fd={fd} />
     </div>
