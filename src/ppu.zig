@@ -303,18 +303,30 @@ pub const Ppu = struct {
             }
         }
 
+        // TODO: this is ugly but it'll be completely replaced by pixel-by-pixel
         for (mmu.oam) |sprite_attr, i| {
-            // if (sprite_attr.isOffScreen() and sprite_attr.pattern == 0) {
-            if (sprite_attr.pattern == 0) {
+            if (sprite_attr.isOffScreen()) {
                 continue;
             }
 
-            const pattern = mmu.vram.patterns[sprite_attr.pattern];
-            const palette = mmu.io.ppu.spritePalette(sprite_attr.flags.palette);
+            const sprite = self.spritesheet[i];
 
-            // drawPattern(self.spritesheet.slice(), i, pattern, palette);
-            if (!sprite_attr.isOffScreen()) {
-                drawPatternXy(self.screen.slice(), @intCast(isize, sprite_attr.x_pos) - 8, @intCast(isize, sprite_attr.y_pos) - 16, pattern, palette);
+            var x = usize(0);
+            while (x < sprite.width()) : (x += 1) {
+                const xs = sprite_attr.x_pos + x -% 8;
+                if (xs >= self.screen.width()) {
+                    continue;
+                }
+
+                var y = usize(0);
+                while (y < sprite.height()) : (y += 1) {
+                    const ys = sprite_attr.y_pos + y -% 16;
+                    if (ys >= self.screen.width()) {
+                        continue;
+                    }
+
+                    self.screen.set(xs, ys, sprite.get(x, y));
+                }
             }
         }
     }
