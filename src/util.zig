@@ -1,11 +1,10 @@
 const std = @import("std");
 
 pub fn Matrix(comptime T: type, width: usize, height: usize) type {
-    return struct {
+    return packed struct {
         const Self = @This();
 
-        array: [height * width]T,
-        slice: MatrixSlice(T),
+        data: [height * width]T,
 
         pub fn width(self: Self) usize {
             return width;
@@ -15,21 +14,32 @@ pub fn Matrix(comptime T: type, width: usize, height: usize) type {
             return height;
         }
 
-        pub fn reset(self: *Self, val: T) void {
-            std.mem.set(T, self.array[0..], val);
-            self.slice = MatrixSlice(T){
-                .slice = self.array[0..],
+        pub fn slice(self: *Self) MatrixSlice(T) {
+            return MatrixSlice(T){
+                .data = self.data[0..],
                 .width = width,
                 .height = height,
             };
         }
 
-        pub fn get(self: Self, x: usize, y: usize) T {
-            return self.slice.get(x, y);
+        pub fn reset(self: *Self, val: T) void {
+            std.mem.set(T, self.data[0..], val);
         }
 
-        pub fn set(self: Self, x: usize, y: usize, val: T) void {
-            return self.slice.set(x, y, val);
+        pub fn get(self: Self, x: usize, y: usize) T {
+            const i = self.idx(x, y);
+            return self.data[i];
+        }
+
+        pub fn set(self: *Self, x: usize, y: usize, val: T) void {
+            const i = self.idx(x, y);
+            self.data[i] = val;
+        }
+
+        fn idx(self: Self, x: usize, y: usize) usize {
+            std.debug.assert(x < width);
+            std.debug.assert(y < height);
+            return x + y * width;
         }
     };
 }
@@ -38,18 +48,18 @@ pub fn MatrixSlice(comptime T: type) type {
     return struct {
         const Self = @This();
 
-        slice: []T,
+        data: []T,
         width: usize,
         height: usize,
 
         pub fn get(self: Self, x: usize, y: usize) T {
             const i = self.idx(x, y);
-            return self.slice[i];
+            return self.data[i];
         }
 
         pub fn set(self: Self, x: usize, y: usize, val: T) void {
             const i = self.idx(x, y);
-            self.slice[i] = val;
+            self.data[i] = val;
         }
 
         fn idx(self: Self, x: usize, y: usize) usize {

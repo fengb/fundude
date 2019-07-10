@@ -12,6 +12,7 @@ const CSS = {
   base: style({
     display: "flex",
     flexDirection: "column",
+    position: "relative",
     margin: "0 50px"
   }),
 
@@ -27,10 +28,10 @@ const CSS = {
     alignItems: "flex-end"
   }),
 
-  displaySprites: style({
+  displayPatterns: style({
     position: "absolute",
     top: 0,
-    right: 0
+    left: "100%"
   })
 };
 
@@ -71,10 +72,11 @@ export function Right() {
   const { fd } = React.useContext(FD.Context);
   return (
     <div className={CSS.base}>
+      {/* TODO: convert to tile display */}
+      <Display className={CSS.displayPatterns} pixels={fd.patterns()} />
+      <Display pixels={fd.spritesheet()} />
       <div className={CSS.displays}>
         <Display pixels={fd.background()} />
-        <Display className={CSS.displaySprites} pixels={fd.sprites()} />
-        <Display pixels={fd.patterns()} />
       </div>
       <Mmu fd={fd} />
     </div>
