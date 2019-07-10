@@ -5,6 +5,7 @@ import FD from "../wasm/react";
 import { readAsArray } from "./promise";
 import UploadBackdrop from "./UploadBackdrop";
 
+import ROMS from "../roms";
 import DEBUG_ROMS from "../roms/debug";
 
 const CSS = {
@@ -44,6 +45,7 @@ const CSS = {
     width: "100%",
     background: "#ffffffd0",
     transition: "300ms ease-in-out height",
+    padding: "0 10px",
     height: "0",
 
     $nest: {
@@ -109,16 +111,13 @@ export default function CartSelect(props: {
         {({ inputRef }) => (
           <div className={classnames(CSS.selector, choosing && "active")}>
             <div className={classnames(CSS.selectorList, choosing && "active")}>
-              {props.debug &&
-                Object.keys(DEBUG_ROMS.blargg).map(name => (
-                  <a
-                    key={name}
-                    href={DEBUG_ROMS.blargg[name]}
-                    onClick={downloadCart}
-                  >
+              {Object.entries(props.debug ? DEBUG_ROMS.blargg : ROMS).map(
+                ([name, value]) => (
+                  <a key={name} href={value} onClick={downloadCart}>
                     {name}
                   </a>
-                ))}
+                )
+              )}
             </div>
             <button onClick={() => inputRef.current!.click()}>Upload</button>
           </div>
