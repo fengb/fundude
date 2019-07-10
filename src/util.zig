@@ -1,7 +1,7 @@
 const std = @import("std");
 
 pub fn Matrix(comptime T: type, width: usize, height: usize) type {
-    return struct {
+    return packed struct {
         const Self = @This();
 
         data: [height * width]T,

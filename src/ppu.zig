@@ -3,7 +3,6 @@ const base = @import("base.zig");
 const Matrix = @import("util.zig").Matrix;
 const MatrixSlice = @import("util.zig").MatrixSlice;
 
-const BG_TILES = (32 * 32);
 const SCREEN_WIDTH = 160;
 const SCREEN_HEIGHT = 144;
 const DOTS_PER_LINE = 456;
@@ -56,7 +55,7 @@ const LcdcMode = enum(u2) {
     transferring = 3,
 };
 
-const Color = enum(u2) {
+const Color = enum(u8) {
     _0 = 0,
     _1 = 1,
     _2 = 2,
@@ -93,10 +92,6 @@ const Pattern = packed struct {
     pub fn pixelSize() comptime_int {
         return 8;
     }
-};
-
-const PatternMap = packed struct {
-    _: [BG_TILES]u8,
 };
 
 pub const SpriteAttr = packed struct {
@@ -139,13 +134,13 @@ pub const Vram = packed struct {
     patterns: [3 * 128]Pattern,
 
     tile_maps: packed struct {
-        _9800: PatternMap, // $9800-9BFF
-        _9C00: PatternMap, // $9C00-9FFF
+        _9800: Matrix(u8, 32, 32), // $9800-9BFF
+        _9C00: Matrix(u8, 32, 32), // $9C00-9FFF
 
-        pub fn get(self: @This(), addressing: TileMapAddressing) PatternMap {
+        pub fn get(self: *@This(), addressing: TileMapAddressing) MatrixSlice(u8) {
             return switch (addressing) {
-                ._9800 => self._9800,
-                ._9C00 => self._9C00,
+                ._9800 => self._9800.slice(),
+                ._9C00 => self._9C00.slice(),
             };
         }
     },
@@ -249,6 +244,34 @@ pub const Ppu = struct {
         }
     }
 
+    fn renderBg(self: *Ppu, mmu: *base.Mmu, matrix: MatrixSlice(u8), tile_map_addr: TileMapAddressing) void {
+        const tile_map = mmu.vram.tile_maps.get(tile_map_addr);
+        const tile_addressing = mmu.io.ppu.LCDC.bg_window_tile_data;
+        const palette = mmu.io.ppu.BGP;
+
+        // n^4...
+        var i = u16(0);
+        while (i < tile_map.width) : (i += 1) {
+            var j = u16(0);
+            while (j < tile_map.height) : (j += 1) {
+                const idx = tile_addressing.translate(tile_map.get(i, j));
+                const pattern = self.patterns[idx];
+
+                var x = usize(0);
+                while (x < pattern.width()) : (x += 1) {
+                    const xbg = x + i * pattern.width();
+
+                    var y = usize(0);
+                    while (y < pattern.height()) : (y += 1) {
+                        const ybg = y + j * pattern.height();
+                        const pixel = pattern.get(x, y);
+                        matrix.set(xbg, ybg, palette.toShade(pixel));
+                    }
+                }
+            }
+        }
+    }
+
     fn renderSprites(self: *Ppu, mmu: *base.Mmu) void {
         for (mmu.oam) |sprite_attr, i| {
             if (sprite_attr.isOffScreen() and sprite_attr.pattern == 0) {
@@ -270,9 +293,8 @@ pub const Ppu = struct {
     fn render(self: *Ppu, mmu: *base.Mmu) void {
         self.renderPatterns(mmu);
         self.renderSprites(mmu);
-
-        renderBg(mmu, self.background.slice(), mmu.io.ppu.LCDC.bg_tile_map);
-        renderBg(mmu, self.window.slice(), mmu.io.ppu.LCDC.window_tile_map);
+        self.renderBg(mmu, self.background.slice(), mmu.io.ppu.LCDC.bg_tile_map);
+        self.renderBg(mmu, self.window.slice(), mmu.io.ppu.LCDC.window_tile_map);
 
         // TODO: use memcpy
         if (mmu.io.ppu.LCDC.bg_enable) {
@@ -326,45 +348,6 @@ pub const Ppu = struct {
                     }
 
                     self.screen.set(xs, ys, sprite.get(x, y));
-                }
-            }
-        }
-    }
-
-    fn renderBg(mmu: *base.Mmu, matrix: MatrixSlice(u8), tile_map_addr: TileMapAddressing) void {
-        const tile_map = mmu.vram.tile_maps.get(tile_map_addr);
-        const tile_addressing = mmu.io.ppu.LCDC.bg_window_tile_data;
-
-        var i = u16(0);
-        while (i < BG_TILES) : (i += 1) {
-            const idx = tile_addressing.translate(tile_map._[i]);
-            const tile = mmu.vram.patterns[idx];
-            drawPattern(matrix, i, tile, mmu.io.ppu.BGP);
-        }
-    }
-
-    // TODO: refactor all of this
-    fn drawPattern(matrix: MatrixSlice(u8), idx: usize, pattern: Pattern, palette: ColorPalette) void {
-        const transform = matrix.width / Pattern.pixelSize();
-        const tx = @intCast(isize, idx % transform);
-        const ty = @intCast(isize, idx / transform);
-        drawPatternXy(matrix, tx * Pattern.pixelSize(), ty * Pattern.pixelSize(), pattern, palette);
-    }
-
-    fn drawPatternXy(matrix: MatrixSlice(u8), x0: isize, y0: isize, pattern: Pattern, palette: ColorPalette) void {
-        var py = usize(0);
-        while (py < Pattern.pixelSize()) : (py += 1) {
-            const line = pattern._[py];
-
-            var px = usize(0);
-            while (px < Pattern.pixelSize()) : (px += 1) {
-                const color = Color.init(line, @intCast(u4, Pattern.pixelSize() - px - 1));
-                // TODO: review these bounds checks
-                // @bitCast will overflow negative into HUGE, which should be fine
-                const x = @bitCast(usize, x0 + @intCast(isize, px));
-                const y = @bitCast(usize, y0 + @intCast(isize, py));
-                if (x < matrix.width and y < matrix.height) {
-                    matrix.set(x, y, palette.toShade(color));
                 }
             }
         }
