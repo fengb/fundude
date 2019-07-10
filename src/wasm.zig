@@ -88,14 +88,14 @@ export fn fd_input_press(fd: *base.Fundude, input: u8) u8 {
         }
         fd.mmu.io.IF.joypad = true;
         fd.inputs._ |= input;
-        fd.inputs.update(&fd.mmu.io.ggp);
+        fd.inputs.update(&fd.mmu);
     }
     return fd.inputs._;
 }
 
 export fn fd_input_release(fd: *base.Fundude, input: u8) u8 {
     fd.inputs._ &= ~input;
-    fd.inputs.update(&fd.mmu.io.ggp);
+    fd.inputs.update(&fd.mmu);
     return fd.inputs._;
 }
 

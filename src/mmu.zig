@@ -81,13 +81,14 @@ pub const Mmu = packed struct {
 
         // TODO: replace magic with sibling references
         const fd = @fieldParentPtr(base.Fundude, "mmu", self);
+
         if (addr >= 0x8000 and addr < 0xA000) {
             fd.ppu.updatedVram(self, addr, val);
         } else if (addr >= 0xFE00 and addr < 0xFEA0) {
             fd.ppu.updatedOam(self, addr, val);
         } else if (addr >= 0xFF00) {
             if (addr == 0xFF00) {
-                self.io.ggp.set(val, fd.inputs);
+                fd.inputs.update(self);
             } else if (addr >= 0xFF40 and addr < 0xFF4C) {
                 fd.ppu.updatedIo(self, addr, val);
             }

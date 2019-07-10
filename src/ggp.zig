@@ -1,4 +1,4 @@
-// Gamepad
+const base = @import("base.zig");
 
 pub const Io = packed union {
     _: u8,
@@ -13,18 +13,6 @@ pub const Io = packed union {
     pub fn set(self: *Io, val: u8, inputs: Inputs) void {
         self._ = val;
         self.sync(inputs);
-    }
-
-    pub fn sync(self: *Io, inputs: Inputs) void {
-        // Hardware quirk: 0 == active
-        if (self.bitfields.buttons == 0) {
-            self.bitfields.read = ~inputs.nibbles.buttons;
-            return;
-        }
-        if (self.bitfields.dpad == 0) {
-            self.bitfields.read = ~inputs.nibbles.dpad;
-            return;
-        }
     }
 };
 
@@ -47,7 +35,15 @@ pub const Inputs = packed union {
         buttons: u4,
     },
 
-    pub fn update(self: Inputs, io: *Io) void {
-        io.sync(self);
+    pub fn update(self: Inputs, mmu: *base.Mmu) void {
+        // Hardware quirk: 0 == active
+        if (mmu.io.ggp.bitfields.buttons == 0) {
+            mmu.io.ggp.bitfields.read = ~self.nibbles.buttons;
+            return;
+        }
+        if (mmu.io.ggp.bitfields.dpad == 0) {
+            mmu.io.ggp.bitfields.read = ~self.nibbles.dpad;
+            return;
+        }
     }
 };

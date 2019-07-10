@@ -39,13 +39,6 @@ pub const Io = packed struct {
     OBP1: ColorPalette, // $FF49
     WY: u8, // $FF4A
     WX: u8, // $FF4B
-
-    fn spritePalette(self: Io, selection: SpritePalette) ColorPalette {
-        return switch (selection) {
-            .OBP0 => self.OBP0,
-            .OBP1 => self.OBP1,
-        };
-    }
 };
 
 const LcdcMode = enum(u2) {
@@ -60,20 +53,10 @@ const Color = enum(u8) {
     _1 = 1,
     _2 = 2,
     _3 = 3,
-
-    pub fn init(val: u16, bit: u4) Color {
-        const hi = @intCast(u2, val >> bit & 1);
-        const lo = @intCast(u2, val >> (bit + 8) & 1);
-        return @intToEnum(Color, hi << 1 | lo);
-    }
 };
 
 const ColorPalette = packed struct {
     _: u8,
-
-    pub fn none() ColorPalette {
-        return ColorPalette{ ._ = 0b11100100 };
-    }
 
     pub fn toShade(self: ColorPalette, color: Color) u2 {
         const int = @intCast(u3, @enumToInt(color));
@@ -81,17 +64,8 @@ const ColorPalette = packed struct {
     }
 };
 
-test "ColorPalette" {
-    const pal = ColorPalette.none();
-    std.debug.warn("{} {} {} {}\n", pal.toShade(._0), pal.toShade(._1), pal.toShade(._2), pal.toShade(._3));
-}
-
-const Pattern = packed struct {
+const RawPattern = packed struct {
     _: [8]u16,
-
-    pub fn pixelSize() comptime_int {
-        return 8;
-    }
 };
 
 pub const SpriteAttr = packed struct {
@@ -131,7 +105,7 @@ const TileMapAddressing = enum(u1) {
 };
 
 pub const Vram = packed struct {
-    patterns: [3 * 128]Pattern,
+    patterns: [3 * 128]RawPattern,
 
     tile_maps: packed struct {
         _9800: Matrix(u8, 32, 32), // $9800-9BFF
@@ -263,7 +237,7 @@ pub const Ppu = struct {
 
                 var x = usize(0);
                 while (x < patterns.width()) : (x += 1) {
-                    const bit = @intCast(u4, Pattern.pixelSize() - x - 1);
+                    const bit = @intCast(u4, patterns.width() - x - 1);
                     const hi = @intCast(u2, line >> bit & 1);
                     const lo = @intCast(u2, line >> (bit + 8) & 1);
                     patterns.set(x, y, @intToEnum(Color, hi << 1 | lo));
@@ -306,7 +280,10 @@ pub const Ppu = struct {
                 continue;
             }
 
-            const palette = mmu.io.ppu.spritePalette(sprite_attr.flags.palette);
+            const palette = switch (sprite_attr.flags.palette) {
+                .OBP0 => mmu.io.ppu.OBP0,
+                .OBP1 => mmu.io.ppu.OBP1,
+            };
 
             const sprite = &self.spritesheet[i];
             const pattern = self.patterns[sprite_attr.pattern];
@@ -314,9 +291,11 @@ pub const Ppu = struct {
             var x = usize(0);
             while (x < pattern.width()) : (x += 1) {
                 const xs = if (sprite_attr.flags.x_flip) pattern.width() - x - 1 else x;
+
                 var y = usize(0);
                 while (y < pattern.height()) : (y += 1) {
                     const ys = if (sprite_attr.flags.y_flip) pattern.width() - y - 1 else y;
+
                     const pixel = palette.toShade(pattern.get(x, y));
                     sprite.set(xs, ys, pixel);
                 }
@@ -324,8 +303,7 @@ pub const Ppu = struct {
         }
     }
 
-    // TODO: audit everything below
-
+    // TODO: audit this function
     fn render(self: *Ppu, mmu: *base.Mmu) void {
         if (self.dirtyPatterns) {
             self.renderPatterns(mmu);
@@ -343,16 +321,19 @@ pub const Ppu = struct {
             self.dirtyBackground = false;
         }
 
-        // TODO: use memcpy
         if (mmu.io.ppu.LCDC.bg_enable) {
             const scx = mmu.io.ppu.SCX;
             const scy = mmu.io.ppu.SCY;
 
-            var y = usize(0);
-            while (y < SCREEN_HEIGHT) : (y += 1) {
-                var x = usize(0);
-                while (x < SCREEN_WIDTH) : (x += 1) {
-                    const pixel = self.background.get((scx + x) % self.background.width(), (scy + y) % self.background.height());
+            var x = usize(0);
+            while (x < SCREEN_WIDTH) : (x += 1) {
+                const xbg = (scx + x) % self.background.width();
+
+                var y = usize(0);
+                while (y < SCREEN_HEIGHT) : (y += 1) {
+                    const ybg = (scy + y) % self.background.height();
+
+                    const pixel = self.background.get(xbg, ybg);
                     self.screen.set(x, y, pixel);
                 }
             }
@@ -362,13 +343,17 @@ pub const Ppu = struct {
             const wx = mmu.io.ppu.WX;
             const wy = mmu.io.ppu.WY;
 
-            var y = usize(0);
-            while (y < SCREEN_HEIGHT) : (y += 1) {
-                var x = usize(0);
-                while (x < SCREEN_WIDTH) : (x += 1) {
-                    const xw = x -% (mmu.io.ppu.WX -% 7);
+            var x = usize(0);
+            while (x < SCREEN_WIDTH) : (x += 1) {
+                const xw = x -% (mmu.io.ppu.WX -% 7);
+                if (xw >= self.window.width()) {
+                    continue;
+                }
+
+                var y = usize(0);
+                while (y < SCREEN_HEIGHT) : (y += 1) {
                     const yw = y -% mmu.io.ppu.WY;
-                    if (xw >= self.window.width() or yw >= self.window.height()) {
+                    if (yw >= self.window.height()) {
                         continue;
                     }
 
