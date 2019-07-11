@@ -35,8 +35,18 @@ const RamSize = enum(u8) {
     _64k = 5,
 };
 
+const Mbc0 = struct {
+    pub fn ptr(mbc: Mbc, addr: u16) [*]const u8 {
+        return mbc.cart.ptr + addr;
+    }
+    pub fn set(mbc: *Mbc, addr: u16, val: u8) void {}
+};
+
 pub const Mbc = struct {
     cart: []u8,
+    // TODO: convert to getFn
+    ptrFn: fn (mbc: Mbc, addr: u16) [*]const u8,
+    setFn: fn (mbc: *Mbc, addr: u16, val: u8) void,
 
     pub fn load(self: *Mbc, cart: []u8) void {
         // Convert asserts to real errors
@@ -45,16 +55,21 @@ pub const Mbc = struct {
         std.debug.assert(cart.len == size.bytes());
 
         self.cart = cart;
+        self.ptrFn = Mbc0.ptr;
+        self.setFn = Mbc0.set;
     }
 
     // TODO: remove me
-    pub fn ptr(self: Mbc, addr: u16) [*]u8 {
-        return self.cart.ptr + addr;
+    pub fn ptr(self: Mbc, addr: u16) [*]const u8 {
+        return self.ptrFn(self, addr);
     }
 
     pub fn get(self: Mbc, addr: u16) u8 {
-        return cart[addr];
+        const p = self.ptr(addr);
+        return p[0];
     }
 
-    pub fn set(self: *Mbc, addr: u16, val: u8) void {}
+    pub fn set(self: *Mbc, addr: u16, val: u8) void {
+        return self.setFn(self, addr, val);
+    }
 };
