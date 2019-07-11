@@ -62,7 +62,7 @@ pub const Mmu = struct {
         }
 
         if (addr < BEYOND_CART) {
-            return self.mbc.ptr(addr);
+            return self.mbc.ptr(@intCast(u15, addr));
         } else if (0xE000 <= addr and addr < 0xFE00) {
             // Echo of 8kB Internal RAM
             return self.dyn.ram[0..].ptr + (addr - 0xE000);
@@ -78,7 +78,7 @@ pub const Mmu = struct {
 
     fn set(self: *Mmu, addr: u16, val: u8) void {
         if (addr < BEYOND_CART) {
-            return self.mbc.set(addr, val);
+            return self.mbc.set(@intCast(u15, addr), val);
         }
 
         const raw = @ptrCast([*]u8, &self.dyn);

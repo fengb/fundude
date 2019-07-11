@@ -107,7 +107,7 @@ export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
     const addr = fd.cpu.reg._16.get(.PC);
 
     // TODO: explicitly decode
-    const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.ptr(addr));
+    const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.cart.ptr + addr);
     const new_addr = addr + res.length;
     fd.cpu.reg._16.set(.PC, new_addr);
 

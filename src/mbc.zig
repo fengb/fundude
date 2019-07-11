@@ -35,18 +35,47 @@ const RamSize = enum(u8) {
     _64k = 5,
 };
 
-const Mbc0 = struct {
-    pub fn ptr(mbc: Mbc, addr: u16) [*]const u8 {
+const Nope = struct {
+    pub fn ptr(mbc: Mbc, addr: u15) [*]const u8 {
         return mbc.cart.ptr + addr;
     }
-    pub fn set(mbc: *Mbc, addr: u16, val: u8) void {}
+    pub fn set(mbc: *Mbc, addr: u15, val: u8) void {}
+};
+
+const Mbc1 = struct {
+    pub fn ptr(mbc: Mbc, addr: u15) [*]const u8 {
+        if (addr < 0x4000) {
+            return mbc.cart.ptr + addr;
+        } else {
+            return mbc.cart.ptr + usize(0x4000) * mbc.rom_bank + (addr - 0x4000);
+        }
+    }
+    pub fn set(mbc: *Mbc, addr: u15, val: u8) void {
+        if (addr < 0x2000) {
+            // RAM enable
+        } else if (addr < 0x4000) {
+            var bank = val & 0x1F;
+            if (bank % 0x20 == 0) {
+                bank += 1;
+            }
+            mbc.rom_bank = bank;
+        } else if (addr < 0x6000) {
+            // RAM bank
+        } else {
+            // ROM/RAM Mode Select
+        }
+    }
 };
 
 pub const Mbc = struct {
     cart: []u8,
+
+    rom_bank: u8,
     // TODO: convert to getFn
-    ptrFn: fn (mbc: Mbc, addr: u16) [*]const u8,
-    setFn: fn (mbc: *Mbc, addr: u16, val: u8) void,
+    ptrFn: fn (mbc: Mbc, addr: u15) [*]const u8,
+    setFn: fn (mbc: *Mbc, addr: u15, val: u8) void,
+
+    // TODO: RAM banking
 
     pub fn load(self: *Mbc, cart: []u8) void {
         // Convert asserts to real errors
@@ -54,22 +83,32 @@ pub const Mbc = struct {
         const size = @intToEnum(RomSize, cart[0x148]);
         std.debug.assert(cart.len == size.bytes());
 
+        switch (cart[0x147]) {
+            0x0 => {
+                self.ptrFn = Nope.ptr;
+                self.setFn = Nope.set;
+            },
+            0x1, 0x2, 0x3 => {
+                self.ptrFn = Mbc1.ptr;
+                self.setFn = Mbc1.set;
+            },
+            else => unreachable,
+        }
         self.cart = cart;
-        self.ptrFn = Mbc0.ptr;
-        self.setFn = Mbc0.set;
+        self.rom_bank = 1;
     }
 
     // TODO: remove me
-    pub fn ptr(self: Mbc, addr: u16) [*]const u8 {
+    pub fn ptr(self: Mbc, addr: u15) [*]const u8 {
         return self.ptrFn(self, addr);
     }
 
-    pub fn get(self: Mbc, addr: u16) u8 {
+    pub fn get(self: Mbc, addr: u15) u8 {
         const p = self.ptr(addr);
         return p[0];
     }
 
-    pub fn set(self: *Mbc, addr: u16, val: u8) void {
+    pub fn set(self: *Mbc, addr: u15, val: u8) void {
         return self.setFn(self, addr, val);
     }
 };
