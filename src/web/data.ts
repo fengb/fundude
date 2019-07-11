@@ -1,13 +1,15 @@
-function asBitArray(hexString: string): Uint8Array {
-  const bytes = hexString
+function asCart(hexString: string): Uint8Array {
+  const result = new Uint8Array(32 * 1024);
+  hexString
     .replace(/\s+/g, "")
     .match(/.{1,2}/g)!
-    .map(s => parseInt(s, 16));
-
-  return new Uint8Array(bytes);
+    .forEach((s, i) => {
+      result[i] = parseInt(s, 16);
+    });
+  return result;
 }
 
-export const BOOTLOADER = asBitArray(`
+export const BOOTLOADER = asCart(`
 31 FE FF AF 21 FF 9F 32 CB 7C 20 FB 21 26 FF 0E
 11 3E 80 32 E2 0C 3E F3 E2 32 3E 77 77 3E FC E0
 47 11 04 01 21 10 80 1A CD 95 00 CD 96 00 13 7B
