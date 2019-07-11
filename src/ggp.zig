@@ -37,12 +37,12 @@ pub const Inputs = packed union {
 
     pub fn update(self: Inputs, mmu: *base.Mmu) void {
         // Hardware quirk: 0 == active
-        if (mmu.io.ggp.bitfields.buttons == 0) {
-            mmu.io.ggp.bitfields.read = ~self.nibbles.buttons;
+        if (mmu.dyn.io.ggp.bitfields.buttons == 0) {
+            mmu.dyn.io.ggp.bitfields.read = ~self.nibbles.buttons;
             return;
         }
-        if (mmu.io.ggp.bitfields.dpad == 0) {
-            mmu.io.ggp.bitfields.read = ~self.nibbles.dpad;
+        if (mmu.dyn.io.ggp.bitfields.dpad == 0) {
+            mmu.dyn.io.ggp.bitfields.read = ~self.nibbles.dpad;
             return;
         }
     }

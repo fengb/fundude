@@ -175,16 +175,16 @@ pub const Ppu = struct {
 
     pub fn step(self: *Ppu, mmu: *base.Mmu, cycles: u16) void {
         // FIXME: this isn't how DMA works
-        if (mmu.io.ppu.DMA != 0) {
-            const addr = @intCast(u16, mmu.io.ppu.DMA) << 8;
-            const oam = @ptrCast([*]u8, &mmu.oam);
+        if (mmu.dyn.io.ppu.DMA != 0) {
+            const addr = @intCast(u16, mmu.dyn.io.ppu.DMA) << 8;
+            const oam = @ptrCast([*]u8, &mmu.dyn.oam);
             std.mem.copy(u8, oam[0..160], mmu.ptr(addr)[0..160]);
-            mmu.io.ppu.DMA = 0;
+            mmu.dyn.io.ppu.DMA = 0;
         }
 
-        if (!mmu.io.ppu.LCDC.lcd_enable) {
+        if (!mmu.dyn.io.ppu.LCDC.lcd_enable) {
             self.clock = 0;
-            mmu.io.ppu.STAT.mode = .hblank;
+            mmu.dyn.io.ppu.STAT.mode = .hblank;
             return;
         }
 
@@ -193,24 +193,24 @@ pub const Ppu = struct {
         while (self.clock > DOTS_PER_FRAME) : (self.clock -= DOTS_PER_FRAME) {}
 
         const new_ly = self.clock / DOTS_PER_LINE;
-        if (mmu.io.ppu.LY != new_ly) {
-            mmu.io.ppu.LY = @intCast(u8, new_ly);
-            mmu.io.ppu.STAT.coincidence = new_ly == mmu.io.ppu.LYC;
+        if (mmu.dyn.io.ppu.LY != new_ly) {
+            mmu.dyn.io.ppu.LY = @intCast(u8, new_ly);
+            mmu.dyn.io.ppu.STAT.coincidence = new_ly == mmu.dyn.io.ppu.LYC;
         }
 
-        if ((mmu.io.ppu.STAT.irq_coincidence and mmu.io.ppu.STAT.coincidence) or
-            (mmu.io.ppu.STAT.irq_hblank and mmu.io.ppu.STAT.mode == .hblank) or
-            (mmu.io.ppu.STAT.irq_vblank and mmu.io.ppu.STAT.mode == .vblank) or
-            (mmu.io.ppu.STAT.irq_oam and mmu.io.ppu.STAT.mode == .searching))
+        if ((mmu.dyn.io.ppu.STAT.irq_coincidence and mmu.dyn.io.ppu.STAT.coincidence) or
+            (mmu.dyn.io.ppu.STAT.irq_hblank and mmu.dyn.io.ppu.STAT.mode == .hblank) or
+            (mmu.dyn.io.ppu.STAT.irq_vblank and mmu.dyn.io.ppu.STAT.mode == .vblank) or
+            (mmu.dyn.io.ppu.STAT.irq_oam and mmu.dyn.io.ppu.STAT.mode == .searching))
         {
-            mmu.io.IF.lcd_stat = true;
+            mmu.dyn.io.IF.lcd_stat = true;
         }
 
         if (self.clock > SCREEN_HEIGHT * DOTS_PER_LINE) {
             // TODO: render specific pixels in mode 3 / transferring
-            if (mmu.io.ppu.STAT.mode != .vblank) {
-                mmu.io.ppu.STAT.mode = .vblank;
-                mmu.io.IF.vblank = true;
+            if (mmu.dyn.io.ppu.STAT.mode != .vblank) {
+                mmu.dyn.io.ppu.STAT.mode = .vblank;
+                mmu.dyn.io.IF.vblank = true;
                 self.render(mmu);
             }
             return;
@@ -218,17 +218,17 @@ pub const Ppu = struct {
 
         const offset = self.clock % DOTS_PER_LINE;
         if (offset < 80) {
-            mmu.io.ppu.STAT.mode = .searching;
+            mmu.dyn.io.ppu.STAT.mode = .searching;
         } else if (offset < 291) {
             // TODO: offset depends on sprite
-            mmu.io.ppu.STAT.mode = .transferring;
+            mmu.dyn.io.ppu.STAT.mode = .transferring;
         } else {
-            mmu.io.ppu.STAT.mode = .hblank;
+            mmu.dyn.io.ppu.STAT.mode = .hblank;
         }
     }
 
     fn renderPatterns(self: *Ppu, mmu: *base.Mmu) void {
-        for (mmu.vram.patterns) |raw_pattern, i| {
+        for (mmu.dyn.vram.patterns) |raw_pattern, i| {
             var patterns = &self.patterns[i];
 
             var y = usize(0);
@@ -247,9 +247,9 @@ pub const Ppu = struct {
     }
 
     fn renderBg(self: *Ppu, mmu: *base.Mmu, matrix: MatrixSlice(u8), tile_map_addr: TileMapAddressing) void {
-        const tile_map = mmu.vram.tile_maps.get(tile_map_addr);
-        const tile_addressing = mmu.io.ppu.LCDC.bg_window_tile_data;
-        const palette = mmu.io.ppu.BGP;
+        const tile_map = mmu.dyn.vram.tile_maps.get(tile_map_addr);
+        const tile_addressing = mmu.dyn.io.ppu.LCDC.bg_window_tile_data;
+        const palette = mmu.dyn.io.ppu.BGP;
 
         // n^4...
         var i = u16(0);
@@ -275,14 +275,14 @@ pub const Ppu = struct {
     }
 
     fn renderSprites(self: *Ppu, mmu: *base.Mmu) void {
-        for (mmu.oam) |sprite_attr, i| {
+        for (mmu.dyn.oam) |sprite_attr, i| {
             if (sprite_attr.isOffScreen() and sprite_attr.pattern == 0) {
                 continue;
             }
 
             const palette = switch (sprite_attr.flags.palette) {
-                .OBP0 => mmu.io.ppu.OBP0,
-                .OBP1 => mmu.io.ppu.OBP1,
+                .OBP0 => mmu.dyn.io.ppu.OBP0,
+                .OBP1 => mmu.dyn.io.ppu.OBP1,
             };
 
             const sprite = &self.spritesheet[i];
@@ -316,14 +316,14 @@ pub const Ppu = struct {
         }
 
         if (self.dirtyBackground) {
-            self.renderBg(mmu, self.background.slice(), mmu.io.ppu.LCDC.bg_tile_map);
-            self.renderBg(mmu, self.window.slice(), mmu.io.ppu.LCDC.window_tile_map);
+            self.renderBg(mmu, self.background.slice(), mmu.dyn.io.ppu.LCDC.bg_tile_map);
+            self.renderBg(mmu, self.window.slice(), mmu.dyn.io.ppu.LCDC.window_tile_map);
             self.dirtyBackground = false;
         }
 
-        if (mmu.io.ppu.LCDC.bg_enable) {
-            const scx = mmu.io.ppu.SCX;
-            const scy = mmu.io.ppu.SCY;
+        if (mmu.dyn.io.ppu.LCDC.bg_enable) {
+            const scx = mmu.dyn.io.ppu.SCX;
+            const scy = mmu.dyn.io.ppu.SCY;
 
             var x = usize(0);
             while (x < SCREEN_WIDTH) : (x += 1) {
@@ -339,20 +339,20 @@ pub const Ppu = struct {
             }
         }
 
-        if (mmu.io.ppu.LCDC.window_enable) {
-            const wx = mmu.io.ppu.WX;
-            const wy = mmu.io.ppu.WY;
+        if (mmu.dyn.io.ppu.LCDC.window_enable) {
+            const wx = mmu.dyn.io.ppu.WX;
+            const wy = mmu.dyn.io.ppu.WY;
 
             var x = usize(0);
             while (x < SCREEN_WIDTH) : (x += 1) {
-                const xw = x -% (mmu.io.ppu.WX -% 7);
+                const xw = x -% (mmu.dyn.io.ppu.WX -% 7);
                 if (xw >= self.window.width()) {
                     continue;
                 }
 
                 var y = usize(0);
                 while (y < SCREEN_HEIGHT) : (y += 1) {
-                    const yw = y -% mmu.io.ppu.WY;
+                    const yw = y -% mmu.dyn.io.ppu.WY;
                     if (yw >= self.window.height()) {
                         continue;
                     }
@@ -364,7 +364,7 @@ pub const Ppu = struct {
         }
 
         // TODO: this is ugly but it'll be completely replaced by pixel-by-pixel
-        for (mmu.oam) |sprite_attr, i| {
+        for (mmu.dyn.oam) |sprite_attr, i| {
             if (sprite_attr.isOffScreen()) {
                 continue;
             }

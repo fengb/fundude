@@ -22,8 +22,7 @@ export fn fd_alloc() ?*base.Fundude {
 
 export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) void {
     fd_reset(fd);
-    fd.mmu.cart = cart;
-    fd.mmu.cart_length = cart_length;
+    fd.mmu.load(cart[0..cart_length]);
     fd.breakpoint = 0;
 }
 
@@ -86,7 +85,7 @@ export fn fd_input_press(fd: *base.Fundude, input: u8) u8 {
         if (fd.cpu.mode == .stop) {
             fd.cpu.mode = .norm;
         }
-        fd.mmu.io.IF.joypad = true;
+        fd.mmu.dyn.io.IF.joypad = true;
         fd.inputs._ |= input;
         fd.inputs.update(&fd.mmu);
     }
@@ -104,15 +103,15 @@ export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
         return null;
     }
 
-    fd.mmu.io.boot_complete = 1;
+    fd.mmu.dyn.io.boot_complete = 1;
     const addr = fd.cpu.reg._16.get(.PC);
 
     // TODO: explicitly decode
-    const res = fd.cpu.opStep(&fd.mmu, fd.mmu.cart + addr);
+    const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.ptr(addr));
     const new_addr = addr + res.length;
     fd.cpu.reg._16.set(.PC, new_addr);
 
-    if (new_addr >= fd.mmu.cart_length) {
+    if (new_addr >= fd.mmu.mbc.cart.len) {
         fd.cpu.mode = .fatal;
     }
     std.mem.copy(u8, fd.disassembly[0..], res.name);
@@ -142,7 +141,7 @@ export fn fd_cpu_ptr(fd: *base.Fundude) *c_void {
 }
 
 export fn fd_mmu_ptr(fd: *base.Fundude) *c_void {
-    return &fd.mmu;
+    return &fd.mmu.dyn;
 }
 
 export fn fd_set_breakpoint(fd: *base.Fundude, breakpoint: u16) void {

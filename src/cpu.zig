@@ -85,26 +85,26 @@ pub const Cpu = struct {
         }
 
         const OP_CALL = 0xCD;
-        const cmp = mmu.io.IF.cmp(mmu.interrupt_enable);
+        const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
         const addr = switch (cmp.active() orelse return null) {
             .vblank => blk: {
-                mmu.io.IF.vblank = false;
+                mmu.dyn.io.IF.vblank = false;
                 break :blk u8(0x40);
             },
             .lcd_stat => blk: {
-                mmu.io.IF.vblank = false;
+                mmu.dyn.io.IF.vblank = false;
                 break :blk u8(0x40);
             },
             .timer => blk: {
-                mmu.io.IF.vblank = false;
+                mmu.dyn.io.IF.vblank = false;
                 break :blk u8(0x40);
             },
             .serial => blk: {
-                mmu.io.IF.vblank = false;
+                mmu.dyn.io.IF.vblank = false;
                 break :blk u8(0x40);
             },
             .joypad => blk: {
-                mmu.io.IF.vblank = false;
+                mmu.dyn.io.IF.vblank = false;
                 break :blk u8(0x40);
             },
         };

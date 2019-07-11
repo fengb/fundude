@@ -8,6 +8,7 @@ const timer = @import("timer.zig");
 const irq = @import("irq.zig");
 const apu = @import("apu.zig");
 const ppu = @import("ppu.zig");
+const mbc = @import("mbc.zig");
 
 const BEYOND_BOOTLOADER = 0x100;
 const BEYOND_CART = 0x8000;
@@ -30,37 +31,41 @@ pub const Io = packed struct {
     _pad_ff60_7f: [0x0020]u8, // [$FF60 - $FF7F]
 };
 
-pub const Mmu = packed struct {
-    vram: ppu.Vram, // [$8000 - $A000)
-    switchable_ram: [0x2000]u8, // [$A000 - $C000)
-    ram: [0x2000]u8, // [$C000 - $E000)
-    _pad_ram_echo: [0x1E00]u8, // [$E000 - $FE00)
-    oam: [40]ppu.SpriteAttr, // [$FE00 - $FEA0)
-    _pad_fea0_ff00: [0x0060]u8, // [$FEA0 - $FF00)
-    io: Io, // [$FF00 - $FF80)
-    high_ram: [0x007F]u8, // [$FF80 - $FFFF)
-    interrupt_enable: irq.Flags, // [$FFFF]
+pub const Mmu = struct {
+    dyn: packed struct {
+        vram: ppu.Vram, // [$8000 - $A000)
+        switchable_ram: [0x2000]u8, // [$A000 - $C000)
+        ram: [0x2000]u8, // [$C000 - $E000)
+        _pad_ram_echo: [0x1E00]u8, // [$E000 - $FE00)
+        oam: [40]ppu.SpriteAttr, // [$FE00 - $FEA0)
+        _pad_fea0_ff00: [0x0060]u8, // [$FEA0 - $FF00)
+        io: Io, // [$FF00 - $FF80)
+        high_ram: [0x007F]u8, // [$FF80 - $FFFF)
+        interrupt_enable: irq.Flags, // [$FFFF]
+    },
 
-    // TODO: use packed slice once that's merged
-    cart: [*]u8, // 0x0000 - 0x8000
-    cart_length: usize,
+    mbc: mbc.Mbc,
 
     pub fn reset(self: *Mmu) void {
         // @memset(@ptrCast([*]u8, &self.io), 0, @sizeOf(@typeOf(self.io)));
-        @memset(@ptrCast([*]u8, &self.vram), 0, 0x8000);
+        @memset(@ptrCast([*]u8, &self.dyn), 0, 0x8000);
     }
 
+    pub fn load(self: *Mmu, cart: []u8) void {
+        return self.mbc.load(cart);
+    }
+
+    // TODO: delete me
     fn ptr(self: *Mmu, addr: u16) [*]const u8 {
-        if (self.io.boot_complete == 0 and addr < BEYOND_BOOTLOADER) {
+        if (self.dyn.io.boot_complete == 0 and addr < BEYOND_BOOTLOADER) {
             return BOOTLOADER.ptr + addr;
         }
 
         if (addr < BEYOND_CART) {
-            // TODO: remove min check once MBC is complete
-            return self.cart + std.math.min(addr, self.cart_length);
+            return self.mbc.ptr(addr);
         } else if (0xE000 <= addr and addr < 0xFE00) {
             // Echo of 8kB Internal RAM
-            return self.ram[0..].ptr + (addr - 0xE000);
+            return self.dyn.ram[0..].ptr + (addr - 0xE000);
         }
 
         return @ptrCast([*]u8, self) + (addr - BEYOND_CART);
@@ -73,10 +78,10 @@ pub const Mmu = packed struct {
 
     fn set(self: *Mmu, addr: u16, val: u8) void {
         if (addr < BEYOND_CART) {
-            return;
+            return self.mbc.set(addr, val);
         }
 
-        const raw = @ptrCast([*]u8, &self.vram);
+        const raw = @ptrCast([*]u8, &self.dyn);
         raw[addr - BEYOND_CART] = val;
 
         // TODO: replace magic with sibling references

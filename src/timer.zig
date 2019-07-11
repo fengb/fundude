@@ -16,19 +16,19 @@ pub const Timer = struct {
 
     pub fn step(self: *Timer, mmu: *base.Mmu, cycles: u8) void {
         self._ +%= cycles;
-        mmu.io.timer.DIV = @intCast(u8, self._ / 256);
+        mmu.dyn.io.timer.DIV = @intCast(u8, self._ / 256);
 
-        if (!mmu.io.timer.TAC.active) {
+        if (!mmu.dyn.io.timer.TAC.active) {
             return;
         }
 
-        const start = mmu.io.timer.TIMA;
-        mmu.io.timer.TIMA +%= mmu.io.timer.TAC.speed.timaShift(cycles);
-        const overflowed = mmu.io.timer.TIMA < start;
+        const start = mmu.dyn.io.timer.TIMA;
+        mmu.dyn.io.timer.TIMA +%= mmu.dyn.io.timer.TAC.speed.timaShift(cycles);
+        const overflowed = mmu.dyn.io.timer.TIMA < start;
         if (overflowed) {
             // TODO: this effect actually happen 1 cycle later
-            mmu.io.timer.TIMA +%= mmu.io.timer.TMA;
-            mmu.io.IF.timer = true;
+            mmu.dyn.io.timer.TIMA +%= mmu.dyn.io.timer.TMA;
+            mmu.dyn.io.IF.timer = true;
         }
     }
 };
