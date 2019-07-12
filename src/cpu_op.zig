@@ -126,7 +126,7 @@ pub fn jr__R8___(cpu: *base.Cpu, mmu: *base.Mmu, offset: u8) Result {
         .name = "JR",
         .length = INST_LENGTH,
         .duration = 12,
-        .jump = magicAdd(cpu.reg._16.get(.PC) + INST_LENGTH, offset),
+        .jump = signedAdd(cpu.reg._16.get(.PC) + INST_LENGTH, offset),
     };
 }
 
@@ -136,7 +136,7 @@ pub fn jr__if_R8(cpu: *base.Cpu, mmu: *base.Mmu, cond: Cond, offset: u8) Result 
         .name = "JR",
         .length = INST_LENGTH,
         .duration = 12,
-        .jump = if (cond.check(cpu.*)) magicAdd(cpu.reg._16.get(.PC) + INST_LENGTH, offset) else null,
+        .jump = if (cond.check(cpu.*)) signedAdd(cpu.reg._16.get(.PC) + INST_LENGTH, offset) else null,
     };
 }
 
@@ -300,7 +300,7 @@ pub fn ld__ww_ww(cpu: *base.Cpu, mmu: *base.Mmu, tgt: Reg16, src: Reg16) Result 
 
 pub fn ldh_ww_R8(cpu: *base.Cpu, mmu: *base.Mmu, src: Reg16, offset: u8) Result {
     const val = cpu.reg._16.get(src);
-    cpu.reg._16.set(.HL, magicAdd(val, offset));
+    cpu.reg._16.set(.HL, signedAdd(val, offset));
     return Result{ .name = "LDHL", .length = 2, .duration = 16 };
 }
 
@@ -443,7 +443,7 @@ pub fn add_ww_R8(cpu: *base.Cpu, mmu: *base.Mmu, tgt: Reg16, offset: u8) Result 
         .H = willCarryInto(12, val, offset),
         .C = willCarryInto(16, val, offset),
     };
-    cpu.reg._16.set(tgt, magicAdd(val, offset));
+    cpu.reg._16.set(tgt, signedAdd(val, offset));
     return Result{ .name = "ADD", .length = 2, .duration = 16 };
 }
 
@@ -730,11 +730,10 @@ fn doXorRr(cpu: *base.Cpu, tgt: Reg8, val: u8) void {
     cpu.reg._8.set(tgt, flagShift(cpu, tgt_val ^ val, false));
 }
 
-fn magicAdd(a: u16, ub: u8) u16 {
-    const ib = @bitCast(i8, ub);
-    if (ib >= 0) {
-        return a +% @intCast(u8, ib);
+fn signedAdd(a: u16, b: u8) u16 {
+    if (b < 128) {
+        return a +% b;
     } else {
-        return a -% @intCast(u8, -ib);
+        return a -% (u16(256) - b);
     }
 }
