@@ -24,7 +24,7 @@ pub const Flags = packed struct {
         else if (self.lcd_stat)
             FlagName.lcd_stat
         else if (self.timer)
-            FlagName.lcd_stat
+            FlagName.timer
         else if (self.serial)
             FlagName.serial
         else if (self.joypad)
