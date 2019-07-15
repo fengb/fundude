@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const BANK_SIZE = 0x4000;
+
 const RomSize = enum(u8) {
     _32k = 0,
     _64k = 1,
@@ -44,21 +46,22 @@ const Nope = struct {
 
 const Mbc1 = struct {
     pub fn ptr(mbc: Mbc, addr: u15) [*]const u8 {
-        if (addr < 0x4000) {
+        if (addr < BANK_SIZE) {
             return mbc.cart.ptr + addr;
         } else {
-            return mbc.cart.ptr + usize(0x4000) * mbc.rom_bank + (addr - 0x4000);
+            return mbc.cart.ptr + usize(BANK_SIZE) * mbc.rom_bank + (addr - BANK_SIZE);
         }
     }
     pub fn set(mbc: *Mbc, addr: u15, val: u8) void {
         if (addr < 0x2000) {
             // RAM enable
-        } else if (addr < 0x4000) {
+        } else if (addr < BANK_SIZE) {
             var bank = val & 0x1F;
             if (bank % 0x20 == 0) {
                 bank += 1;
             }
-            mbc.rom_bank = bank;
+            const total_banks = @intCast(u8, mbc.cart.len / BANK_SIZE);
+            mbc.rom_bank = std.math.min(bank, total_banks);
         } else if (addr < 0x6000) {
             // RAM bank
         } else {

@@ -108,10 +108,10 @@ export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
 
     // TODO: explicitly decode
     const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.cart.ptr + addr);
-    const new_addr = addr + res.length;
+    const new_addr = addr +% res.length;
     fd.cpu.reg._16.set(.PC, new_addr);
 
-    if (new_addr >= fd.mmu.mbc.cart.len) {
+    if (new_addr >= fd.mmu.mbc.cart.len or new_addr < addr) {
         fd.cpu.mode = .fatal;
     }
     std.mem.copy(u8, fd.disassembly[0..], res.name);
