@@ -12,39 +12,49 @@ pub const Io = packed struct {
 };
 
 pub const Timer = struct {
-    _: u16,
+    clock: u16,
+    timer: u32,
+
+    pub fn reset(self: *Timer) void {
+        self.clock = 0;
+        self.timer = 0;
+    }
 
     pub fn step(self: *Timer, mmu: *base.Mmu, cycles: u8) void {
-        self._ +%= cycles;
-        mmu.dyn.io.timer.DIV = @intCast(u8, self._ / 256);
+        self.clock +%= cycles;
+        mmu.dyn.io.timer.DIV = @intCast(u8, self.clock / 256);
 
         if (!mmu.dyn.io.timer.TAC.active) {
             return;
         }
 
-        const start = mmu.dyn.io.timer.TIMA;
-        mmu.dyn.io.timer.TIMA +%= mmu.dyn.io.timer.TAC.speed.timaShift(cycles);
-        const overflowed = mmu.dyn.io.timer.TIMA < start;
-        if (overflowed) {
-            // TODO: this effect actually happen 1 cycle later
-            mmu.dyn.io.timer.TIMA +%= mmu.dyn.io.timer.TMA;
-            // mmu.dyn.io.IF.timer = true;
+        self.timer += cycles;
+        if (self.timer >= mmu.dyn.io.timer.TAC.speed.frequency()) {
+            self.timer -= mmu.dyn.io.timer.TAC.speed.frequency();
+
+            if (mmu.dyn.io.timer.TIMA != 0xFF) {
+                mmu.dyn.io.timer.TIMA +%= 1;
+            } else {
+                // TODO: this effect actually happen 1 cycle later
+                mmu.dyn.io.timer.TIMA = mmu.dyn.io.timer.TMA;
+                mmu.dyn.io.IF.timer = true;
+            }
         }
     }
 };
 
 const Speed = packed enum(u2) {
-    _4096 = 0,
-    _262144 = 1,
-    _65536 = 2,
-    _16384 = 3,
+    _4096 = 0, // 1024 cycles
+    _262144 = 1, // 16 cycles
+    _65536 = 2, // 64 cycles
+    _16384 = 3, // 256 cycles
 
-    pub fn timaShift(self: Speed, cycles: u8) u8 {
+    pub fn frequency(self: Speed) u32 {
         return switch (self) {
-            ._4096 => cycles / 4, // 256 / 1024
-            ._16384 => cycles * (256 / 256),
-            ._65536 => cycles * (256 / 64),
-            ._262144 => cycles * (256 / 16),
+            ._4096 => u32(4096),
+            ._16384 => u32(16384),
+            ._65536 => u32(65536),
+            ._262144 => u32(262144),
         };
     }
 };

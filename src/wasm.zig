@@ -31,7 +31,7 @@ export fn fd_reset(fd: *base.Fundude) void {
     fd.ppu.reset();
     fd.cpu.reset();
     fd.inputs._ = 0;
-    fd.timer._ = 0;
+    fd.timer.reset();
     fd.clock.cpu = 0;
 }
 
