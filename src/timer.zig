@@ -28,7 +28,7 @@ pub const Timer = struct {
         if (overflowed) {
             // TODO: this effect actually happen 1 cycle later
             mmu.dyn.io.timer.TIMA +%= mmu.dyn.io.timer.TMA;
-            mmu.dyn.io.IF.timer = true;
+            // mmu.dyn.io.IF.timer = true;
         }
     }
 };
