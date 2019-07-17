@@ -44,20 +44,10 @@ const RamSize = enum(u8) {
 };
 
 const Nope = struct {
-    pub fn ptr(mbc: Mbc, addr: u15) [*]const u8 {
-        return mbc.cart.ptr + addr;
-    }
     pub fn set(mbc: *Mbc, addr: u15, val: u8) void {}
 };
 
 const Mbc1 = struct {
-    pub fn ptr(mbc: Mbc, addr: u15) [*]const u8 {
-        if (addr < BANK_SIZE) {
-            return mbc.cart.ptr + addr;
-        } else {
-            return mbc.cart.ptr + usize(BANK_SIZE) * mbc.rom_bank + (addr - BANK_SIZE);
-        }
-    }
     pub fn set(mbc: *Mbc, addr: u15, val: u8) void {
         if (addr < 0x2000) {
             // RAM enable
@@ -66,8 +56,8 @@ const Mbc1 = struct {
             if (bank % 0x20 == 0) {
                 bank += 1;
             }
-            const total_banks = @intCast(u8, mbc.cart.len / BANK_SIZE);
-            mbc.rom_bank = std.math.min(bank, total_banks);
+            const total_banks = mbc.cart.len / BANK_SIZE;
+            mbc.bank_offset = u32(BANK_SIZE) * std.math.min(bank, total_banks);
         } else if (addr < 0x6000) {
             // RAM bank
         } else {
@@ -78,10 +68,9 @@ const Mbc1 = struct {
 
 pub const Mbc = struct {
     cart: []u8,
+    bank_offset: u32,
 
-    rom_bank: u8,
     // TODO: convert to getFn
-    ptrFn: fn (mbc: Mbc, addr: u15) [*]const u8,
     setFn: fn (mbc: *Mbc, addr: u15, val: u8) void,
 
     // TODO: RAM banking
@@ -94,22 +83,24 @@ pub const Mbc = struct {
 
         switch (cart[0x147]) {
             0x0 => {
-                self.ptrFn = Nope.ptr;
                 self.setFn = Nope.set;
             },
             0x1 => {
-                self.ptrFn = Mbc1.ptr;
                 self.setFn = Mbc1.set;
             },
             else => return error.CartTypeError,
         }
         self.cart = cart;
-        self.rom_bank = 1;
+        self.bank_offset = BANK_SIZE;
     }
 
     // TODO: remove me
     pub fn ptr(self: Mbc, addr: u15) [*]const u8 {
-        return self.ptrFn(self, addr);
+        if (addr < BANK_SIZE) {
+            return self.cart.ptr + addr;
+        } else {
+            return self.cart.ptr + self.bank_offset + (addr - BANK_SIZE);
+        }
     }
 
     pub fn get(self: Mbc, addr: u15) u8 {
