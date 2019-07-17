@@ -21,9 +21,9 @@ export fn fd_alloc() ?*base.Fundude {
 }
 
 export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) void {
+    // TODO: better error handling
+    fd.mmu.load(cart[0..cart_length]) catch unreachable;
     fd_reset(fd);
-    fd.mmu.load(cart[0..cart_length]);
-    fd.breakpoint = 0;
 }
 
 export fn fd_reset(fd: *base.Fundude) void {

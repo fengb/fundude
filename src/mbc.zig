@@ -1,5 +1,11 @@
 const std = @import("std");
 
+const CartHeaderError = error{
+    CartTypeError,
+    RomSizeError,
+    RamSizeError,
+};
+
 const BANK_SIZE = 0x4000;
 
 const RomSize = enum(u8) {
@@ -80,7 +86,7 @@ pub const Mbc = struct {
 
     // TODO: RAM banking
 
-    pub fn load(self: *Mbc, cart: []u8) void {
+    pub fn load(self: *Mbc, cart: []u8) CartHeaderError!void {
         // Convert asserts to real errors
         std.debug.assert(cart.len >= 32 * 1024);
         const size = @intToEnum(RomSize, cart[0x148]);
@@ -91,11 +97,11 @@ pub const Mbc = struct {
                 self.ptrFn = Nope.ptr;
                 self.setFn = Nope.set;
             },
-            0x1, 0x2, 0x3 => {
+            0x1 => {
                 self.ptrFn = Mbc1.ptr;
                 self.setFn = Mbc1.set;
             },
-            else => unreachable,
+            else => return error.CartTypeError,
         }
         self.cart = cart;
         self.rom_bank = 1;
