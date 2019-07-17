@@ -7,6 +7,8 @@ Perfect emulation:
 
 Playable:
 - **Tetris**
+- **Super Mario Land**
+- **Bionic Commando**
 
 ### Implementation details
 
