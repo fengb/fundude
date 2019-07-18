@@ -6,5 +6,5 @@ import App from "./App";
 const container = document.getElementById("app");
 if (container) {
   forceRenderStyles();
-  render(<App debug={window.location.hash.includes("debug")} />, container);
+  render(<App />, container);
 }

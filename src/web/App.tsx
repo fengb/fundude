@@ -4,6 +4,7 @@ import FD from "../wasm/react";
 import Display from "./Display";
 import CartSelect from "./CartSelect";
 import Controller from "./Controller";
+import Toaster from "./Toaster";
 import { BOOTLOADER } from "./data";
 import Debug from "./Debug";
 //@ts-ignore
@@ -111,18 +112,35 @@ export function App(props: { debug?: boolean }) {
   );
 }
 
-export default function(props: { debug?: boolean }) {
-  const [debug, setDebug] = React.useState(props.debug);
+function Shell(props: { debug?: boolean }) {
+  const [debug, setDebug] = React.useState(
+    window.location.hash.includes("debug")
+  );
   useEvent("hashchange", () =>
     setDebug(window.location.hash.includes("debug"))
   );
+  const toaster = React.useContext(Toaster.Context);
+
   return (
-    <FD.Provider bootCart={BOOTLOADER} autoBoot={!debug}>
+    <FD.Provider
+      bootCart={BOOTLOADER}
+      autoBoot={!debug}
+      onError={e => toaster.add({ title: "Fatal", body: e.message || e })}
+    >
+      <Toaster.ShowAll />
       <div className={CSS.root}>
         {debug && <Debug.Left />}
         <App debug={debug} />
         {debug && <Debug.Right />}
       </div>
     </FD.Provider>
+  );
+}
+
+export default function() {
+  return (
+    <Toaster.Provider>
+      <Shell />
+    </Toaster.Provider>
   );
 }
