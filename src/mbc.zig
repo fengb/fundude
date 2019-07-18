@@ -19,6 +19,13 @@ const RomSize = enum(u8) {
     _4m = 7,
     _8m = 8,
 
+    pub fn init(raw: u8) !RomSize {
+        if (raw >= 8) {
+            return error.RomSizeError;
+        }
+        return @intToEnum(RomSize, raw);
+    }
+
     pub fn bytes(self: RomSize) usize {
         return switch (self) {
             ._32k => usize(32 * 1024),
@@ -76,10 +83,10 @@ pub const Mbc = struct {
     // TODO: RAM banking
 
     pub fn load(self: *Mbc, cart: []u8) CartHeaderError!void {
-        // Convert asserts to real errors
-        std.debug.assert(cart.len >= 32 * 1024);
-        const size = @intToEnum(RomSize, cart[0x148]);
-        std.debug.assert(cart.len == size.bytes());
+        const size = try RomSize.init(cart[0x148]);
+        if (cart.len != size.bytes()) {
+            return error.RomSizeError;
+        }
 
         switch (cart[0x147]) {
             0x0 => {

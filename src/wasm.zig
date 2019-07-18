@@ -20,10 +20,14 @@ export fn fd_alloc() ?*base.Fundude {
     return zee_alloc.wasm_allocator.create(base.Fundude) catch null;
 }
 
-export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) void {
-    // TODO: better error handling
-    fd.mmu.load(cart[0..cart_length]) catch unreachable;
+export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) u8 {
+    fd.mmu.load(cart[0..cart_length]) catch |err| return switch (err) {
+        error.CartTypeError => u8(1),
+        error.RomSizeError => u8(2),
+        error.RamSizeError => u8(3),
+    };
     fd_reset(fd);
+    return 0;
 }
 
 export fn fd_reset(fd: *base.Fundude) void {

@@ -146,7 +146,15 @@ export default class FundudeWasm {
 
     this.cart = cart;
     this.cartClone = PtrArray.clone(cart);
-    WASM.fd_init(this.pointer, cart.length, this.cartClone.ptr);
+
+    const status = WASM.fd_init(this.pointer, cart.length, this.cartClone.ptr);
+    switch (status) {
+      case 0: break;
+      case 1: throw new Error("Cart unsupported");
+      case 2: throw new Error("Cart size invalid");
+      case 3: throw new Error("Cart ram size error");
+      default: throw new Error("Unknown error");
+    }
 
     this.changed.dispatch();
   }
