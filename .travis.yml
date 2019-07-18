@@ -16,7 +16,7 @@ script:
   #- docker-compose run builder zig build test
 
 before_deploy:
-  - docker-compose run builder zig build -Drelease-fast
+  - docker-compose run builder zig build -Drelease-safe
   - yarn build
 
 deploy:
