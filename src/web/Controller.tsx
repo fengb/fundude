@@ -70,19 +70,28 @@ const INITIAL_STATE = {
 
 const KEY_MAP: Record<string, Input> = {
   KeyW: "up",
-  ArrowUp: "up",
   KeyD: "right",
-  ArrowRight: "right",
   KeyS: "down",
-  ArrowDown: "down",
   KeyA: "left",
+
+  ArrowUp: "up",
+  ArrowRight: "right",
+  ArrowDown: "down",
   ArrowLeft: "left",
+
+  Backspace: "select",
+  Backslash: "select",
+  Enter: "start",
 
   KeyN: "select",
   KeyM: "start",
-  Enter: "start",
   Comma: "b",
-  Period: "a"
+  Period: "a",
+
+  KeyO: "select",
+  KeyP: "start",
+  BracketLeft: "b",
+  BracketRight: "a"
 };
 
 export default function Controller(props: { fd: FundudeWasm }) {
