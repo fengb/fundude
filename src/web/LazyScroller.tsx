@@ -1,7 +1,9 @@
 import React from "react";
 import useScroll from "react-use/lib/useScroll";
 import { style } from "typestyle";
-import { range, clamp } from "lodash";
+
+import clamp from "lodash/clamp";
+import times from "lodash/times";
 
 const CSS = {
   root: style({
@@ -70,7 +72,8 @@ export default function LazyScroller(props: {
   return (
     <div ref={ref} className={CSS.root}>
       <div className={CSS.scroller} style={scrollerStyle}>
-        {range(start, start + toDisplay).map(i => {
+        {times(toDisplay, i => {
+          i += start;
           const hasChild = 0 <= i && i < props.totalChildren;
           const key = (i + toDisplay) % toDisplay;
           return (

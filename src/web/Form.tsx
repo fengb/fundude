@@ -1,6 +1,6 @@
 import React from "react";
 
-import { fromPairs } from "lodash";
+import fromPairs from "lodash/fromPairs";
 
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>
 

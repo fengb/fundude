@@ -1,6 +1,8 @@
 import React from "react";
-import { keyBy } from "lodash";
 import { style } from "typestyle";
+
+import keyBy from "lodash/keyBy";
+
 import FundudeWasm, { GBInstruction } from "../../wasm";
 import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";

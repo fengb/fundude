@@ -1,6 +1,9 @@
 import React from "react";
 import classnames from "classnames";
 import { style } from "typestyle";
+
+import map from "lodash/map";
+
 import FD from "../wasm/react";
 import Toaster from "./Toaster";
 import { readAsArray } from "./promise";
@@ -119,13 +122,11 @@ export default function CartSelect(props: {
         {({ inputRef }) => (
           <div className={classnames(CSS.selector, choosing && "active")}>
             <div className={classnames(CSS.selectorList, choosing && "active")}>
-              {Object.entries(props.debug ? DEBUG_ROMS.blargg : ROMS).map(
-                ([name, value]) => (
-                  <a key={name} href={value} onClick={downloadCart}>
-                    {name}
-                  </a>
-                )
-              )}
+              {map(props.debug ? DEBUG_ROMS.blargg : ROMS, (value, name) => (
+                <a key={name} href={value} onClick={downloadCart}>
+                  {name}
+                </a>
+              ))}
             </div>
             <button onClick={() => inputRef.current!.click()}>Upload</button>
           </div>

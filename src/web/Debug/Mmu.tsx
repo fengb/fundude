@@ -1,7 +1,10 @@
 import React from "react";
-import { times, map } from "lodash";
 import { style } from "typestyle";
 import classnames from "classnames";
+
+import map from "lodash/map";
+import times from "lodash/times";
+
 import FundudeWasm, { PtrArray, MMU_OFFSETS } from "../../wasm";
 import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";
