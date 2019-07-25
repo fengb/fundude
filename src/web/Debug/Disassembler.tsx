@@ -62,7 +62,7 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
 
   return (
     <div className={CSS.root}>
-      <AutoSizer className={CSS.root}>
+      <AutoSizer>
         {({ height }) => (
           <FixedSizeList
             ref={listRef}
