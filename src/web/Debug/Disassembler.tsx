@@ -1,20 +1,29 @@
 import React from "react";
+import cx from "classnames";
 import { style } from "typestyle";
+import { FixedSizeList } from "react-window";
+import useDimensions from "react-use-dimensions";
 
 import keyBy from "lodash/keyBy";
 
 import FundudeWasm, { GBInstruction } from "../../wasm";
-import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";
 
 const CSS = {
   root: style({
     fontFamily: "monospace",
-    display: "flex"
+    display: "flex",
+    flex: "1 1 auto"
   }),
   child: style({
     display: "flex",
-    cursor: "pointer"
+    cursor: "pointer",
+
+    $nest: {
+      "&.active": {
+        boxShadow: "inset 0 0 0 1px black"
+      }
+    }
   }),
   childSegment: style({
     margin: "0 4px"
@@ -35,6 +44,7 @@ const CSS = {
 };
 
 export default function Disassembler(props: { fd: FundudeWasm }) {
+  const currentAddr = props.fd.cpu().PC();
   const [assembly, setAssembly] = React.useState(
     //
     {} as Record<number, GBInstruction>
@@ -45,34 +55,43 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
     setAssembly(keyBy(assembly, "addr"));
   }, [props.fd.cart]);
 
+  const listRef = React.useRef<FixedSizeList>();
+  React.useEffect(() => {
+    listRef.current && listRef.current.scrollToItem(currentAddr);
+  }, [listRef.current, currentAddr]);
+
+  const [rootRef, { height }] = useDimensions();
+
   return (
-    <div className={CSS.root}>
-      <LazyScroller
-        childWidth={240}
-        childHeight={15}
-        totalChildren={props.fd.cart.length}
-        focus={props.fd.cpu().PC()}
+    <div ref={rootRef} className={CSS.root}>
+      <FixedSizeList
+        ref={listRef}
+        height={height || 0}
+        width={240}
+        itemSize={15}
+        itemCount={props.fd.cart.length}
       >
-        {addr => (
+        {({ index, style }) => (
           <div
-            className={CSS.child}
-            onClick={() => props.fd.setBreakpoint(addr)}
+            style={style}
+            className={cx(CSS.child, index === currentAddr && "active")}
+            onClick={() => props.fd.setBreakpoint(index)}
           >
             <i
               className={`${CSS.breakpoint} ${
-                props.fd.breakpoint === addr ? "active" : ""
+                props.fd.breakpoint === index ? "active" : ""
               }`}
             />
-            <span className={CSS.childSegment}>${hex4(addr)}</span>
+            <span className={CSS.childSegment}>${hex4(index)}</span>
             <span className={CSS.childSegment}>
-              {hex2(props.fd.cart[addr])}
+              {hex2(props.fd.cart[index])}
             </span>
             <strong className={CSS.childSegment}>
-              {assembly[addr] && assembly[addr].text}
+              {assembly[index] && assembly[index].text}
             </strong>
           </div>
         )}
-      </LazyScroller>
+      </FixedSizeList>
     </div>
   );
 }

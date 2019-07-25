@@ -1,16 +1,25 @@
 import React from "react";
 import { style } from "typestyle";
+import useEvent from "react-use/lib/useEvent";
+
 import FD from "../wasm/react";
 import Display from "./Display";
 import CartSelect from "./CartSelect";
 import Controller from "./Controller";
 import Toaster from "./Toaster";
 import { BOOTLOADER } from "./data";
-import Debug from "./Debug";
+
+const LazyDebug = {
+  Left: React.lazy(() =>
+    import("./Debug").then(mod => ({ default: mod.default.Left }))
+  ),
+  Right: React.lazy(() =>
+    import("./Debug").then(mod => ({ default: mod.default.Right }))
+  )
+};
+
 //@ts-ignore
 import Logo from "./logo.svg";
-
-import useEvent from "react-use/lib/useEvent";
 
 const CSS = {
   root: style({
@@ -112,7 +121,7 @@ export function App(props: { debug?: boolean }) {
   );
 }
 
-function Shell(props: { debug?: boolean }) {
+export default function(props: { debug?: boolean }) {
   const [debug, setDebug] = React.useState(
     window.location.hash.includes("debug")
   );
@@ -122,25 +131,23 @@ function Shell(props: { debug?: boolean }) {
   const toaster = React.useContext(Toaster.Context);
 
   return (
-    <FD.Provider
-      bootCart={BOOTLOADER}
-      autoBoot={!debug}
-      onError={e => toaster.add({ title: "Fatal", body: e.message || e })}
-    >
-      <Toaster.ShowAll />
-      <div className={CSS.root}>
-        {debug && <Debug.Left />}
-        <App debug={debug} />
-        {debug && <Debug.Right />}
-      </div>
-    </FD.Provider>
-  );
-}
-
-export default function() {
-  return (
     <Toaster.Provider>
-      <Shell />
+      <FD.Provider
+        bootCart={BOOTLOADER}
+        autoBoot={!debug}
+        onError={e => toaster.add({ title: "Fatal", body: e.message || e })}
+      >
+        <Toaster.ShowAll />
+        <div className={CSS.root}>
+          <React.Suspense fallback={<div />}>
+            {debug && <LazyDebug.Left />}
+          </React.Suspense>
+          <App debug={debug} />
+          <React.Suspense fallback={<div />}>
+            {debug && <LazyDebug.Right />}
+          </React.Suspense>
+        </div>
+      </FD.Provider>
     </Toaster.Provider>
   );
 }
