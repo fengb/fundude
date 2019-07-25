@@ -2,7 +2,7 @@ import React from "react";
 import cx from "classnames";
 import { style } from "typestyle";
 import { FixedSizeList } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
+import useDimensions from "react-use-dimensions";
 
 import keyBy from "lodash/keyBy";
 
@@ -60,40 +60,38 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
     listRef.current && listRef.current.scrollToItem(currentAddr);
   }, [listRef.current, currentAddr]);
 
+  const [rootRef, { height }] = useDimensions();
+
   return (
-    <div className={CSS.root}>
-      <AutoSizer>
-        {({ height }) => (
-          <FixedSizeList
-            ref={listRef}
-            height={height}
-            width={240}
-            itemSize={15}
-            itemCount={props.fd.cart.length}
+    <div ref={rootRef} className={CSS.root}>
+      <FixedSizeList
+        ref={listRef}
+        height={height || 0}
+        width={240}
+        itemSize={15}
+        itemCount={props.fd.cart.length}
+      >
+        {({ index, style }) => (
+          <div
+            style={style}
+            className={cx(CSS.child, index === currentAddr && "active")}
+            onClick={() => props.fd.setBreakpoint(index)}
           >
-            {({ index, style }) => (
-              <div
-                style={style}
-                className={cx(CSS.child, index === currentAddr && "active")}
-                onClick={() => props.fd.setBreakpoint(index)}
-              >
-                <i
-                  className={`${CSS.breakpoint} ${
-                    props.fd.breakpoint === index ? "active" : ""
-                  }`}
-                />
-                <span className={CSS.childSegment}>${hex4(index)}</span>
-                <span className={CSS.childSegment}>
-                  {hex2(props.fd.cart[index])}
-                </span>
-                <strong className={CSS.childSegment}>
-                  {assembly[index] && assembly[index].text}
-                </strong>
-              </div>
-            )}
-          </FixedSizeList>
+            <i
+              className={`${CSS.breakpoint} ${
+                props.fd.breakpoint === index ? "active" : ""
+              }`}
+            />
+            <span className={CSS.childSegment}>${hex4(index)}</span>
+            <span className={CSS.childSegment}>
+              {hex2(props.fd.cart[index])}
+            </span>
+            <strong className={CSS.childSegment}>
+              {assembly[index] && assembly[index].text}
+            </strong>
+          </div>
         )}
-      </AutoSizer>
+      </FixedSizeList>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React from "react";
 import { style } from "typestyle";
 import cx from "classnames";
 import { FixedSizeGrid } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
+import useDimensions from "react-use-dimensions";
 
 import map from "lodash/map";
 
@@ -70,6 +70,7 @@ function MmuOutput(props: {
   focus: number;
   highlightClasses: Record<number, string>;
 }) {
+  const [rootRef, { height }] = useDimensions();
   const gridRef = React.createRef<FixedSizeGrid>();
 
   React.useEffect(() => {
@@ -82,38 +83,34 @@ function MmuOutput(props: {
   }, [gridRef.current, props.focus]);
 
   return (
-    <div className={CSS.output}>
-      <AutoSizer>
-        {({ height }) => (
-          <FixedSizeGrid
-            ref={gridRef}
-            height={height}
-            width={430}
-            columnCount={WIDTH}
-            rowCount={props.mem.length() / WIDTH}
-            columnWidth={25}
-            rowHeight={15}
-          >
-            {({ columnIndex, rowIndex, style }) => {
-              const i = rowIndex * WIDTH + columnIndex;
-              const loc = i + MMU_OFFSETS.shift;
-              return (
-                <div
-                  style={style}
-                  className={cx(
-                    CSS.outputCell,
-                    props.highlightClasses[loc],
-                    MEMLOC_CSS[loc],
-                    loc === props.focus && "active"
-                  )}
-                >
-                  {hex2(props.mem.base[i] || 0)}
-                </div>
-              );
-            }}
-          </FixedSizeGrid>
-        )}
-      </AutoSizer>
+    <div ref={rootRef} className={CSS.output}>
+      <FixedSizeGrid
+        ref={gridRef}
+        height={height || 0}
+        width={430}
+        columnCount={WIDTH}
+        rowCount={props.mem.length() / WIDTH}
+        columnWidth={25}
+        rowHeight={15}
+      >
+        {({ columnIndex, rowIndex, style }) => {
+          const i = rowIndex * WIDTH + columnIndex;
+          const loc = i + MMU_OFFSETS.shift;
+          return (
+            <div
+              style={style}
+              className={cx(
+                CSS.outputCell,
+                props.highlightClasses[loc],
+                MEMLOC_CSS[loc],
+                loc === props.focus && "active"
+              )}
+            >
+              {hex2(props.mem.base[i] || 0)}
+            </div>
+          );
+        }}
+      </FixedSizeGrid>
     </div>
   );
 }
