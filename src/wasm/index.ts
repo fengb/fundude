@@ -51,19 +51,15 @@ function toUTF8(ptr: number) {
   return new TextDecoder("utf-8").decode(rawBytes);
 }
 
-function tuple<T1, T2>(t1: T1, t2: T2): [T1, T2] {
-  return [t1, t2];
-}
-
 export const MMU_OFFSETS = {
   shift: 0x8000,
-  segments: {
-    vram: tuple(0x8000, 0xa000 - 1),
-    ram: tuple(0xc000, 0xe000 - 1),
-    oam: tuple(0xfe00, 0xfea0 - 1),
-    io: tuple(0xff00, 0xff4c),
-    himem: tuple(0xff80, 0xffff - 1)
-  }
+  segments: [
+    { start: 0x8000, end: 0xa000 - 1, name: "vram" },
+    { start: 0xc000, end: 0xe000 - 1, name: "ram" },
+    { start: 0xfe00, end: 0xfea0 - 1, name: "oam" },
+    { start: 0xff00, end: 0xff4c - 1, name: "io" },
+    { start: 0xff80, end: 0xffff - 1, name: "himem" }
+  ]
 };
 
 enum InputBitMapping {

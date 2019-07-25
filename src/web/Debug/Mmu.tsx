@@ -57,10 +57,9 @@ const REGION_CSS: Record<string, string> = {
 };
 
 const MEMLOC_CSS: Record<number, string> = {};
-for (const key in MMU_OFFSETS.segments) {
-  const tuple = MMU_OFFSETS.segments[key];
-  for (let loc = tuple[0]; loc <= tuple[1]; loc++) {
-    MEMLOC_CSS[loc] = REGION_CSS[key];
+for (const segment of MMU_OFFSETS.segments) {
+  for (let loc = segment.start; loc <= segment.end; loc++) {
+    MEMLOC_CSS[loc] = REGION_CSS[segment.name];
   }
 }
 
@@ -122,11 +121,15 @@ export default function Mmu(props: { fd: FundudeWasm }) {
   return (
     <div className={CSS.root}>
       <div className={CSS.controls}>
-        {map(MMU_OFFSETS.segments, (tuple, key) => (
-          <div key={key} className={REGION_CSS[key]}>
-            <div>{key}</div>
-            <button onClick={() => setFocus(tuple[0])}>{hex4(tuple[0])}</button>
-            <button onClick={() => setFocus(tuple[1])}>{hex4(tuple[1])}</button>
+        {map(MMU_OFFSETS.segments, segment => (
+          <div key={segment.name} className={REGION_CSS[segment.name]}>
+            <div>{segment.name}</div>
+            <button onClick={() => setFocus(segment.start)}>
+              {hex4(segment.start)}
+            </button>
+            <button onClick={() => setFocus(segment.end)}>
+              {hex4(segment.end)}
+            </button>
           </div>
         ))}
         <Form
