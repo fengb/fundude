@@ -31,7 +31,6 @@
   "dependencies": {
     "@svgr/parcel-plugin-svgr": "^4.2.0",
     "classnames": "^2.2.6",
-    "lodash": "^4.17.11",
     "micro-signals": "^2.1.0",
     "preact": "^10.0.0-rc.0",
     "react-dropzone": "^10.1.3",

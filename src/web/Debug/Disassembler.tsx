@@ -4,10 +4,9 @@ import { style } from "typestyle";
 import { FixedSizeList } from "react-window";
 import useDimensions from "react-use-dimensions";
 
-import fromPairs from "lodash/fromPairs";
+import { fromEntries } from "../smalldash";
 
 import FundudeWasm from "../../wasm";
-import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";
 
 const CSS = {
@@ -49,8 +48,8 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
   const [assembly, setAssembly] = React.useState({} as Record<number, string>);
 
   React.useEffect(() => {
-    const assembly = Array.from(FundudeWasm.disassemble(props.fd.cart));
-    setAssembly(fromPairs(assembly));
+    const assembly = FundudeWasm.disassemble(props.fd.cart);
+    setAssembly(fromEntries(assembly));
   }, [props.fd.cart]);
 
   const listRef = React.useRef<FixedSizeList>();
@@ -84,7 +83,9 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
             <span className={CSS.childSegment}>
               {hex2(props.fd.cart[index])}
             </span>
-            <strong className={CSS.childSegment}>{assembly[index] || ""}</strong>
+            <strong className={CSS.childSegment}>
+              {assembly[index] || ""}
+            </strong>
           </div>
         )}
       </FixedSizeList>

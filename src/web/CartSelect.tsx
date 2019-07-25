@@ -2,7 +2,7 @@ import React from "react";
 import classnames from "classnames";
 import { style } from "typestyle";
 
-import map from "lodash/map";
+import { mapObject } from "./smalldash";
 
 import FD from "../wasm/react";
 import Toaster from "./Toaster";
@@ -108,6 +108,8 @@ export default function CartSelect(props: {
     selectCart(file.name, data);
   }, []);
 
+  const carts = props.debug ? DEBUG_ROMS.blargg : ROMS;
+
   return (
     <div className={CSS.root}>
       <button className={CSS.toggler} onClick={() => setChoosing(!choosing)}>
@@ -122,7 +124,7 @@ export default function CartSelect(props: {
         {({ inputRef }) => (
           <div className={classnames(CSS.selector, choosing && "active")}>
             <div className={classnames(CSS.selectorList, choosing && "active")}>
-              {map(props.debug ? DEBUG_ROMS.blargg : ROMS, (value, name) => (
+              {mapObject(carts, (value, name) => (
                 <a key={name} href={value} onClick={downloadCart}>
                   {name}
                 </a>

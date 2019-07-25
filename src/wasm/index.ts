@@ -211,7 +211,7 @@ export default class FundudeWasm {
     return this._inputStatus(WASM.fd_input_release(this.pointer, 0xff));
   }
 
-  static *disassemble(cart: Uint8Array): IterableIterator<[Number, String]> {
+  static *disassemble(cart: Uint8Array): IterableIterator<[number, string]> {
     const fd = new FundudeWasm(cart);
     try {
       while (true) {

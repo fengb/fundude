@@ -4,8 +4,6 @@ import cx from "classnames";
 import { FixedSizeGrid } from "react-window";
 import useDimensions from "react-use-dimensions";
 
-import map from "lodash/map";
-
 import FundudeWasm, { PtrArray, MMU_OFFSETS } from "../../wasm";
 import { hex2, hex4 } from "./util";
 import Form from "../Form";
@@ -121,7 +119,7 @@ export default function Mmu(props: { fd: FundudeWasm }) {
   return (
     <div className={CSS.root}>
       <div className={CSS.controls}>
-        {map(MMU_OFFSETS.segments, segment => (
+        {MMU_OFFSETS.segments.map(segment => (
           <div key={segment.name} className={REGION_CSS[segment.name]}>
             <div>{segment.name}</div>
             <button onClick={() => setFocus(segment.start)}>

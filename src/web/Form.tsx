@@ -1,8 +1,8 @@
 import React from "react";
 
-import fromPairs from "lodash/fromPairs";
+import { fromEntries } from "./smalldash";
 
-type Omit<T, K> = Pick<T, Exclude<keyof T, K>>
+type Omit<T, K> = Pick<T, Exclude<keyof T, K>>;
 
 export default function Form({
   onSubmit,
@@ -15,7 +15,7 @@ export default function Form({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fd = new FormData(event.currentTarget);
-    onSubmit(fromPairs(Array.from(fd.entries())));
+    onSubmit(fromEntries(fd));
   }
   return (
     <form onSubmit={handleSubmit} {...props}>
