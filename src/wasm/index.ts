@@ -5,11 +5,6 @@ import { Signal } from "micro-signals";
 
 Object.assign(window, { WASM });
 
-export interface GBInstruction {
-  addr: number;
-  text: string;
-}
-
 export interface PtrMatrix extends PtrArray {
   width: number;
   height: number;
@@ -149,11 +144,16 @@ export default class FundudeWasm {
 
     const status = WASM.fd_init(this.pointer, cart.length, this.cartClone.ptr);
     switch (status) {
-      case 0: break;
-      case 1: throw new Error("Cart unsupported");
-      case 2: throw new Error("Cart size invalid");
-      case 3: throw new Error("Cart ram size error");
-      default: throw new Error("Unknown error");
+      case 0:
+        break;
+      case 1:
+        throw new Error("Cart unsupported");
+      case 2:
+        throw new Error("Cart size invalid");
+      case 3:
+        throw new Error("Cart ram size error");
+      default:
+        throw new Error("Unknown error");
     }
 
     this.changed.dispatch();
@@ -215,7 +215,7 @@ export default class FundudeWasm {
     return this._inputStatus(WASM.fd_input_release(this.pointer, 0xff));
   }
 
-  static *disassemble(cart: Uint8Array): IterableIterator<GBInstruction> {
+  static *disassemble(cart: Uint8Array): IterableIterator<[Number, String]> {
     const fd = new FundudeWasm(cart);
     try {
       while (true) {
@@ -224,10 +224,7 @@ export default class FundudeWasm {
         if (!outPtr) {
           return;
         }
-        yield {
-          addr,
-          text: toUTF8(outPtr)
-        };
+        yield [addr, toUTF8(outPtr)];
       }
     } finally {
       fd.dealloc();
