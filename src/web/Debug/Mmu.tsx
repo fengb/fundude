@@ -1,12 +1,11 @@
 import React from "react";
 import { style } from "typestyle";
-import classnames from "classnames";
+import cx from "classnames";
+import { FixedSizeGrid } from "react-window";
 
 import map from "lodash/map";
-import times from "lodash/times";
 
 import FundudeWasm, { PtrArray, MMU_OFFSETS } from "../../wasm";
-import LazyScroller from "../LazyScroller";
 import { hex2, hex4 } from "./util";
 import Form from "../Form";
 
@@ -27,19 +26,15 @@ const CSS = {
     width: "50px"
   }),
 
-  row: style({
-    display: "flex",
-    fontFamily: "monospace"
-  }),
-  addr: style({
-    flex: "1 1 auto"
-  }),
   cell: style({
-    flex: "1 1 auto",
-    textAlign: "center"
-  }),
-  focus: style({
-    boxShadow: "inset 0 0 0 1px black"
+    fontFamily: "monospace",
+    textAlign: "center",
+
+    $nest: {
+      "&.active": {
+        boxShadow: "inset 0 0 0 1px black"
+      }
+    }
   }),
 
   hl: style({
@@ -72,39 +67,45 @@ function MmuOutput(props: {
   focus: number;
   highlightClasses: Record<number, string>;
 }) {
-  const height = props.mem.length() / WIDTH;
+  const gridRef = React.createRef<FixedSizeGrid>();
+
+  React.useEffect(() => {
+    const i = props.focus - MMU_OFFSETS.shift;
+    gridRef.current &&
+      gridRef.current.scrollToItem({
+        columnIndex: i % WIDTH,
+        rowIndex: i / WIDTH
+      });
+  }, [gridRef.current, props.focus]);
+
   return (
-    <LazyScroller
-      childWidth={430}
-      childHeight={15}
-      totalChildren={height}
-      focus={Math.floor((props.focus - MMU_OFFSETS.shift) / WIDTH)}
+    <FixedSizeGrid
+      ref={gridRef}
+      height={800}
+      width={430}
+      columnCount={WIDTH}
+      rowCount={props.mem.length() / WIDTH}
+      columnWidth={25}
+      rowHeight={15}
     >
-      {row => (
-        <div className={CSS.row}>
-          <strong className={CSS.addr}>
-            ${hex4(MMU_OFFSETS.shift + row * WIDTH)}
-          </strong>
-          {times(WIDTH, col => {
-            const i = row * WIDTH + col;
-            const loc = row * WIDTH + col + MMU_OFFSETS.shift;
-            return (
-              <span
-                key={col}
-                className={classnames(
-                  CSS.cell,
-                  props.highlightClasses[loc],
-                  MEMLOC_CSS[loc],
-                  loc === props.focus && CSS.focus
-                )}
-              >
-                {hex2(props.mem.base[i] || 0)}
-              </span>
-            );
-          })}
-        </div>
-      )}
-    </LazyScroller>
+      {({ columnIndex, rowIndex, style }) => {
+        const i = rowIndex * WIDTH + columnIndex;
+        const loc = i + MMU_OFFSETS.shift;
+        return (
+          <div
+            style={style}
+            className={cx(
+              CSS.cell,
+              props.highlightClasses[loc],
+              MEMLOC_CSS[loc],
+              loc === props.focus && "active"
+            )}
+          >
+            {hex2(props.mem.base[i] || 0)}
+          </div>
+        );
+      }}
+    </FixedSizeGrid>
   );
 }
 
@@ -117,12 +118,8 @@ export default function Mmu(props: { fd: FundudeWasm }) {
         {map(MMU_OFFSETS.segments, (tuple, key) => (
           <div key={key} className={REGION_CSS[key]}>
             <div>{key}</div>
-            <button onClick={() => setFocus(tuple[0])}>
-              {hex4(tuple[0])}
-            </button>
-            <button onClick={() => setFocus(tuple[1])}>
-              {hex4(tuple[1])}
-            </button>
+            <button onClick={() => setFocus(tuple[0])}>{hex4(tuple[0])}</button>
+            <button onClick={() => setFocus(tuple[1])}>{hex4(tuple[1])}</button>
           </div>
         ))}
         <Form
