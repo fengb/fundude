@@ -59,7 +59,8 @@ const REGION_CSS: Record<string, string> = {
 };
 
 const MEMLOC_CSS: Record<number, string> = {};
-for (const [key, tuple] of Object.entries(MMU_OFFSETS.segments)) {
+for (const key in MMU_OFFSETS.segments) {
+  const tuple = MMU_OFFSETS.segments[key];
   for (let loc = tuple[0]; loc <= tuple[1]; loc++) {
     MEMLOC_CSS[loc] = REGION_CSS[key];
   }
