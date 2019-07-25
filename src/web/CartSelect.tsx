@@ -1,5 +1,5 @@
 import React from "react";
-import classnames from "classnames";
+import cx from "classnames";
 import { style } from "typestyle";
 
 import { mapObject } from "./smalldash";
@@ -7,7 +7,6 @@ import { mapObject } from "./smalldash";
 import FD from "../wasm/react";
 import Toaster from "./Toaster";
 import { readAsArray } from "./promise";
-import UploadBackdrop from "./UploadBackdrop";
 
 import ROMS from "../roms";
 import DEBUG_ROMS from "../roms/debug";
@@ -62,6 +61,25 @@ const CSS = {
   selectorList: style({
     display: "flex",
     flexDirection: "column"
+  }),
+
+  backdrop: style({
+    position: "fixed",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    background: "#000000",
+    opacity: 0,
+    transition: "300ms ease-in opacity",
+    pointerEvents: "none",
+
+    $nest: {
+      "&.active": {
+        pointerEvents: "initial",
+        opacity: 0.8
+      }
+    }
   })
 };
 
@@ -102,8 +120,9 @@ export default function CartSelect(props: {
     selectCart(link.text, data);
   }, []);
 
-  const onDrop = React.useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
+  type FileChanged = React.ChangeEventHandler<HTMLInputElement>;
+  const onFile = React.useCallback<FileChanged>(async event => {
+    const file = event.currentTarget.files[0] as File;
     const data = new Uint8Array(await readAsArray(file));
     selectCart(file.name, data);
   }, []);
@@ -116,24 +135,23 @@ export default function CartSelect(props: {
         {name}
       </button>
 
-      <UploadBackdrop
-        dropzone={{ onDrop, multiple: false }}
-        clickBackdrop={() => setChoosing(false)}
-        active={choosing}
-      >
-        {({ inputRef }) => (
-          <div className={classnames(CSS.selector, choosing && "active")}>
-            <div className={classnames(CSS.selectorList, choosing && "active")}>
-              {mapObject(carts, (value, name) => (
-                <a key={name} href={value} onClick={downloadCart}>
-                  {name}
-                </a>
-              ))}
-            </div>
-            <button onClick={() => inputRef.current!.click()}>Upload</button>
-          </div>
-        )}
-      </UploadBackdrop>
+      <div
+        className={cx(CSS.backdrop, choosing && "active")}
+        onClick={() => setChoosing(false)}
+      />
+
+      <div className={cx(CSS.selector, choosing && "active")}>
+        <div className={cx(CSS.selectorList, choosing && "active")}>
+          {mapObject(carts, (value, name) => (
+            <a key={name} href={value} onClick={downloadCart}>
+              {name}
+            </a>
+          ))}
+        </div>
+        <label>
+          <input type="file" onChange={onFile} />
+        </label>
+      </div>
     </div>
   );
 }
