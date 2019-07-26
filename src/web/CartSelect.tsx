@@ -97,9 +97,9 @@ export default function CartSelect(props: {
       try {
         fd.init(data);
         setName(name);
-      } catch (e) {
-        toaster.add({ title: "Fatal", body: e.message || e });
-        throw e;
+      // } catch (e) {
+      //   toaster.add({ title: "Fatal", body: e.message || e });
+      //   throw e;
       } finally {
         setChoosing(false);
       }

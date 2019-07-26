@@ -2,7 +2,7 @@ import React from "react";
 import { style } from "typestyle";
 
 const CSS = {
-  root: style({
+  topright: style({
     position: "fixed",
     right: 10,
     maxWidth: 200
@@ -28,31 +28,76 @@ interface Toaster {
 
 export const Context = React.createContext<Toaster>(null!);
 
-export function Provider(props: { children: React.ReactNode }) {
-  const [toasts, setToasts] = React.useState<Toast[]>([]);
-  function add(toast: Toast) {
-    setToasts([...toasts, toast]);
+interface Props {
+  show?: "topright";
+  children: React.ReactNode;
+}
+
+interface State {
+  toasts: Toast[];
+  fatal: boolean;
+}
+
+export class Provider extends React.Component<Props, State> {
+  constructor(props) {
+    super(props);
+
+    this.add = this.add.bind(this);
+    this.error = this.error.bind(this);
+
+    this.state = {
+      toasts: [],
+      fatal: false
+    };
   }
 
-  return (
-    <Context.Provider value={{ toasts, add }}>
-      {props.children}
-    </Context.Provider>
-  );
+  componentDidCatch(error: Error) {
+    this.setState({ fatal: true });
+    this.add({ title: "Fatal", body: error.message || error });
+  }
+
+  componentDidMount() {
+    window.addEventListener("error", event => {
+      this.error(event.message);
+    });
+    window.addEventListener("unhandledrejection", event => {
+      this.error(event.reason);
+    });
+  }
+
+  add(toast: Toast) {
+    this.setState(({ toasts }) => ({
+      toasts: [...toasts, toast]
+    }));
+  }
+
+  error(err: Error | string) {
+    this.add({ title: "Error", body: err.message || err });
+  }
+
+  render() {
+    return (
+      <Context.Provider
+        value={{
+          toasts: this.state.toasts,
+          add: this.add
+        }}
+      >
+        {this.props.show && (
+          <div className={CSS[this.props.show]}>
+            {this.state.toasts.map((toast, i) => (
+              <div key={i} className={CSS.item}>
+                <h3>{toast.title}</h3>
+                <div>{toast.body}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!this.state.fatal && this.props.children}
+      </Context.Provider>
+    );
+  }
 }
 
-export function ShowAll() {
-  const ctx = React.useContext(Context);
-  return (
-    <div className={CSS.root}>
-      {ctx.toasts.map((toast, i) => (
-        <div key={i} className={CSS.item}>
-          <h3>{toast.title}</h3>
-          <div>{toast.body}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export default { Context, Provider, ShowAll };
+export default { Context, Provider };

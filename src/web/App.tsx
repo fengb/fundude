@@ -128,16 +128,10 @@ export default function(props: { debug?: boolean }) {
   useEvent("hashchange", () =>
     setDebug(window.location.hash.includes("debug"))
   );
-  const toaster = React.useContext(Toaster.Context);
 
   return (
-    <Toaster.Provider>
-      <FD.Provider
-        bootCart={BOOTLOADER}
-        autoBoot={!debug}
-        onError={e => toaster.add({ title: "Fatal", body: e.message || e })}
-      >
-        <Toaster.ShowAll />
+    <Toaster.Provider show="topright">
+      <FD.Provider bootCart={BOOTLOADER} autoBoot={!debug}>
         <div className={CSS.root}>
           <React.Suspense fallback={<div />}>
             {debug && <LazyDebug.Left />}

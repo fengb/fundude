@@ -11,7 +11,6 @@ interface Props {
   autoBoot: boolean;
   bootCart: Uint8Array;
   children: React.ReactNode;
-  onError?: (error: any) => any;
 }
 
 interface State {
@@ -55,12 +54,7 @@ export class Provider extends React.Component<Props, State> {
       return;
     }
 
-    try {
-      this.state.fd.stepFrame();
-    } catch (e) {
-      this.props.onError && this.props.onError(e);
-      return;
-    }
+    this.state.fd.stepFrame();
 
     if (this.state.fd.cpu().PC() === this.state.fd.breakpoint) {
       return this.pause();
