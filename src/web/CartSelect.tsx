@@ -149,7 +149,11 @@ export default function CartSelect(props: {
           ))}
         </div>
         <label>
-          <input type="file" onChange={onFile} />
+          <input
+            type="file"
+            onChange={onFile}
+            onClick={event => (event.currentTarget.value = "")}
+          />
         </label>
       </div>
     </div>

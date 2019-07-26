@@ -11,10 +11,10 @@ import { BOOTLOADER } from "./data";
 
 const LazyDebug = {
   Left: React.lazy(() =>
-    import("./Debug").then(mod => ({ default: mod.default.Left }))
+    import("./Debug").then(mod => ({ default: mod.Left }))
   ),
   Right: React.lazy(() =>
-    import("./Debug").then(mod => ({ default: mod.default.Right }))
+    import("./Debug").then(mod => ({ default: mod.Right }))
   )
 };
 
