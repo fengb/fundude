@@ -1,18 +1,18 @@
 import React from "react";
-import { style } from "typestyle";
+import nano from "./nano";
 
 const CSS = {
-  topright: style({
+  topright: nano.rule({
     position: "fixed",
-    right: 10,
-    maxWidth: 200
+    right: "10px",
+    maxWidth: "200px"
   }),
 
-  item: style({
-    marginTop: 10,
+  item: nano.rule({
+    marginTop: "10px",
     border: "1px solid black",
-    padding: 10,
-    borderRadius: 4
+    padding: "10px",
+    borderRadius: "4px"
   })
 };
 

@@ -1,11 +1,13 @@
 import React from "react";
 import cx from "classnames";
-import { style } from "typestyle";
 import useEvent from "react-use/lib/useEvent";
+
+import nano from "./nano";
+
 import FundudeWasm, { Input } from "../wasm";
 
 const CSS = {
-  root: style({
+  root: nano.rule({
     display: "flex",
     flex: "1",
     justifyContent: "space-between",
@@ -13,7 +15,7 @@ const CSS = {
     touchAction: "none"
   }),
 
-  button: style({
+  button: nano.rule({
     display: "inline-block",
     background: "#082A08",
     boxShadow: "inset 0 0 2px 2px #082A08",
@@ -22,37 +24,35 @@ const CSS = {
     fontFamily: "Helvetica, Arial, sans-serif",
     fontSize: "24px",
 
-    $nest: {
-      "&.pressed": {
-        background: "white",
-        color: "#082A08"
-      }
+    "&.pressed": {
+      background: "white",
+      color: "#082A08"
     }
   }),
 
   dpad: {
-    base: style({
+    base: nano.rule({
       position: "relative",
       width: "90px",
       height: "90px"
     }),
-    direction: style({
+    direction: nano.rule({
       position: "absolute",
       height: "33.3333%",
       width: "33.3333%"
     }),
-    up: style({ left: "33.3333%", top: 0 }),
-    down: style({ left: "33.3333%", bottom: 0 }),
-    left: style({ left: 0, top: "33.3333%" }),
-    right: style({ right: 0, top: "33.3333%" })
+    up: nano.rule({ left: "33.3333%", top: 0 }),
+    down: nano.rule({ left: "33.3333%", bottom: 0 }),
+    left: nano.rule({ left: 0, top: "33.3333%" }),
+    right: nano.rule({ right: 0, top: "33.3333%" })
   },
 
   buttons: {
-    base: style({}),
-    a: style({ width: "40px", height: "40px", borderRadius: "100%" }),
-    b: style({ width: "40px", height: "40px", borderRadius: "100%" }),
-    select: style({ fontSize: "14px" }),
-    start: style({ fontSize: "14px" })
+    base: nano.rule({}),
+    a: nano.rule({ width: "40px", height: "40px", borderRadius: "100%" }),
+    b: nano.rule({ width: "40px", height: "40px", borderRadius: "100%" }),
+    select: nano.rule({ fontSize: "14px" }),
+    start: nano.rule({ fontSize: "14px" })
   }
 };
 

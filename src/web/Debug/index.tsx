@@ -1,5 +1,7 @@
 import React from "react";
-import { style } from "typestyle";
+
+import nano from "../nano";
+
 import FD from "../../wasm/react";
 import Display from "../Display";
 import Disassembler from "./Disassembler";
@@ -9,26 +11,26 @@ import Mmu from "./Mmu";
 const TURBO_FRAMES = 60 * 250;
 
 const CSS = {
-  base: style({
+  base: nano.rule({
     display: "flex",
     flexDirection: "column",
     position: "relative",
     margin: "0 50px"
   }),
 
-  controls: style({
+  controls: nano.rule({
     display: "flex",
     justifyContent: "space-between"
   }),
 
-  displays: style({
+  displays: nano.rule({
     position: "relative",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-end"
   }),
 
-  displayPatterns: style({
+  displayPatterns: nano.rule({
     position: "absolute",
     top: 0,
     left: "100%"

@@ -1,24 +1,24 @@
 import React from "react";
 import cx from "classnames";
-import { style } from "typestyle";
 
+import nano from "./nano";
 import { mapObject } from "./smalldash";
+import { readAsArray } from "./promise";
 
 import FD from "../wasm/react";
-import { readAsArray } from "./promise";
 
 import ROMS from "../roms";
 import DEBUG_ROMS from "../roms/debug";
 
 const CSS = {
-  root: style({
+  root: nano.rule({
     position: "relative",
     zIndex: 1,
     width: "350px",
     height: "18px"
   }),
 
-  toggler: style({
+  toggler: nano.rule({
     position: "absolute",
     zIndex: 1,
     boxSizing: "content-box",
@@ -33,14 +33,12 @@ const CSS = {
     textAlign: "center",
     transition: "200ms ease-in-out padding-top",
 
-    $nest: {
-      "&:hover": {
-        paddingTop: "4px"
-      }
+    "&:hover": {
+      paddingTop: "4px"
     }
   }),
 
-  selector: style({
+  selector: nano.rule({
     position: "absolute",
     overflow: "hidden",
     top: "100%",
@@ -50,19 +48,17 @@ const CSS = {
     padding: "0 10px",
     height: "0",
 
-    $nest: {
-      "&.active": {
-        height: "350px"
-      }
+    "&.active": {
+      height: "350px"
     }
   }),
 
-  selectorList: style({
+  selectorList: nano.rule({
     display: "flex",
     flexDirection: "column"
   }),
 
-  backdrop: style({
+  backdrop: nano.rule({
     position: "fixed",
     left: 0,
     right: 0,
@@ -73,11 +69,9 @@ const CSS = {
     transition: "300ms ease-in opacity",
     pointerEvents: "none",
 
-    $nest: {
-      "&.active": {
-        pointerEvents: "initial",
-        opacity: 0.8
-      }
+    "&.active": {
+      pointerEvents: "initial",
+      opacity: 0.8
     }
   })
 };

@@ -1,10 +1,12 @@
 import React from "react";
-import { style } from "typestyle";
-import FundudeWasm from "../../wasm";
+
+import nano from "../nano";
 import { hex4 } from "./util";
 
+import FundudeWasm from "../../wasm";
+
 const CSS = {
-  root: style({
+  root: nano.rule({
     display: "flex",
     textAlign: "center",
     fontFamily: "monospace",

@@ -1,8 +1,9 @@
 import React from "react";
-import { style } from "typestyle";
 import useEvent from "react-use/lib/useEvent";
 
 import FD from "../wasm/react";
+import nano from "./nano";
+
 import Display from "./Display";
 import CartSelect from "./CartSelect";
 import Controller from "./Controller";
@@ -22,7 +23,7 @@ const LazyDebug = {
 import Logo from "./logo.svg";
 
 const CSS = {
-  root: style({
+  root: nano.rule({
     overflow: "hidden",
     width: "100vw",
     height: "100vh",
@@ -30,31 +31,31 @@ const CSS = {
     justifyContent: "center"
   }),
 
-  app: style({
+  app: nano.rule({
     marginTop: "4px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center"
   }),
 
-  shell: style({
+  shell: nano.rule({
     padding: "20px 16px",
     background: "#f5f5dc",
     boxShadow: "inset 0 0 0 4px rgba(32, 32, 32, 0.5)",
     borderRadius: "8px 8px 40px 40px"
   }),
 
-  displayWrapper: style({
+  displayWrapper: nano.rule({
     backgroundColor: "#606060",
     padding: "20px 50px 0",
     borderRadius: "8px"
   }),
 
-  display: style({
+  display: nano.rule({
     maxWidth: "100vw"
   }),
 
-  title: style({
+  title: nano.rule({
     position: "relative",
     textTransform: "uppercase",
     fontFamily: "'Gill Sans', sans-serif",
@@ -64,23 +65,23 @@ const CSS = {
     color: "white"
   }),
 
-  titleText: style({
+  titleText: nano.rule({
     color: "transparent"
   }),
 
-  titleSymbol: style({
+  titleSymbol: nano.rule({
     fontSize: "0.5em",
     verticalAlign: "middle"
   }),
 
-  logo: style({
+  logo: nano.rule({
     position: "absolute",
     top: "20%",
     height: "59%",
     pointerEvents: "none"
   }),
 
-  controls: style({
+  controls: nano.rule({
     height: "300px",
     width: "324px",
     margin: "0 auto",

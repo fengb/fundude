@@ -1,57 +1,56 @@
 import React from "react";
-import { style } from "typestyle";
 import cx from "classnames";
 import { FixedSizeGrid } from "react-window";
 import useDimensions from "react-use-dimensions";
 
-import FundudeWasm, { PtrArray, MMU_OFFSETS } from "../../wasm";
+import nano from "../nano";
 import { hex2, hex4 } from "./util";
+
+import FundudeWasm, { PtrArray, MMU_OFFSETS } from "../../wasm";
 import Form from "../Form";
 
 const CSS = {
-  root: style({
+  root: nano.rule({
     display: "flex",
     flexDirection: "column",
     flex: "1 1 0",
     maxHeight: "100vh"
   }),
-  controls: style({
+  controls: nano.rule({
     display: "flex",
     fontFamily: "monospace",
     textAlign: "center"
   }),
-  custom: style({
+  custom: nano.rule({
     display: "flex",
     width: "50px"
   }),
 
-  output: style({
+  output: nano.rule({
     fontFamily: "monospace",
     textAlign: "center",
     flex: "1 1 0"
   }),
-  outputCell: style({
-    $nest: {
-      "&.active": {
-        boxShadow: "inset 0 0 0 1px black"
-      }
+  outputCell: nano.rule({
+    "&.active": {
+      boxShadow: "inset 0 0 0 1px black"
     }
   }),
 
-  hl: style({
+  hl: nano.rule({
     backgroundColor: "#d0ffff"
   }),
-  sp: style({
+  sp: nano.rule({
     backgroundColor: "#ffd0ff"
   })
 };
 
 const REGION_CSS: Record<string, string> = {
-  vram: style({ backgroundColor: "#ffaaaa" }),
-  ram: style({ backgroundColor: "#ffffaa" }),
-  oam: style({ backgroundColor: "#aaffaa" }),
-  io: style({ backgroundColor: "#aaffff" }),
-  himem: style({ backgroundColor: "#aaaaff" })
+  vram: nano.rule({ backgroundColor: "#ffaaaa" }),
+  ram: nano.rule({ backgroundColor: "#ffffaa" }),
+  oam: nano.rule({ backgroundColor: "#aaffaa" }),
+  io: nano.rule({ backgroundColor: "#aaffff" }),
+  himem: nano.rule({ backgroundColor: "#aaaaff" })
 };
 
 const MEMLOC_CSS: Record<number, string> = {};

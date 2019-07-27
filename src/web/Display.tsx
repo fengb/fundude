@@ -1,15 +1,16 @@
 import React from "react";
 import classnames from "classnames";
-import { style } from "typestyle";
-import { PtrMatrix } from "../wasm";
 import { Signal } from "micro-signals";
 
+import nano from "./nano";
+import { PtrMatrix } from "../wasm";
+
 const CSS = {
-  root: style({
+  root: nano.rule({
     backgroundColor: "white"
   }),
 
-  grid: style({
+  grid: nano.rule({
     backgroundSize: `8px 8px`,
     backgroundImage: [
       "linear-gradient(to right, lightgray 2px, transparent 1px)",
