@@ -5,7 +5,6 @@ import { style } from "typestyle";
 import { mapObject } from "./smalldash";
 
 import FD from "../wasm/react";
-import Toaster from "./Toaster";
 import { readAsArray } from "./promise";
 
 import ROMS from "../roms";
@@ -88,21 +87,14 @@ export default function CartSelect(props: {
   debug?: boolean;
 }) {
   const { fd } = React.useContext(FD.Context);
-  const toaster = React.useContext(Toaster.Context);
   const [choosing, setChoosing] = React.useState(false);
   const [name, setName] = React.useState(props.startName);
 
   const selectCart = React.useCallback(
     (name: string, data: Uint8Array) => {
-      try {
-        fd.init(data);
-        setName(name);
-      // } catch (e) {
-      //   toaster.add({ title: "Fatal", body: e.message || e });
-      //   throw e;
-      } finally {
-        setChoosing(false);
-      }
+      setChoosing(false);
+      fd.init(data);
+      setName(name);
     },
     [fd]
   );

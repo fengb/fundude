@@ -54,6 +54,7 @@ export class Provider extends React.Component<Props, State> {
   componentDidCatch(error: Error) {
     this.setState({ fatal: true });
     this.add({ title: "Fatal", body: error.message || error });
+    console.error(error);
   }
 
   componentDidMount() {
