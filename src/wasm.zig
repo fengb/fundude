@@ -3,7 +3,7 @@ const zee_alloc = @import("vendor/zee_alloc.zig");
 
 const base = @import("base.zig");
 
-const CYCLES_PER_FRAME = (4 * 16742);
+const CYCLES_PER_FRAME = 70224;
 
 export fn malloc(size: usize) ?*c_void {
     const result = zee_alloc.wasm_allocator.alloc(u8, size) catch return null;
