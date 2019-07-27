@@ -58,14 +58,10 @@ const CSS = {
   title: nano.rule({
     position: "relative",
     textTransform: "uppercase",
-    fontFamily: "'Gill Sans', sans-serif",
+    fontFamily: "'Gill Sans', Verdana, sans-serif",
     fontWeight: "bold",
     fontStyle: "italic",
-    letterSpacing: "-2px",
-    color: "white"
-  }),
-
-  titleText: nano.rule({
+    letterSpacing: "-0.06em",
     color: "transparent"
   }),
 
@@ -75,6 +71,7 @@ const CSS = {
   }),
 
   logo: nano.rule({
+    color: "white",
     position: "absolute",
     top: "20%",
     height: "59%",
@@ -107,11 +104,9 @@ export function App(props: { debug?: boolean }) {
           />
           <h1 className={CSS.title}>
             <Logo className={CSS.logo} />
-            <span className={CSS.titleText}>
-              FUN
-              <i className={CSS.titleSymbol}>&#10012;</i>
-              DUDE
-            </span>
+            FUN
+            <i className={CSS.titleSymbol}>&#10012;</i>
+            DUDE
           </h1>
         </div>
         <div className={CSS.controls}>
