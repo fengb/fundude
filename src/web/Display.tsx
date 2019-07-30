@@ -1,5 +1,5 @@
 import React from "react";
-import classnames from "classnames";
+import cx from "classnames";
 import { Signal } from "micro-signals";
 
 import nano from "./nano";
@@ -7,15 +7,25 @@ import { PtrMatrix } from "../wasm";
 
 const CSS = {
   root: nano.rule({
-    backgroundColor: "white"
+    position: "relative",
+    backgroundColor: "white",
+    padding: "1px",
+    flex: "0 auto"
+  }),
+
+  draw: nano.rule({
+    position: "relative",
+    display: "block",
+    margin: "-1px"
   }),
 
   grid: nano.rule({
+    position: "absolute",
+    top: "0",
+    left: "0",
+    transformOrigin: "0 0",
     backgroundSize: `8px 8px`,
-    backgroundImage: [
-      "linear-gradient(to right, lightgray 2px, transparent 1px)",
-      "linear-gradient(to bottom, lightgray 2px, transparent 1px)"
-    ].join(",")
+    zIndex: 0
   })
 };
 
@@ -43,16 +53,17 @@ export default function Display(props: {
   pixels: PtrMatrix;
   scale?: number;
   signal?: Signal<any>;
+  gridColor?: string;
 }) {
-  const ref = React.useRef<HTMLCanvasElement>(null);
+  const drawRef = React.useRef<HTMLCanvasElement>(null);
   const render = React.useCallback(() => {
-    if (!ref.current) {
+    if (!drawRef.current) {
       return;
     }
 
-    const ctx = ref.current.getContext("2d")!;
+    const ctx = drawRef.current.getContext("2d")!;
     ctx.putImageData(imageData(props.pixels), PADDING, PADDING);
-  }, [ref.current]);
+  }, [drawRef.current]);
 
   React.useEffect(render);
 
@@ -69,14 +80,28 @@ export default function Display(props: {
   const height = props.pixels.height + PADDING * 2;
 
   return (
-    <canvas
-      className={classnames(CSS.root, props.className, {
-        [CSS.grid]: scale === 1
-      })}
-      ref={ref}
-      width={width}
-      height={height}
-      style={{ width: width * scale }}
-    />
+    <div className={cx(CSS.root, props.className)}>
+      {props.gridColor && (
+        <div
+          className={CSS.grid}
+          style={{
+            width: props.pixels.width + PADDING * 2,
+            height: props.pixels.height + PADDING * 2,
+            transform: `scale(${scale})`,
+            backgroundImage: [
+              `linear-gradient(to right, ${props.gridColor} 2px, transparent 1px)`,
+              `linear-gradient(to bottom, ${props.gridColor} 2px, transparent 1px)`
+            ].join(",")
+          }}
+        />
+      )}
+      <canvas
+        ref={drawRef}
+        className={CSS.draw}
+        width={width}
+        height={height}
+        style={{ width: width * scale }}
+      />
+    </div>
   );
 }
