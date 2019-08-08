@@ -6,7 +6,11 @@
   "license": "MIT",
   "scripts": {
     "dev": "parcel src/web/index.html",
-    "build": "parcel build src/web/index.html --public-url ./"
+    "build": "parcel build src/web/index.html --public-url ./",
+    "postbuild": "react-snap"
+  },
+  "reactSnap": {
+    "source": "dist"
   },
   "browserslist": [
     "since 2017-06"
@@ -25,6 +29,7 @@
     "@types/react-window": "^1.8.0",
     "parcel-bundler": "^1.12.3",
     "parcel-plugin-bundle-visualiser": "^1.2.0",
+    "react-snap": "git://github.com/fengb/react-snap.git#d3da4aa1474ab3fd768b38278d1006f173ea1afe",
     "typescript": "^3.4.3",
     "watch": "^1.0.2"
   },
