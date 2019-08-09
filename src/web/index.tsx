@@ -1,7 +1,7 @@
 import "preact/debug";
 import { h, render, hydrate } from "preact";
-import App from "./App";
+import Page from "./Page";
 
-const container = document.getElementById("app");
+const container = document.body;
 const r = container.hasChildNodes() ? hydrate : render;
-r(h(App), container);
+r(h(Page), container);

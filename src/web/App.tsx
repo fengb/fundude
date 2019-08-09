@@ -1,5 +1,4 @@
 import React from "react";
-import useEvent from "react-use/lib/useEvent";
 
 import FD from "../wasm/react";
 import nano from "./nano";
@@ -7,7 +6,6 @@ import nano from "./nano";
 import Display from "./Display";
 import CartSelect from "./CartSelect";
 import Controller from "./Controller";
-import Toaster from "./Toaster";
 import { BOOTLOADER } from "./data";
 
 const LazyDebug = {
@@ -118,26 +116,17 @@ export function App(props: { debug?: boolean }) {
 }
 
 export default function(props: { debug?: boolean }) {
-  const [debug, setDebug] = React.useState(
-    window.location.hash.includes("debug")
-  );
-  useEvent("hashchange", () =>
-    setDebug(window.location.hash.includes("debug"))
-  );
-
   return (
-    <Toaster.Provider show="topright">
-      <FD.Provider bootCart={BOOTLOADER} autoBoot={!debug}>
+      <FD.Provider bootCart={BOOTLOADER} autoBoot={!props.debug}>
         <div className={CSS.root}>
           <React.Suspense fallback={<div />}>
-            {debug && <LazyDebug.Left />}
+            {props.debug && <LazyDebug.Left />}
           </React.Suspense>
-          <App debug={debug} />
+          <App debug={props.debug} />
           <React.Suspense fallback={<div />}>
-            {debug && <LazyDebug.Right />}
+            {props.debug && <LazyDebug.Right />}
           </React.Suspense>
         </div>
       </FD.Provider>
-    </Toaster.Provider>
   );
 }
