@@ -91,7 +91,7 @@ export function App(props: { debug?: boolean }) {
 
   return (
     <div className={CSS.app}>
-      <CartSelect startName="Bootloader" debug={props.debug} />
+      <CartSelect startName="{insert cart}" debug={props.debug} />
       <div className={CSS.shell}>
         <div className={CSS.displayWrapper}>
           <Display

@@ -15,27 +15,22 @@ const CSS = {
     position: "relative",
     zIndex: 1,
     width: "350px",
-    height: "18px"
+    textAlign: "center"
   }),
 
   toggler: nano.rule({
-    position: "absolute",
+    position: "relative",
+    display: "block",
     zIndex: 1,
-    boxSizing: "content-box",
-    height: "14px",
+    font: "14px monospace",
     width: "100%",
-    bottom: 0,
     border: "none",
-    padding: 0,
+    padding: "0 10px",
     background: "#d9d9d9",
-    borderRadius: "2px 2px 0 0",
-    cursor: "pointer",
-    textAlign: "center",
-    transition: "200ms ease-in-out padding-top",
-
-    "&:hover": {
-      paddingTop: "4px"
-    }
+    borderRadius: "3px 3px 0 0",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis"
   }),
 
   selector: nano.rule({
@@ -43,10 +38,14 @@ const CSS = {
     overflow: "hidden",
     top: "100%",
     width: "100%",
-    background: "#ffffffd0",
+    background: "rgba(255, 255, 255, 0.8)",
     transition: "300ms ease-in-out height",
     padding: "0 10px",
     height: "0",
+    borderRadius: "0 0 3px 3px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
 
     "&.active": {
       height: "350px"
@@ -54,8 +53,9 @@ const CSS = {
   }),
 
   selectorList: nano.rule({
-    display: "flex",
-    flexDirection: "column"
+    font: "14px monospace",
+    flex: 1,
+    overflow: "hidden",
   }),
 
   backdrop: nano.rule({
@@ -66,13 +66,36 @@ const CSS = {
     bottom: 0,
     background: "#000000",
     opacity: 0,
-    transition: "300ms ease-in opacity",
+    transition: "300ms ease-in-out opacity",
     pointerEvents: "none",
 
     "&.active": {
       pointerEvents: "initial",
       opacity: 0.8
     }
+  }),
+
+  prompt: nano.rule({
+    marginTop: "12px",
+
+    "&:before, &:after": {
+      padding: "0 4px",
+      content: "'—'"
+    }
+  }),
+
+  upload: nano.rule({
+    display: "inline-block",
+    cursor: "pointer",
+    background: "white",
+    border: "1px solid black",
+    borderRadius: "4px",
+    padding: "4px 20px",
+    marginBottom: "10px"
+  }),
+
+  hidden: nano.rule({
+    display: "none"
   })
 };
 
@@ -127,6 +150,7 @@ export default function CartSelect(props: {
       />
 
       <div className={cx(CSS.selector, choosing && "active")}>
+        <h3 className={CSS.prompt}>try one of these games</h3>
         <div className={cx(CSS.selectorList, choosing && "active")}>
           {mapObject(carts, (value, name) => (
             <a key={name} href={value} onClick={downloadCart}>
@@ -134,8 +158,12 @@ export default function CartSelect(props: {
             </a>
           ))}
         </div>
-        <label>
+
+        <h3 className={CSS.prompt}>or</h3>
+        <label className={CSS.upload}>
+          <span>Upload a ROM</span>
           <input
+            className={CSS.hidden}
             type="file"
             onChange={onFile}
             onClick={event => (event.currentTarget.value = "")}
