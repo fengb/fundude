@@ -139,6 +139,10 @@ export default function Controller(props: { fd: FundudeWasm }) {
   }
 
   useEvent("keydown", (event: KeyboardEvent) => {
+    if (event.target.nodeName == "INPUT") {
+      return;
+    }
+
     const input = KEY_MAP[event.code];
     if (input) {
       event.preventDefault();
@@ -146,6 +150,10 @@ export default function Controller(props: { fd: FundudeWasm }) {
     }
   });
   useEvent("keyup", (event: KeyboardEvent) => {
+    if (event.target.nodeName == "INPUT") {
+      return;
+    }
+
     const input = KEY_MAP[event.code];
     if (input) {
       event.preventDefault();
