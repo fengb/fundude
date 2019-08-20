@@ -22,7 +22,7 @@ const CSS = {
     position: "relative",
     display: "block",
     zIndex: 1,
-    font: "14px monospace",
+    font: "12px monospace",
     width: "100%",
     border: "none",
     padding: "0 10px",
