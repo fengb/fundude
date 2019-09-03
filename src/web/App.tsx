@@ -72,6 +72,7 @@ const CSS = {
     color: "white",
     position: "absolute",
     top: "20%",
+    width: "auto",
     height: "59%",
     pointerEvents: "none"
   }),
