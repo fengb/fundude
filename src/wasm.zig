@@ -5,19 +5,18 @@ const base = @import("base.zig");
 
 const CYCLES_PER_FRAME = 70224;
 
-export fn malloc(size: usize) ?*c_void {
-    const result = zee_alloc.wasm_allocator.alloc(u8, size) catch return null;
-    return result.ptr;
-}
+const allocator = zee_alloc.ZeeAllocDefaults.wasm_allocator;
 
-export fn free(c_ptr: *c_void) void {
-    // Use a synthetic slice. zee_alloc will free via corresponding metadata.
-    const ptr = @ptrCast([*]u8, c_ptr);
-    zee_alloc.wasm_allocator.free(ptr[0..1]);
+comptime {
+    (zee_alloc.ExportC{
+        .allocator = allocator,
+        .malloc = true,
+        .free = true,
+    }).run();
 }
 
 export fn fd_alloc() ?*base.Fundude {
-    return zee_alloc.wasm_allocator.create(base.Fundude) catch null;
+    return allocator.create(base.Fundude) catch null;
 }
 
 export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) u8 {
