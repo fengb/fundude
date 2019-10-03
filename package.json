@@ -37,7 +37,7 @@
     "@svgr/parcel-plugin-svgr": "^4.2.0",
     "classnames": "^2.2.6",
     "micro-signals": "^2.1.0",
-    "preact": "^10.0.0-rc.0",
+    "preact": "^10.0.0",
     "react-use": "^9.12.0",
     "react-use-dimensions": "^1.2.1",
     "react-window": "1.8.0",
