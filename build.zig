@@ -7,7 +7,7 @@ pub fn build(b: *std.build.Builder) void {
     const lib = b.addStaticLibrary("fundude", "src/wasm.zig");
     lib.setOutputDir("zig-cache");
     lib.setBuildMode(mode);
-    lib.setTarget(.wasm32, .freestanding, .musl);
+    lib.setTarget(.wasm32, .freestanding, .none);
 
     //var main_tests = b.addTest("src/fundude.zig");
     //main_tests.setBuildMode(mode);
