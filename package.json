@@ -13,7 +13,7 @@
     "source": "dist"
   },
   "browserslist": [
-    "since 2017-06"
+    "> 0.5%, not IE 11"
   ],
   "alias": {
     "react": "preact/compat",
@@ -22,11 +22,9 @@
   "devDependencies": {
     "@babel/core": "^7.4.3",
     "@types/classnames": "^2.2.7",
-    "@types/lodash": "^4.14.123",
     "@types/react": "^16.8.13",
     "@types/react-dom": "^16.8.4",
-    "@types/react-virtualized-auto-sizer": "^1.0.0",
-    "@types/react-window": "^1.8.0",
+    "@types/react-window": "^1.8.1",
     "parcel-bundler": "^1.12.3",
     "parcel-plugin-bundle-visualiser": "^1.2.0",
     "react-snap": "git://github.com/fengb/react-snap.git#d3da4aa1474ab3fd768b38278d1006f173ea1afe",
@@ -37,10 +35,10 @@
     "@svgr/parcel-plugin-svgr": "^4.2.0",
     "classnames": "^2.2.6",
     "micro-signals": "^2.1.0",
+    "nano-css": "^5.2.0",
     "preact": "^10.0.0",
     "react-use": "^9.12.0",
     "react-use-dimensions": "^1.2.1",
-    "react-window": "1.8.0",
-    "typestyle": "^2.0.1"
+    "react-window": "1.8.0"
   }
 }
