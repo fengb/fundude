@@ -21,9 +21,9 @@ export fn fd_alloc() ?*base.Fundude {
 
 export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) u8 {
     fd.mmu.load(cart[0..cart_length]) catch |err| return switch (err) {
-        error.CartTypeError => u8(1),
-        error.RomSizeError => u8(2),
-        error.RamSizeError => u8(3),
+        error.CartTypeError => 1,
+        error.RomSizeError => 2,
+        error.RamSizeError => 3,
     };
     fd_reset(fd);
     return 0;
@@ -47,7 +47,7 @@ export fn fd_step(fd: *base.Fundude) i32 {
 }
 
 export fn fd_step_frames(fd: *base.Fundude, frames: i16) i16 {
-    const cycles = fd_step_cycles(fd, i32(frames) * i32(CYCLES_PER_FRAME));
+    const cycles = fd_step_cycles(fd, frames * @as(i32, CYCLES_PER_FRAME));
     return @intCast(i16, @divFloor(cycles, CYCLES_PER_FRAME));
 }
 

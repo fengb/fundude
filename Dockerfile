@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir /opt/zig
 RUN ln -s /opt/zig/zig /usr/local/bin
 
-RUN xargs wget -qO- https://ziglang.org/download/0.5.0/zig-linux-x86_64-0.5.0.tar.xz \
+RUN xargs wget -qO- https://ziglang.org/builds/zig-linux-x86_64-0.5.0+5502160bd.tar.xz \
     | tar xJ --directory /opt/zig --strip-components=1
 
 WORKDIR /app

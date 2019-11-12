@@ -68,12 +68,12 @@ fn cb_bit(cpu: *base.Cpu, val: u8, bit: u3) Result {
 }
 
 fn cb_res(cpu: *base.Cpu, val: u8, bit: u3) Result {
-    const mask = ~(u8(1) << bit);
+    const mask = ~(@as(u8, 1) << bit);
     return Result{ .name = nameGlue("RES", bit), .val = val & mask };
 }
 
 fn cb_set(cpu: *base.Cpu, val: u8, bit: u3) Result {
-    const mask = u8(1) << bit;
+    const mask = @as(u8, 1) << bit;
     return Result{ .name = nameGlue("SET", bit), .val = val | mask };
 }
 

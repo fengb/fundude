@@ -28,7 +28,7 @@ const RomSize = enum(u8) {
 
     pub fn bytes(self: RomSize) usize {
         return switch (self) {
-            ._32k => usize(32 * 1024),
+            ._32k => 32 * 1024,
             ._64k => 64 * 1024,
             ._128k => 128 * 1024,
             ._256k => 256 * 1024,
@@ -64,7 +64,7 @@ const Mbc1 = struct {
                 bank += 1;
             }
             const total_banks = mbc.cart.len / BANK_SIZE;
-            mbc.bank_offset = u32(BANK_SIZE) * std.math.min(bank, total_banks);
+            mbc.bank_offset = @as(u32, BANK_SIZE) * std.math.min(bank, total_banks);
         } else if (addr < 0x6000) {
             // RAM bank
         } else {

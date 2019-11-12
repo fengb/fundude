@@ -95,7 +95,7 @@ const TileAddressing = enum(u1) {
     _8000 = 1,
 
     pub fn translate(self: TileAddressing, idx: u8) u9 {
-        return if (idx >= 128 or self == ._8000) idx else idx + u9(256);
+        return if (idx >= 128 or self == ._8000) idx else idx + @as(u9, 256);
     }
 };
 
@@ -231,11 +231,11 @@ pub const Ppu = struct {
         for (mmu.dyn.vram.patterns) |raw_pattern, i| {
             var patterns = &self.patterns[i];
 
-            var y = usize(0);
+            var y: usize = 0;
             while (y < patterns.height()) : (y += 1) {
                 const line = raw_pattern._[y];
 
-                var x = usize(0);
+                var x: usize = 0;
                 while (x < patterns.width()) : (x += 1) {
                     const bit = @intCast(u4, patterns.width() - x - 1);
                     const hi = @intCast(u2, line >> bit & 1);
@@ -251,19 +251,19 @@ pub const Ppu = struct {
         const tile_addressing = mmu.dyn.io.ppu.LCDC.bg_window_tile_data;
         const palette = mmu.dyn.io.ppu.BGP;
 
-        // n^4...
-        var i = u16(0);
+        // O(n^4)...
+        var i: u16 = 0;
         while (i < tile_map.width) : (i += 1) {
-            var j = u16(0);
+            var j: u16 = 0;
             while (j < tile_map.height) : (j += 1) {
                 const idx = tile_addressing.translate(tile_map.get(i, j));
                 const pattern = self.patterns[idx];
 
-                var x = usize(0);
+                var x: usize = 0;
                 while (x < pattern.width()) : (x += 1) {
                     const xbg = x + i * pattern.width();
 
-                    var y = usize(0);
+                    var y: usize = 0;
                     while (y < pattern.height()) : (y += 1) {
                         const ybg = y + j * pattern.height();
                         const pixel = pattern.get(x, y);
@@ -288,11 +288,11 @@ pub const Ppu = struct {
             const sprite = &self.spritesheet[i];
             const pattern = self.patterns[sprite_attr.pattern];
 
-            var x = usize(0);
+            var x: usize = 0;
             while (x < pattern.width()) : (x += 1) {
                 const xs = if (sprite_attr.flags.x_flip) pattern.width() - x - 1 else x;
 
-                var y = usize(0);
+                var y: usize = 0;
                 while (y < pattern.height()) : (y += 1) {
                     const ys = if (sprite_attr.flags.y_flip) pattern.width() - y - 1 else y;
 
@@ -325,11 +325,11 @@ pub const Ppu = struct {
             const scx = mmu.dyn.io.ppu.SCX;
             const scy = mmu.dyn.io.ppu.SCY;
 
-            var x = usize(0);
+            var x: usize = 0;
             while (x < SCREEN_WIDTH) : (x += 1) {
                 const xbg = (scx + x) % self.background.width();
 
-                var y = usize(0);
+                var y: usize = 0;
                 while (y < SCREEN_HEIGHT) : (y += 1) {
                     const ybg = (scy + y) % self.background.height();
 
@@ -343,14 +343,14 @@ pub const Ppu = struct {
             const wx = mmu.dyn.io.ppu.WX;
             const wy = mmu.dyn.io.ppu.WY;
 
-            var x = usize(0);
+            var x: usize = 0;
             while (x < SCREEN_WIDTH) : (x += 1) {
                 const xw = x -% (mmu.dyn.io.ppu.WX -% 7);
                 if (xw >= self.window.width()) {
                     continue;
                 }
 
-                var y = usize(0);
+                var y: usize = 0;
                 while (y < SCREEN_HEIGHT) : (y += 1) {
                     const yw = y -% mmu.dyn.io.ppu.WY;
                     if (yw >= self.window.height()) {
@@ -371,14 +371,14 @@ pub const Ppu = struct {
 
             const sprite = self.spritesheet[i];
 
-            var x = usize(0);
+            var x: usize = 0;
             while (x < sprite.width()) : (x += 1) {
                 const xs = sprite_attr.x_pos + x -% 8;
                 if (xs >= self.screen.width()) {
                     continue;
                 }
 
-                var y = usize(0);
+                var y: usize = 0;
                 while (y < sprite.height()) : (y += 1) {
                     const ys = sprite_attr.y_pos + y -% 16;
                     if (ys >= self.screen.height()) {

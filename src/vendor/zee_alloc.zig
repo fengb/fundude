@@ -11,7 +11,9 @@ const page_index = 1;
 
 pub const ZeeAllocDefaults = ZeeAlloc(Config{});
 
-const Config = struct {
+pub const Config = struct {
+    /// ZeeAlloc will request a multiple of `page_size` from the backing allocator.
+    /// **Must** be a power of two.
     page_size: usize = std.math.max(std.mem.page_size, 65536), // 64K ought to be enough for everybody
     validation: Validation = .External,
 
@@ -19,54 +21,59 @@ const Config = struct {
     buddy_strategy: BuddyStrategy = .Fast,
     shrink_strategy: ShrinkStrategy = .Defer,
 
-    const JumboMatchStrategy = enum {
+    pub const JumboMatchStrategy = enum {
         /// Use the frame that wastes the least space
         /// Scans the entire jumbo freelist, which is slower but keeps memory pretty tidy
         Closest,
 
         /// Use only exact matches
-        /// -75 bytes vs .Closest
+        /// -75 bytes vs `.Closest`
         /// Similar performance to Closest if allocation sizes are consistent throughout lifetime
         Exact,
 
         /// Use the first frame that fits
-        /// -75 bytes vs .Closest
+        /// -75 bytes vs `.Closest`
         /// Initially faster to allocate but causes major fragmentation issues
         First,
     };
 
-    const BuddyStrategy = enum {
+    pub const BuddyStrategy = enum {
         /// Return the raw free frame immediately
         /// Generally faster because it does not recombine or resplit frames,
         /// but it also requires more underlying memory
         Fast,
 
         /// Recombine with free buddies to reclaim storage
-        /// +153 bytes vs .Fast
+        /// +153 bytes vs `.Fast`
         /// More efficient use of existing memory at the cost of cycles and bytes
         Coalesce,
     };
 
-    const ShrinkStrategy = enum {
+    pub const ShrinkStrategy = enum {
         /// Return a smaller view into the same frame
-        /// Faster because it does actually shrink, but never reclaims space until freed
+        /// Faster because it ignores shrink, but never reclaims space until freed
         Defer,
 
         /// Split the frame into smallest usable chunk
-        /// +112 bytes vs .Defer
+        /// +112 bytes vs `.Defer`
         /// Better at reclaiming non-jumbo memory, but never reclaims jumbo until freed
         Chunkify,
 
         /// Find and swap a replacement frame
-        /// +295 bytes vs .Defer
+        /// +295 bytes vs `.Defer`
         /// Reclaims all memory, but generally slower
         Swap,
     };
 
-    const Validation = enum {
-        Dev, // Enable all validations, including library internals
-        External, // Only validate external boundaries (e.g. realloc or free)
-        Unsafe, // Turn off all validations
+    pub const Validation = enum {
+        /// Enable all validations, including library internals
+        Dev,
+
+        /// Only validate external boundaries — e.g. `realloc` or `free`
+        External,
+
+        /// Turn off all validations — pretend this library is `--release-small`
+        Unsafe,
 
         fn useInternal(comptime self: Validation) bool {
             if (builtin.mode == .Debug) {
@@ -104,6 +111,8 @@ pub fn ZeeAlloc(comptime conf: Config) type {
 
     return struct {
         const Self = @This();
+
+        const config = conf;
 
         // Synthetic representation -- should not be created directly, but instead carved out of []u8 bytes
         const Frame = packed struct {
@@ -180,8 +189,8 @@ pub fn ZeeAlloc(comptime conf: Config) type {
             }
 
             pub fn root(self: *FreeList) *Frame {
-                // FreeList.first == Frame.next
-                // This allows for more graceful iteration without needing a back reference.
+                // Due to packed struct layout, FreeList.first == Frame.next
+                // This enables more graceful iteration without needing a back reference.
                 // Since this is not a full frame, accessing any other field will corrupt memory.
                 // Thar be dragons 🐉
                 return @ptrCast(*Frame, self);
@@ -211,14 +220,12 @@ pub fn ZeeAlloc(comptime conf: Config) type {
             }
         };
 
-        pub const wasm_allocator = init: {
-            var wasm = init(&wasm_page_allocator);
-            break :init &wasm.allocator;
-        };
+        /// The definitive™ way of using `ZeeAlloc`
+        pub const wasm_allocator = &_wasm.allocator;
+        var _wasm = init(&wasm_page_allocator);
 
         backing_allocator: *Allocator,
 
-        page_size: usize = conf.page_size,
         free_lists: [size_buckets]FreeList = [_]FreeList{FreeList.init()} ** size_buckets,
         allocator: Allocator = Allocator{
             .reallocFn = realloc,
@@ -232,7 +239,7 @@ pub fn ZeeAlloc(comptime conf: Config) type {
         fn allocNode(self: *Self, memsize: usize) !*Frame {
             @setRuntimeSafety(comptime conf.validation.useInternal());
             const alloc_size = unsafeAlignForward(memsize + meta_size);
-            const rawData = try self.backing_allocator.reallocFn(self.backing_allocator, [_]u8{}, 0, alloc_size, u29(conf.page_size));
+            const rawData = try self.backing_allocator.reallocFn(self.backing_allocator, [_]u8{}, 0, alloc_size, conf.page_size);
             return Frame.init(rawData);
         }
 
@@ -331,7 +338,7 @@ pub fn ZeeAlloc(comptime conf: Config) type {
             @setRuntimeSafety(comptime conf.validation.useInternal());
             if (value <= 2) return value;
             const Shift = comptime std.math.Log2Int(T);
-            return T(1) << @intCast(Shift, T.bit_count - @clz(T, value - 1));
+            return @as(T, 1) << @intCast(Shift, T.bit_count - @clz(T, value - 1));
         }
 
         fn unsafeLog2Int(comptime T: type, x: T) std.math.Log2Int(T) {
@@ -439,7 +446,7 @@ pub fn ZeeAlloc(comptime conf: Config) type {
         }
 
         fn debugCount(self: *Self, index: usize) usize {
-            var count = usize(0);
+            var count: usize = 0;
             var iter = self.free_lists[index].first;
             while (iter) |node| : (iter = node.next) {
                 count += 1;
@@ -448,7 +455,7 @@ pub fn ZeeAlloc(comptime conf: Config) type {
         }
 
         fn debugCountAll(self: *Self) usize {
-            var count = usize(0);
+            var count: usize = 0;
             for (self.free_lists) |_, i| {
                 count += self.debugCount(i);
             }
@@ -503,11 +510,11 @@ var wasm_page_allocator = init: {
 };
 
 pub const ExportC = struct {
+    allocator: *std.mem.Allocator,
     malloc: bool = true,
     free: bool = true,
     calloc: bool = false,
     realloc: bool = false,
-    allocator: *std.mem.Allocator,
 
     pub fn run(comptime conf: ExportC) void {
         const Funcs = struct {
@@ -575,18 +582,19 @@ test "ZeeAlloc helpers" {
     var buf: [0]u8 = undefined;
     var fixed_buffer_allocator = std.heap.FixedBufferAllocator.init(buf[0..]);
     var zee_alloc = ZeeAllocDefaults.init(&fixed_buffer_allocator.allocator);
+    const page_size = ZeeAllocDefaults.config.page_size;
 
     @"freeListIndex": {
-        testing.expectEqual(usize(page_index), zee_alloc.freeListIndex(zee_alloc.page_size));
-        testing.expectEqual(usize(page_index + 1), zee_alloc.freeListIndex(zee_alloc.page_size / 2));
-        testing.expectEqual(usize(page_index + 2), zee_alloc.freeListIndex(zee_alloc.page_size / 4));
+        testing.expectEqual(zee_alloc.freeListIndex(page_size), page_index);
+        testing.expectEqual(zee_alloc.freeListIndex(page_size / 2), page_index + 1);
+        testing.expectEqual(zee_alloc.freeListIndex(page_size / 4), page_index + 2);
     }
 
     @"padToFrameSize": {
-        testing.expectEqual(usize(zee_alloc.page_size), zee_alloc.padToFrameSize(zee_alloc.page_size - meta_size));
-        testing.expectEqual(usize(2 * zee_alloc.page_size), zee_alloc.padToFrameSize(zee_alloc.page_size));
-        testing.expectEqual(usize(2 * zee_alloc.page_size), zee_alloc.padToFrameSize(zee_alloc.page_size - meta_size + 1));
-        testing.expectEqual(usize(3 * zee_alloc.page_size), zee_alloc.padToFrameSize(2 * zee_alloc.page_size));
+        testing.expectEqual(zee_alloc.padToFrameSize(page_size - meta_size), page_size);
+        testing.expectEqual(zee_alloc.padToFrameSize(page_size), 2 * page_size);
+        testing.expectEqual(zee_alloc.padToFrameSize(page_size - meta_size + 1), 2 * page_size);
+        testing.expectEqual(zee_alloc.padToFrameSize(2 * page_size), 3 * page_size);
     }
 }
 
@@ -604,14 +612,14 @@ test "ZeeAlloc internals" {
         testing.expect(prev_free_nodes > 0);
 
         var small2 = try zee_alloc.allocator.create(u8);
-        testing.expectEqual(prev_free_nodes - 1, zee_alloc.debugCountAll());
+        testing.expectEqual(zee_alloc.debugCountAll(), prev_free_nodes - 1);
         prev_free_nodes = zee_alloc.debugCountAll();
 
         var big1 = try zee_alloc.allocator.alloc(u8, 127 * 1024);
-        testing.expectEqual(prev_free_nodes, zee_alloc.debugCountAll());
+        testing.expectEqual(zee_alloc.debugCountAll(), prev_free_nodes);
         zee_alloc.allocator.free(big1);
-        testing.expectEqual(prev_free_nodes + 1, zee_alloc.debugCountAll());
-        testing.expectEqual(usize(1), zee_alloc.debugCount(jumbo_index));
+        testing.expectEqual(zee_alloc.debugCountAll(), prev_free_nodes + 1);
+        testing.expectEqual(zee_alloc.debugCount(jumbo_index), 1);
     }
 
     @"BuddyStrategy = Coalesce": {
@@ -621,7 +629,7 @@ test "ZeeAlloc internals" {
         var small = try zee_alloc.allocator.create(u8);
         testing.expect(zee_alloc.debugCountAll() > 1);
         zee_alloc.allocator.destroy(small);
-        testing.expectEqual(usize(1), zee_alloc.debugCountAll());
+        testing.expectEqual(zee_alloc.debugCountAll(), 1);
     }
 
     @"realloc reuses frame if possible": {
@@ -631,7 +639,7 @@ test "ZeeAlloc internals" {
         const orig = try zee_alloc.allocator.alloc(u8, 1);
         const addr = orig.ptr;
 
-        var i = usize(2);
+        var i: usize = 2;
         while (i <= min_payload_size) : (i += 1) {
             var re = try zee_alloc.allocator.realloc(orig, i);
             testing.expectEqual(re.ptr, addr);
@@ -715,10 +723,10 @@ fn testAllocatorLargeAlignment(allocator: *Allocator) Allocator.Error!void {
     //const USizeShift = @IntType(false, std.math.log2(usize.bit_count));
     //const large_align = u29(std.mem.page_size << 2);
     const USizeShift = @IntType(false, std.math.log2(usize.bit_count));
-    const large_align = u29(std.mem.page_size);
+    const large_align: u29 = std.mem.page_size;
 
     var align_mask: usize = undefined;
-    _ = @shlWithOverflow(usize, ~usize(0), USizeShift(@ctz(usize, large_align)), &align_mask);
+    _ = @shlWithOverflow(usize, ~@as(usize, 0), @as(USizeShift, @ctz(usize, large_align)), &align_mask);
 
     var slice = try allocator.alignedAlloc(u8, large_align, 500);
     testing.expectEqual(@ptrToInt(slice.ptr) & align_mask, @ptrToInt(slice.ptr));

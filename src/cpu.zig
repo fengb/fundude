@@ -44,7 +44,7 @@ pub const Flags = packed struct {
     Z: bool,
 
     pub fn c(self: Flags, comptime T: type) T {
-        return if (self.C) T(1) else 0;
+        return @boolToInt(self.C);
     }
 };
 
@@ -86,26 +86,26 @@ pub const Cpu = struct {
 
         const OP_CALL = 0xCD;
         const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
-        const addr = switch (cmp.active() orelse return null) {
+        const addr: u8 = switch (cmp.active() orelse return null) {
             .vblank => blk: {
                 mmu.dyn.io.IF.vblank = false;
-                break :blk u8(0x40);
+                break :blk 0x40;
             },
             .lcd_stat => blk: {
                 mmu.dyn.io.IF.lcd_stat = false;
-                break :blk u8(0x48);
+                break :blk 0x48;
             },
             .timer => blk: {
                 mmu.dyn.io.IF.timer = false;
-                break :blk u8(0x50);
+                break :blk 0x50;
             },
             .serial => blk: {
                 mmu.dyn.io.IF.serial = false;
-                break :blk u8(0x58);
+                break :blk 0x58;
             },
             .joypad => blk: {
                 mmu.dyn.io.IF.joypad = false;
-                break :blk u8(0x60);
+                break :blk 0x60;
             },
         };
 

@@ -121,7 +121,7 @@ pub fn daa_rr___(cpu: *base.Cpu, mmu: *base.Mmu, dst: Reg8) Result {
 }
 
 pub fn jr__R8___(cpu: *base.Cpu, mmu: *base.Mmu, offset: u8) Result {
-    const INST_LENGTH = u8(2);
+    const INST_LENGTH: u8 = 2;
     return Result{
         .name = "JR",
         .length = INST_LENGTH,
@@ -131,7 +131,7 @@ pub fn jr__R8___(cpu: *base.Cpu, mmu: *base.Mmu, offset: u8) Result {
 }
 
 pub fn jr__if_R8(cpu: *base.Cpu, mmu: *base.Mmu, cond: Cond, offset: u8) Result {
-    const INST_LENGTH = u8(2);
+    const INST_LENGTH: u8 = 2;
     return Result{
         .name = "JR",
         .length = INST_LENGTH,
@@ -244,13 +244,13 @@ pub fn ld__rr_rr(cpu: *base.Cpu, mmu: *base.Mmu, tgt: Reg8, src: Reg8) Result {
 }
 
 pub fn ld__rr_RR(cpu: *base.Cpu, mmu: *base.Mmu, tgt: Reg8, src: Reg8) Result {
-    const addr = u16(0xFF00) + cpu.reg._8.get(src);
+    const addr = @as(u16, 0xFF00) + cpu.reg._8.get(src);
     cpu.reg._8.set(tgt, mmu.get(addr));
     return Result{ .name = "LD", .length = 1, .duration = 8 };
 }
 
 pub fn ld__RR_rr(cpu: *base.Cpu, mmu: *base.Mmu, tgt: Reg8, src: Reg8) Result {
-    const addr = u16(0xFF00) + cpu.reg._8.get(tgt);
+    const addr = @as(u16, 0xFF00) + cpu.reg._8.get(tgt);
     mmu.set(addr, cpu.reg._8.get(src));
     return Result{ .name = "LD", .length = 1, .duration = 8 };
 }
@@ -333,12 +333,12 @@ pub fn ldd_rr_WW(cpu: *base.Cpu, mmu: *base.Mmu, tgt: Reg8, src: Reg16) Result {
 }
 
 pub fn ldh_A8_rr(cpu: *base.Cpu, mmu: *base.Mmu, tgt: u8, src: Reg8) Result {
-    mmu.set(u16(0xFF00) + tgt, cpu.reg._8.get(src));
+    mmu.set(@as(u16, 0xFF00) + tgt, cpu.reg._8.get(src));
     return Result{ .name = "LDH", .length = 2, .duration = 12 };
 }
 
 pub fn ldh_rr_A8(cpu: *base.Cpu, mmu: *base.Mmu, tgt: Reg8, src: u8) Result {
-    cpu.reg._8.set(tgt, mmu.get(u16(0xFF00) + src));
+    cpu.reg._8.set(tgt, mmu.get(@as(u16, 0xFF00) + src));
     return Result{ .name = "LDH", .length = 2, .duration = 12 };
 }
 
@@ -589,12 +589,12 @@ fn willCarryInto(size: u5, a: i32, b: i32) bool {
     if (a < 0 or b < 0) {
         return false;
     }
-    const mask = (u32(1) << size) - 1;
+    const mask = (@as(u32, 1) << size) - 1;
     return (@intCast(u32, a) & mask) + (@intCast(u32, b) & mask) > mask;
 }
 
 fn willBorrowFrom(size: u5, a: u16, b: u16) bool {
-    const mask = (u32(1) << size) - 1;
+    const mask = (@as(u32, 1) << size) - 1;
     return (a & mask) < (b & mask);
 }
 
@@ -734,6 +734,6 @@ fn signedAdd(a: u16, b: u8) u16 {
     if (b < 128) {
         return a +% b;
     } else {
-        return a -% (u16(256) - b);
+        return a -% (@as(u16, 256) - b);
     }
 }
