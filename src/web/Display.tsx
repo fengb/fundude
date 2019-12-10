@@ -35,6 +35,8 @@ const TRANSPARENCY_PALETTE = [0, 85, 170, 255];
 
 const WHITE = Uint8Array.of(15, 56, 15, 1);
 
+const FADE_PER_FRAME = 25;
+
 export default function Display(props: {
   className?: string;
   pixels: PtrMatrix;
@@ -62,7 +64,11 @@ export default function Display(props: {
         const alphaIdx = 4 * i + 3;
         const newAlpha = TRANSPARENCY_PALETTE[colorIndex];
         const oldAlpha = imageData.data[alphaIdx];
-        imageData.data[alphaIdx] = newAlpha;
+        if (newAlpha > oldAlpha) {
+          imageData.data[alphaIdx] = Math.min(newAlpha, oldAlpha + FADE_PER_FRAME);
+        } else {
+          imageData.data[alphaIdx] = Math.max(newAlpha, oldAlpha - FADE_PER_FRAME);
+        }
       }
     }
     ctx.putImageData(imageData, PADDING, PADDING);
