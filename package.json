@@ -13,7 +13,7 @@
     "source": "dist"
   },
   "browserslist": [
-    "> 0.5%, not IE 11"
+    "> 1%, not IE 11"
   ],
   "alias": {
     "react": "preact/compat",
