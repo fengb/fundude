@@ -50,7 +50,8 @@ const CSS = {
   }),
 
   display: nano.rule({
-    maxWidth: "100vw"
+    maxWidth: "100vw",
+    background: "#b1c062"
   }),
 
   title: nano.rule({
@@ -118,16 +119,16 @@ export function App(props: { debug?: boolean }) {
 
 export default function(props: { debug?: boolean }) {
   return (
-      <FD.Provider bootCart={BOOTLOADER} autoBoot={!props.debug}>
-        <div className={CSS.root}>
-          <React.Suspense fallback={<div />}>
-            {props.debug && <LazyDebug.Left />}
-          </React.Suspense>
-          <App debug={props.debug} />
-          <React.Suspense fallback={<div />}>
-            {props.debug && <LazyDebug.Right />}
-          </React.Suspense>
-        </div>
-      </FD.Provider>
+    <FD.Provider bootCart={BOOTLOADER} autoBoot={!props.debug}>
+      <div className={CSS.root}>
+        <React.Suspense fallback={<div />}>
+          {props.debug && <LazyDebug.Left />}
+        </React.Suspense>
+        <App debug={props.debug} />
+        <React.Suspense fallback={<div />}>
+          {props.debug && <LazyDebug.Right />}
+        </React.Suspense>
+      </div>
+    </FD.Provider>
   );
 }
