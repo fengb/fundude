@@ -14,8 +14,7 @@ const CSS = {
   root: nano.rule({
     position: "relative",
     zIndex: 1,
-    width: "350px",
-    textAlign: "center"
+    width: "350px"
   }),
 
   toggler: nano.rule({
@@ -56,6 +55,8 @@ const CSS = {
     font: "14px monospace",
     flex: 1,
     overflow: "hidden",
+    display: "flex",
+    flexDirection: "column"
   }),
 
   backdrop: nano.rule({
@@ -76,7 +77,7 @@ const CSS = {
   }),
 
   prompt: nano.rule({
-    marginTop: "12px",
+    marginTop: "8px",
 
     "&:before, &:after": {
       padding: "0 4px",

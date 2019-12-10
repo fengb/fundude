@@ -8,6 +8,7 @@ import FundudeWasm, { Input } from "../wasm";
 
 const CSS = {
   root: nano.rule({
+    paddingTop: "90px",
     display: "flex",
     flex: "1",
     justifyContent: "space-between",
@@ -48,11 +49,13 @@ const CSS = {
   },
 
   buttons: {
+    center: nano.rule({ alignSelf: "flexEnd" }),
+    select: nano.rule({ width: "50px", fontSize: "12px", margin: "0 2px" }),
+    start: nano.rule({ width: "50px", fontSize: "12px", margin: "0 2px" }),
+
     base: nano.rule({}),
-    a: nano.rule({ width: "40px", height: "40px", borderRadius: "100%" }),
-    b: nano.rule({ width: "40px", height: "40px", borderRadius: "100%" }),
-    select: nano.rule({ fontSize: "14px" }),
-    start: nano.rule({ fontSize: "14px" })
+    a: nano.rule({ width: "40px", height: "40px", margin: "0 2px", borderRadius: "100%" }),
+    b: nano.rule({ width: "40px", height: "40px", margin: "0 2px", borderRadius: "100%" }),
   }
 };
 
@@ -201,7 +204,7 @@ export default function Controller(props: { fd: FundudeWasm }) {
         />
       </div>
 
-      <div className={CSS.buttons.base}>
+      <div className={CSS.buttons.center}>
         <Button value="select" className={CSS.buttons.select}>
           Select
         </Button>

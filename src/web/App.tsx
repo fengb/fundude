@@ -81,10 +81,7 @@ const CSS = {
   controls: nano.rule({
     height: "300px",
     width: "324px",
-    margin: "0 auto",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center"
+    margin: "0 auto"
   })
 };
 
