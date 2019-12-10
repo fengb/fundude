@@ -20,3 +20,16 @@ export function fromEntries<K extends Indexable, V>(
   }
   return result;
 }
+
+export function clamp(value: number, lower: number, upper: number) {
+  if (value === value) {
+    if (upper !== undefined) {
+      value = value <= upper ? value : upper;
+    }
+    if (lower !== undefined) {
+      value = value >= lower ? value : lower;
+    }
+  }
+
+  return value;
+}

@@ -4,6 +4,7 @@ import { Signal } from "micro-signals";
 
 import nano from "./nano";
 import { PtrMatrix } from "../wasm";
+import { clamp } from "./smalldash";
 
 const CSS = {
   root: nano.rule({
@@ -62,13 +63,12 @@ export default function Display(props: {
       const colorIndex = props.pixels.base[i];
       if (TRANSPARENCY_PALETTE.hasOwnProperty(colorIndex)) {
         const alphaIdx = 4 * i + 3;
-        const newAlpha = TRANSPARENCY_PALETTE[colorIndex];
         const oldAlpha = imageData.data[alphaIdx];
-        if (newAlpha > oldAlpha) {
-          imageData.data[alphaIdx] = Math.min(newAlpha, oldAlpha + FADE_PER_FRAME);
-        } else {
-          imageData.data[alphaIdx] = Math.max(newAlpha, oldAlpha - FADE_PER_FRAME);
-        }
+        imageData.data[alphaIdx] = clamp(
+          TRANSPARENCY_PALETTE[colorIndex],
+          oldAlpha - FADE_PER_FRAME,
+          oldAlpha + FADE_PER_FRAME
+        );
       }
     }
     ctx.putImageData(imageData, PADDING, PADDING);
