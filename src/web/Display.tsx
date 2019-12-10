@@ -31,22 +31,9 @@ const CSS = {
 
 const PADDING = 1;
 
-const PALETTE: Record<number, Uint8Array> = {
-  0: Uint8Array.of(15, 56, 15, 0),
-  1: Uint8Array.of(15, 56, 15, 85),
-  2: Uint8Array.of(15, 56, 15, 170),
-  3: Uint8Array.of(15, 56, 15, 255)
-};
+const TRANSPARENCY_PALETTE = [0, 85, 170, 255];
 
-function imageData(pixels: PtrMatrix) {
-  const imageData = new ImageData(pixels.width, pixels.height);
-  for (let i = 0; i < pixels.length(); i++) {
-    const colorIndex = pixels.base[i];
-    const color = PALETTE[colorIndex] || Uint8Array.of(255, 0, 0, 255);
-    imageData.data.set(color, 4 * i);
-  }
-  return imageData;
-}
+const WHITE = Uint8Array.of(15, 56, 15, 1);
 
 export default function Display(props: {
   className?: string;
@@ -55,17 +42,33 @@ export default function Display(props: {
   signal?: Signal<any>;
   gridColor?: string;
 }) {
-  const drawRef = React.useRef<HTMLCanvasElement>(null);
-  const render = React.useCallback(() => {
-    if (!drawRef.current) {
-      return;
+  const [imageData] = React.useState(() => {
+    const imageData = new ImageData(props.pixels.width, props.pixels.height);
+    for (let i = 0; i < props.pixels.length(); i++) {
+      imageData.data.set(WHITE, 4 * i);
     }
+    return imageData;
+  });
+
+  const drawRef = React.useRef<HTMLCanvasElement>(null);
+
+  const render = React.useCallback(() => {
+    if (!drawRef.current) return;
 
     const ctx = drawRef.current.getContext("2d")!;
-    ctx.putImageData(imageData(props.pixels), PADDING, PADDING);
-  }, [drawRef.current]);
+    for (let i = 0; i < props.pixels.length(); i++) {
+      const colorIndex = props.pixels.base[i];
+      if (TRANSPARENCY_PALETTE.hasOwnProperty(colorIndex)) {
+        const alphaIdx = 4 * i + 3;
+        const newAlpha = TRANSPARENCY_PALETTE[colorIndex];
+        const oldAlpha = imageData.data[alphaIdx];
+        imageData.data[alphaIdx] = newAlpha;
+      }
+    }
+    ctx.putImageData(imageData, PADDING, PADDING);
+  }, []);
 
-  React.useEffect(render);
+  React.useEffect(render, [drawRef.current]);
 
   React.useEffect(() => {
     if (props.signal) {
