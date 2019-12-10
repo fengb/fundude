@@ -36,14 +36,13 @@ const TRANSPARENCY_PALETTE = [0, 85, 170, 255];
 
 const WHITE = Uint8Array.of(15, 56, 15, 1);
 
-const FADE_PER_FRAME = 25;
-
 export default function Display(props: {
   className?: string;
   pixels: PtrMatrix;
   scale?: number;
   signal?: Signal<any>;
   gridColor?: string;
+  frameFade?: number;
 }) {
   const [imageData] = React.useState(() => {
     const imageData = new ImageData(props.pixels.width, props.pixels.height);
@@ -66,8 +65,8 @@ export default function Display(props: {
         const oldAlpha = imageData.data[alphaIdx];
         imageData.data[alphaIdx] = clamp(
           TRANSPARENCY_PALETTE[colorIndex],
-          oldAlpha - FADE_PER_FRAME,
-          oldAlpha + FADE_PER_FRAME
+          oldAlpha - (props.frameFade || 255),
+          oldAlpha + (props.frameFade || 255),
         );
       }
     }
