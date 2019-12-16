@@ -75,11 +75,15 @@ export function Right() {
   return (
     <div className={CSS.base}>
       {/* TODO: convert to tile display */}
-      <Display className={CSS.displayPatterns} pixels={fd.patterns()} />
-      <Display pixels={fd.sprites()} />
+      <Display
+        className={CSS.displayPatterns}
+        pixels={fd.patterns()}
+        signal={fd.changed}
+      />
+      <Display pixels={fd.sprites()} signal={fd.changed} />
       <div className={CSS.displays}>
-        <Display pixels={fd.background()} />
-        <Display pixels={fd.window()} />
+        <Display pixels={fd.background()} signal={fd.changed} />
+        <Display pixels={fd.window()} signal={fd.changed} />
       </div>
       <Mmu fd={fd} />
     </div>
