@@ -14,9 +14,13 @@ pub fn Matrix(comptime T: type, width: usize, height: usize) type {
             return height;
         }
 
+        pub fn toArraySlice(self: *Self) []T {
+            return self.data[0..];
+        }
+
         pub fn slice(self: *Self) MatrixSlice(T) {
             return MatrixSlice(T){
-                .data = self.data[0..],
+                .data = self.toArraySlice(),
                 .width = width,
                 .height = height,
             };

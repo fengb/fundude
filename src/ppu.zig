@@ -85,6 +85,14 @@ pub const SpriteAttr = packed struct {
     }
 };
 
+const Pixel = enum(u8) {
+    _0 = 0,
+    _1 = 1,
+    _2 = 2,
+    _3 = 3,
+    Transparent = std.math.maxInt(u8),
+};
+
 const SpritePalette = enum(u1) {
     OBP0 = 0,
     OBP1 = 1,
@@ -126,19 +134,20 @@ pub const Ppu = struct {
     patterns: [3 * 128]Matrix(Color, 8, 8),
 
     spritesheet: [40]Matrix(u8, 8, 8),
+    sprites: Matrix(Pixel, 256 + 2 * 8, 256 + 2 * 16),
     background: Matrix(u8, 256, 256),
     window: Matrix(u8, 256, 256),
 
     clock: u32,
     dirtyPatterns: bool,
     dirtyBackground: bool,
-    dirtySpritesheet: bool,
+    dirtySprites: bool,
 
     pub fn reset(self: *Ppu) void {
         self.clock = 0;
         self.dirtyPatterns = true;
         self.dirtyBackground = true;
-        self.dirtySpritesheet = true;
+        self.dirtySprites = true;
 
         self.screen.reset(0);
         for (self.patterns) |*patterns| {
@@ -155,20 +164,20 @@ pub const Ppu = struct {
         if (addr < 0x9800) {
             self.dirtyPatterns = true;
             self.dirtyBackground = true;
-            self.dirtySpritesheet = true;
+            self.dirtySprites = true;
         } else {
             self.dirtyBackground = true;
         }
     }
 
     pub fn updatedOam(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
-        self.dirtySpritesheet = true;
+        self.dirtySprites = true;
     }
 
     pub fn updatedIo(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
         switch (addr) {
             0xFF40, 0xFF47 => self.dirtyBackground = true,
-            0xFF46, 0xFF48, 0xFF49 => self.dirtySpritesheet = true,
+            0xFF46, 0xFF48, 0xFF49 => self.dirtySprites = true,
             else => {},
         }
     }
@@ -275,6 +284,13 @@ pub const Ppu = struct {
     }
 
     fn renderSprites(self: *Ppu, mmu: *base.Mmu) void {
+        for (self.sprites.toArraySlice()) |*pixel| {
+            pixel.* = .Transparent;
+        }
+
+        // TODO: actually sort
+        var sorted = mmu.dyn.oam;
+
         for (mmu.dyn.oam) |sprite_attr, i| {
             if (sprite_attr.isOffScreen() and sprite_attr.pattern == 0) {
                 continue;
@@ -300,6 +316,21 @@ pub const Ppu = struct {
                     sprite.set(xs, ys, pixel);
                 }
             }
+
+            x = 0;
+            while (x < pattern.width()) : (x += 1) {
+                var xs = if (sprite_attr.flags.x_flip) pattern.width() - x - 1 else x;
+                xs = sprite_attr.x_pos + xs;
+
+                var y: usize = 0;
+                while (y < pattern.height()) : (y += 1) {
+                    var ys = if (sprite_attr.flags.y_flip) pattern.width() - y - 1 else y;
+                    ys = sprite_attr.y_pos + y;
+
+                    const pixel = palette.toShade(pattern.get(x, y));
+                    self.sprites.set(xs, ys, @intToEnum(Pixel, pixel));
+                }
+            }
         }
     }
 
@@ -310,9 +341,9 @@ pub const Ppu = struct {
             self.dirtyPatterns = false;
         }
 
-        if (self.dirtySpritesheet) {
+        if (self.dirtySprites) {
             self.renderSprites(mmu);
-            self.dirtySpritesheet = false;
+            self.dirtySprites = false;
         }
 
         if (self.dirtyBackground) {

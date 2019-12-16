@@ -76,7 +76,7 @@ export function Right() {
     <div className={CSS.base}>
       {/* TODO: convert to tile display */}
       <Display className={CSS.displayPatterns} pixels={fd.patterns()} />
-      <Display pixels={fd.spritesheet()} />
+      <Display pixels={fd.sprites()} />
       <div className={CSS.displays}>
         <Display pixels={fd.background()} />
         <Display pixels={fd.window()} />
