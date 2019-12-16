@@ -133,7 +133,6 @@ pub const Ppu = struct {
 
     patterns: [3 * 128]Matrix(Color, 8, 8),
 
-    spritesheet: [40]Matrix(u8, 8, 8),
     sprites: Matrix(Pixel, 256 + 2 * 8, 256 + 2 * 16),
     background: Matrix(u8, 256, 256),
     window: Matrix(u8, 256, 256),
@@ -153,9 +152,7 @@ pub const Ppu = struct {
         for (self.patterns) |*patterns| {
             patterns.reset(._0);
         }
-        for (self.spritesheet) |*sprite| {
-            sprite.reset(0);
-        }
+        self.sprites.reset(.Transparent);
         self.background.reset(0);
         self.window.reset(0);
     }
@@ -291,33 +288,15 @@ pub const Ppu = struct {
         // TODO: actually sort
         var sorted = mmu.dyn.oam;
 
-        for (mmu.dyn.oam) |sprite_attr, i| {
-            if (sprite_attr.isOffScreen() and sprite_attr.pattern == 0) {
-                continue;
-            }
-
+        for (sorted) |sprite_attr, i| {
             const palette = switch (sprite_attr.flags.palette) {
                 .OBP0 => mmu.dyn.io.ppu.OBP0,
                 .OBP1 => mmu.dyn.io.ppu.OBP1,
             };
 
-            const sprite = &self.spritesheet[i];
             const pattern = self.patterns[sprite_attr.pattern];
 
             var x: usize = 0;
-            while (x < pattern.width()) : (x += 1) {
-                const xs = if (sprite_attr.flags.x_flip) pattern.width() - x - 1 else x;
-
-                var y: usize = 0;
-                while (y < pattern.height()) : (y += 1) {
-                    const ys = if (sprite_attr.flags.y_flip) pattern.width() - y - 1 else y;
-
-                    const pixel = palette.toShade(pattern.get(x, y));
-                    sprite.set(xs, ys, pixel);
-                }
-            }
-
-            x = 0;
             while (x < pattern.width()) : (x += 1) {
                 var xs = if (sprite_attr.flags.x_flip) pattern.width() - x - 1 else x;
                 xs = sprite_attr.x_pos + xs;
@@ -395,28 +374,13 @@ pub const Ppu = struct {
         }
 
         // TODO: this is ugly but it'll be completely replaced by pixel-by-pixel
-        for (mmu.dyn.oam) |sprite_attr, i| {
-            if (sprite_attr.isOffScreen()) {
-                continue;
-            }
-
-            const sprite = self.spritesheet[i];
-
-            var x: usize = 0;
-            while (x < sprite.width()) : (x += 1) {
-                const xs = sprite_attr.x_pos + x -% 8;
-                if (xs >= self.screen.width()) {
-                    continue;
-                }
-
-                var y: usize = 0;
-                while (y < sprite.height()) : (y += 1) {
-                    const ys = sprite_attr.y_pos + y -% 16;
-                    if (ys >= self.screen.height()) {
-                        continue;
-                    }
-
-                    self.screen.set(xs, ys, sprite.get(x, y));
+        var x: usize = 0;
+        while (x < self.screen.width()) : (x += 1) {
+            var y: usize = 0;
+            while (y < self.screen.width()) : (y += 1) {
+                const p = self.sprites.get(x + 8, y + 16);
+                if (p != .Transparent) {
+                    self.screen.set(x, y, @enumToInt(p));
                 }
             }
         }
