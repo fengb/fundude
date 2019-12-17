@@ -78,12 +78,26 @@ export function Right() {
       <Display
         className={CSS.displayPatterns}
         pixels={fd.patterns()}
+        signal={fd.changed}
         gridColor="lightgray"
       />
-      <Display pixels={fd.spritesheet()} gridColor="lightgray" />
+      <Display
+        pixels={fd.spritesheet()}
+        signal={fd.changed}
+        gridColor="lightgray"
+      />
       <div className={CSS.displays}>
-        <Display pixels={fd.background()} gridColor="lightgray" />
-        <Display pixels={fd.window()} gridColor="lightgray" />
+        <Display
+          pixels={fd.background()}
+          signal={fd.changed}
+          gridColor="lightgray"
+        />
+        <Display
+          pixels={fd.window()}
+          signal={fd.changed}
+          gridColor="lightgray"
+        />
+        />
       </div>
       <Mmu fd={fd} />
     </div>

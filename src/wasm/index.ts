@@ -106,6 +106,14 @@ export default class FundudeWasm {
     return PtrArray.matrix(WASM.fd_window_ptr(this.pointer), 256, 256);
   }
 
+  sprites() {
+    return PtrArray.matrix(
+      WASM.fd_sprites_ptr(this.pointer),
+      256 + 2 * 8,
+      256 + 2 * 16
+    );
+  }
+
   spritesheet() {
     return PtrArray.matrix(WASM.fd_spritesheet_ptr(this.pointer), 8, 8 * 40);
   }
