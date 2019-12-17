@@ -306,8 +306,11 @@ pub const Ppu = struct {
                     var ys = if (sprite_attr.flags.y_flip) pattern.width() - y - 1 else y;
                     ys = sprite_attr.y_pos + y;
 
-                    const pixel = palette.toShade(pattern.get(x, y));
-                    self.sprites.set(xs, ys, @intToEnum(Pixel, pixel));
+                    const color = pattern.get(x, y);
+                    if (color != ._0) {
+                        const pixel = palette.toShade(color);
+                        self.sprites.set(xs, ys, @intToEnum(Pixel, pixel));
+                    }
                 }
             }
         }
