@@ -82,7 +82,7 @@ export function Right() {
         gridColor="lightgray"
       />
       <Display
-        pixels={fd.spritesheet()}
+        pixels={fd.sprites()}
         signal={fd.changed}
         gridColor="lightgray"
       />
