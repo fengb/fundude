@@ -288,12 +288,19 @@ pub const Ppu = struct {
         }
     }
 
+    fn oamLessThan(lhs: SpriteAttr, rhs: SpriteAttr) bool {
+        return lhs.x_pos > rhs.x_pos;
+    }
+
     fn cacheSprites(self: *Ppu, mmu: *base.Mmu) void {
         self.sprites.reset(.White);
         self.spritesMeta.reset(.{});
 
-        // TODO: actually sort
         var sorted = mmu.dyn.oam;
+        std.sort.sort(SpriteAttr, &sorted, oamLessThan);
+        // Lower == higher priority, so we need to iterate backwards for painters algorithm
+        // TODO: ignore sprites > 10
+        std.mem.reverse(SpriteAttr, &sorted);
 
         for (sorted) |sprite_attr, i| {
             const palette = switch (sprite_attr.flags.palette) {
@@ -318,7 +325,7 @@ pub const Ppu = struct {
                         const pixel = palette.toShade(color);
                         self.sprites.set(xs, ys, pixel);
                         self.spritesMeta.set(xs, ys, .{
-                            .opaque = true,
+                            .opaque = color != ._0,
                             .in_front = !sprite_attr.flags.priority,
                         });
                     }
