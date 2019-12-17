@@ -219,11 +219,9 @@ pub const Ppu = struct {
         }
 
         if (self.clock > SCREEN_HEIGHT * DOTS_PER_LINE) {
-            // TODO: render specific pixels in mode 3 / transferring
             if (mmu.dyn.io.ppu.STAT.mode != .vblank) {
                 mmu.dyn.io.ppu.STAT.mode = .vblank;
                 mmu.dyn.io.IF.vblank = true;
-                self.render(mmu);
             }
             return;
         }
@@ -235,11 +233,15 @@ pub const Ppu = struct {
             // TODO: offset depends on sprite
             mmu.dyn.io.ppu.STAT.mode = .transferring;
         } else {
-            mmu.dyn.io.ppu.STAT.mode = .hblank;
+            if (mmu.dyn.io.ppu.STAT.mode != .hblank) {
+                mmu.dyn.io.ppu.STAT.mode = .hblank;
+                const line = self.clock / DOTS_PER_LINE;
+                self.render(mmu, line);
+            }
         }
     }
 
-    fn renderPatterns(self: *Ppu, mmu: *base.Mmu) void {
+    fn cachePatterns(self: *Ppu, mmu: *base.Mmu) void {
         for (mmu.dyn.vram.patterns) |raw_pattern, i| {
             var patterns = &self.patterns[i];
 
@@ -258,7 +260,7 @@ pub const Ppu = struct {
         }
     }
 
-    fn renderBg(self: *Ppu, mmu: *base.Mmu, matrix: MatrixSlice(Shade), tile_map_addr: TileMapAddressing) void {
+    fn cacheBg(self: *Ppu, mmu: *base.Mmu, matrix: MatrixSlice(Shade), tile_map_addr: TileMapAddressing) void {
         const tile_map = mmu.dyn.vram.tile_maps.get(tile_map_addr);
         const tile_addressing = mmu.dyn.io.ppu.LCDC.bg_window_tile_data;
         const palette = mmu.dyn.io.ppu.BGP;
@@ -286,7 +288,7 @@ pub const Ppu = struct {
         }
     }
 
-    fn renderSprites(self: *Ppu, mmu: *base.Mmu) void {
+    fn cacheSprites(self: *Ppu, mmu: *base.Mmu) void {
         self.sprites.reset(.White);
         self.spritesMeta.reset(.{});
 
@@ -325,75 +327,63 @@ pub const Ppu = struct {
         }
     }
 
+    fn getBg(self: *Ppu, mmu: *base.Mmu, x: usize, y: usize) ?Shade {
+        if (!mmu.dyn.io.ppu.LCDC.bg_enable) {
+            return null;
+        }
+
+        const xbg = (mmu.dyn.io.ppu.SCX + x) % self.background.width();
+        const ybg = (mmu.dyn.io.ppu.SCY + y) % self.background.height();
+
+        return self.background.get(xbg, ybg);
+    }
+
+    fn getWindow(self: *Ppu, mmu: *base.Mmu, x: usize, y: usize) ?Shade {
+        if (!mmu.dyn.io.ppu.LCDC.window_enable) {
+            return null;
+        }
+
+        const xw = x -% (mmu.dyn.io.ppu.WX -% 7);
+        if (xw >= self.window.width()) {
+            return null;
+        }
+
+        const yw = y -% mmu.dyn.io.ppu.WY;
+        if (yw >= self.window.height()) {
+            return null;
+        }
+
+        return self.window.get(xw, yw);
+    }
+
     // TODO: audit this function
-    fn render(self: *Ppu, mmu: *base.Mmu) void {
+    fn render(self: *Ppu, mmu: *base.Mmu, y: usize) void {
         if (self.dirtyPatterns) {
-            self.renderPatterns(mmu);
+            self.cachePatterns(mmu);
             self.dirtyPatterns = false;
         }
 
         if (self.dirtySprites) {
-            self.renderSprites(mmu);
+            self.cacheSprites(mmu);
             self.dirtySprites = false;
         }
 
         if (self.dirtyBackground) {
-            self.renderBg(mmu, self.background.slice(), mmu.dyn.io.ppu.LCDC.bg_tile_map);
-            self.renderBg(mmu, self.window.slice(), mmu.dyn.io.ppu.LCDC.window_tile_map);
+            self.cacheBg(mmu, self.background.slice(), mmu.dyn.io.ppu.LCDC.bg_tile_map);
+            self.cacheBg(mmu, self.window.slice(), mmu.dyn.io.ppu.LCDC.window_tile_map);
             self.dirtyBackground = false;
-        }
-
-        if (mmu.dyn.io.ppu.LCDC.bg_enable) {
-            const scx = mmu.dyn.io.ppu.SCX;
-            const scy = mmu.dyn.io.ppu.SCY;
-
-            var x: usize = 0;
-            while (x < SCREEN_WIDTH) : (x += 1) {
-                const xbg = (scx + x) % self.background.width();
-
-                var y: usize = 0;
-                while (y < SCREEN_HEIGHT) : (y += 1) {
-                    const ybg = (scy + y) % self.background.height();
-
-                    const pixel = self.background.get(xbg, ybg);
-                    self.screen.set(x, y, pixel);
-                }
-            }
-        }
-
-        if (mmu.dyn.io.ppu.LCDC.window_enable) {
-            const wx = mmu.dyn.io.ppu.WX;
-            const wy = mmu.dyn.io.ppu.WY;
-
-            var x: usize = 0;
-            while (x < self.screen.width()) : (x += 1) {
-                const xw = x -% (mmu.dyn.io.ppu.WX -% 7);
-                if (xw >= self.window.width()) {
-                    continue;
-                }
-
-                var y: usize = 0;
-                while (y < self.screen.height()) : (y += 1) {
-                    const yw = y -% mmu.dyn.io.ppu.WY;
-                    if (yw >= self.window.height()) {
-                        continue;
-                    }
-
-                    const pixel = self.window.get(xw, yw);
-                    self.screen.set(x, y, pixel);
-                }
-            }
         }
 
         var x: usize = 0;
         while (x < self.screen.width()) : (x += 1) {
-            var y: usize = 0;
-            while (y < self.screen.height()) : (y += 1) {
-                const meta = self.spritesMeta.get(x + 8, y + 16);
-                const bg_pixel = self.screen.get(x, y);
-                if (meta.opaque and (meta.in_front or bg_pixel == .White)) {
-                    self.screen.set(x, y, self.sprites.get(x + 8, y + 16));
-                }
+            const bg_pixel = self.getWindow(mmu, x, y) orelse self.getBg(mmu, x, y) orelse .White;
+            const sprite_pixel = self.sprites.get(x + 8, y + 16);
+
+            const meta = self.spritesMeta.get(x + 8, y + 16);
+            if (meta.opaque and (meta.in_front or bg_pixel == .White)) {
+                self.screen.set(x, y, sprite_pixel);
+            } else {
+                self.screen.set(x, y, bg_pixel);
             }
         }
     }
