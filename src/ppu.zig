@@ -55,12 +55,19 @@ const Color = enum(u8) {
     _3 = 3,
 };
 
+const Shade = enum(u8) {
+    White = 0,
+    Light = 1,
+    Dark = 2,
+    Black = 3,
+};
+
 const ColorPalette = packed struct {
     _: u8,
 
-    pub fn toShade(self: ColorPalette, color: Color) u2 {
+    pub fn toShade(self: ColorPalette, color: Color) Shade {
         const int = @intCast(u3, @enumToInt(color));
-        return @intCast(u2, self._ >> (int * 2) & 0b11);
+        return @intToEnum(Shade, self._ >> (int * 2) & 0b11);
     }
 };
 
@@ -126,14 +133,14 @@ const SpriteMeta = extern struct {
 };
 
 pub const Ppu = struct {
-    screen: Matrix(u8, SCREEN_WIDTH, SCREEN_HEIGHT),
+    screen: Matrix(Shade, SCREEN_WIDTH, SCREEN_HEIGHT),
+
+    spritesMeta: Matrix(SpriteMeta, 256 + 2 * 8, 256 + 2 * 16),
+    sprites: Matrix(Shade, 256 + 2 * 8, 256 + 2 * 16),
+    background: Matrix(Shade, 256, 256),
+    window: Matrix(Shade, 256, 256),
 
     patterns: [3 * 128]Matrix(Color, 8, 8),
-
-    sprites: Matrix(u8, 256 + 2 * 8, 256 + 2 * 16),
-    spritesMeta: Matrix(SpriteMeta, 256 + 2 * 8, 256 + 2 * 16),
-    background: Matrix(u8, 256, 256),
-    window: Matrix(u8, 256, 256),
 
     clock: u32,
     dirtyPatterns: bool,
@@ -146,14 +153,14 @@ pub const Ppu = struct {
         self.dirtyBackground = true;
         self.dirtySprites = true;
 
-        self.screen.reset(0);
+        self.screen.reset(.White);
         for (self.patterns) |*patterns| {
             patterns.reset(._0);
         }
-        self.sprites.reset(0);
         self.spritesMeta.reset(.{});
-        self.background.reset(0);
-        self.window.reset(0);
+        self.sprites.reset(.White);
+        self.background.reset(.White);
+        self.window.reset(.White);
     }
 
     pub fn updatedVram(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
@@ -251,7 +258,7 @@ pub const Ppu = struct {
         }
     }
 
-    fn renderBg(self: *Ppu, mmu: *base.Mmu, matrix: MatrixSlice(u8), tile_map_addr: TileMapAddressing) void {
+    fn renderBg(self: *Ppu, mmu: *base.Mmu, matrix: MatrixSlice(Shade), tile_map_addr: TileMapAddressing) void {
         const tile_map = mmu.dyn.vram.tile_maps.get(tile_map_addr);
         const tile_addressing = mmu.dyn.io.ppu.LCDC.bg_window_tile_data;
         const palette = mmu.dyn.io.ppu.BGP;
@@ -280,7 +287,7 @@ pub const Ppu = struct {
     }
 
     fn renderSprites(self: *Ppu, mmu: *base.Mmu) void {
-        self.sprites.reset(0);
+        self.sprites.reset(.White);
         self.spritesMeta.reset(.{});
 
         // TODO: actually sort
@@ -383,8 +390,8 @@ pub const Ppu = struct {
             var y: usize = 0;
             while (y < self.screen.height()) : (y += 1) {
                 const meta = self.spritesMeta.get(x + 8, y + 16);
-                const screen_pixel = self.screen.get(x, y);
-                if (meta.opaque and (meta.in_front or screen_pixel == 0)) {
+                const bg_pixel = self.screen.get(x, y);
+                if (meta.opaque and (meta.in_front or bg_pixel == .White)) {
                     self.screen.set(x, y, self.sprites.get(x + 8, y + 16));
                 }
             }
