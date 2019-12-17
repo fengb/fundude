@@ -85,14 +85,6 @@ pub const SpriteAttr = packed struct {
     }
 };
 
-const Pixel = enum(u8) {
-    _0 = 0,
-    _1 = 1,
-    _2 = 2,
-    _3 = 3,
-    Transparent = std.math.maxInt(u8),
-};
-
 const SpritePalette = enum(u1) {
     OBP0 = 0,
     OBP1 = 1,
@@ -128,12 +120,18 @@ pub const Vram = packed struct {
     },
 };
 
+const SpriteMeta = extern struct {
+    opaque: bool = false,
+    in_front: bool = true,
+};
+
 pub const Ppu = struct {
     screen: Matrix(u8, SCREEN_WIDTH, SCREEN_HEIGHT),
 
     patterns: [3 * 128]Matrix(Color, 8, 8),
 
-    sprites: Matrix(Pixel, 256 + 2 * 8, 256 + 2 * 16),
+    sprites: Matrix(u8, 256 + 2 * 8, 256 + 2 * 16),
+    spritesMeta: Matrix(SpriteMeta, 256 + 2 * 8, 256 + 2 * 16),
     background: Matrix(u8, 256, 256),
     window: Matrix(u8, 256, 256),
 
@@ -152,7 +150,8 @@ pub const Ppu = struct {
         for (self.patterns) |*patterns| {
             patterns.reset(._0);
         }
-        self.sprites.reset(.Transparent);
+        self.sprites.reset(0);
+        self.spritesMeta.reset(.{});
         self.background.reset(0);
         self.window.reset(0);
     }
@@ -281,9 +280,8 @@ pub const Ppu = struct {
     }
 
     fn renderSprites(self: *Ppu, mmu: *base.Mmu) void {
-        for (self.sprites.toArraySlice()) |*pixel| {
-            pixel.* = .Transparent;
-        }
+        self.sprites.reset(0);
+        self.spritesMeta.reset(.{});
 
         // TODO: actually sort
         var sorted = mmu.dyn.oam;
@@ -309,7 +307,11 @@ pub const Ppu = struct {
                     const color = pattern.get(x, y);
                     if (color != ._0) {
                         const pixel = palette.toShade(color);
-                        self.sprites.set(xs, ys, @intToEnum(Pixel, pixel));
+                        self.sprites.set(xs, ys, pixel);
+                        self.spritesMeta.set(xs, ys, .{
+                            .opaque = true,
+                            .in_front = !sprite_attr.flags.priority,
+                        });
                     }
                 }
             }
@@ -357,14 +359,14 @@ pub const Ppu = struct {
             const wy = mmu.dyn.io.ppu.WY;
 
             var x: usize = 0;
-            while (x < SCREEN_WIDTH) : (x += 1) {
+            while (x < self.screen.width()) : (x += 1) {
                 const xw = x -% (mmu.dyn.io.ppu.WX -% 7);
                 if (xw >= self.window.width()) {
                     continue;
                 }
 
                 var y: usize = 0;
-                while (y < SCREEN_HEIGHT) : (y += 1) {
+                while (y < self.screen.height()) : (y += 1) {
                     const yw = y -% mmu.dyn.io.ppu.WY;
                     if (yw >= self.window.height()) {
                         continue;
@@ -376,14 +378,14 @@ pub const Ppu = struct {
             }
         }
 
-        // TODO: this is ugly but it'll be completely replaced by pixel-by-pixel
         var x: usize = 0;
         while (x < self.screen.width()) : (x += 1) {
             var y: usize = 0;
-            while (y < self.screen.width()) : (y += 1) {
-                const p = self.sprites.get(x + 8, y + 16);
-                if (p != .Transparent) {
-                    self.screen.set(x, y, @enumToInt(p));
+            while (y < self.screen.height()) : (y += 1) {
+                const meta = self.spritesMeta.get(x + 8, y + 16);
+                const screen_pixel = self.screen.get(x, y);
+                if (meta.opaque and (meta.in_front or screen_pixel == 0)) {
+                    self.screen.set(x, y, self.sprites.get(x + 8, y + 16));
                 }
             }
         }
