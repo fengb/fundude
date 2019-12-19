@@ -44,13 +44,13 @@ export default function Display(props: {
   gridColor?: string;
   frameFade?: number;
 }) {
-  const [imageData] = React.useState(() => {
+  const imageData = React.useMemo(() => {
     const imageData = new ImageData(props.pixels.width, props.pixels.height);
     for (let i = 0; i < props.pixels.length(); i++) {
       imageData.data.set(WHITE, 4 * i);
     }
     return imageData;
-  });
+  }, []);
 
   const drawRef = React.useRef<HTMLCanvasElement>(null);
 
@@ -63,10 +63,12 @@ export default function Display(props: {
       if (TRANSPARENCY_PALETTE.hasOwnProperty(colorIndex)) {
         const alphaIdx = 4 * i + 3;
         const oldAlpha = imageData.data[alphaIdx];
+        // const newAlpha = TRANSPARENCY_PALETTE[colorIndex];
+        const newAlpha = colorIndex * 85;
         imageData.data[alphaIdx] = clamp(
-          TRANSPARENCY_PALETTE[colorIndex],
+          newAlpha,
           oldAlpha - (props.frameFade || 255),
-          oldAlpha + (props.frameFade || 255),
+          oldAlpha + (props.frameFade || 255)
         );
       }
     }
