@@ -60,11 +60,11 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
     var track = adjusted_cycles;
 
     while (track >= 0) {
-        const res = @noInlineCall(fd.cpu.step, &fd.mmu);
+        const res = @call(.{ .modifier = .never_inline }, fd.cpu.step, .{&fd.mmu});
         std.debug.assert(res.duration > 0);
 
-        @noInlineCall(fd.ppu.step, &fd.mmu, res.duration);
-        @noInlineCall(fd.timer.step, &fd.mmu, res.duration);
+        @call(.{ .modifier = .never_inline }, fd.ppu.step, .{ &fd.mmu, res.duration });
+        @call(.{ .modifier = .never_inline }, fd.timer.step, .{ &fd.mmu, res.duration });
 
         const pc_val = res.jump orelse fd.cpu.reg._16.get(.PC) + res.length;
 
