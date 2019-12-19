@@ -246,12 +246,12 @@ pub const Ppu = struct {
             var patterns = &self.patterns[i];
 
             var y: usize = 0;
-            while (y < patterns.height()) : (y += 1) {
+            while (y < patterns.height) : (y += 1) {
                 const line = raw_pattern._[y];
 
                 var x: usize = 0;
-                while (x < patterns.width()) : (x += 1) {
-                    const bit = @intCast(u4, patterns.width() - x - 1);
+                while (x < patterns.width) : (x += 1) {
+                    const bit = @intCast(u4, patterns.width - x - 1);
                     const hi = @intCast(u2, line >> bit & 1);
                     const lo = @intCast(u2, line >> (bit + 8) & 1);
                     patterns.set(x, y, @intToEnum(Color, hi << 1 | lo));
@@ -274,12 +274,12 @@ pub const Ppu = struct {
                 const pattern = self.patterns[idx];
 
                 var x: usize = 0;
-                while (x < pattern.width()) : (x += 1) {
-                    const xbg = x + i * pattern.width();
+                while (x < pattern.width) : (x += 1) {
+                    const xbg = x + i * pattern.width;
 
                     var y: usize = 0;
-                    while (y < pattern.height()) : (y += 1) {
-                        const ybg = y + j * pattern.height();
+                    while (y < pattern.height) : (y += 1) {
+                        const ybg = y + j * pattern.height;
                         const pixel = pattern.get(x, y);
                         matrix.set(xbg, ybg, palette.toShade(pixel));
                     }
@@ -311,13 +311,13 @@ pub const Ppu = struct {
             const pattern = self.patterns[sprite_attr.pattern];
 
             var x: usize = 0;
-            while (x < pattern.width()) : (x += 1) {
-                var xs = if (sprite_attr.flags.x_flip) pattern.width() - x - 1 else x;
+            while (x < pattern.width) : (x += 1) {
+                var xs = if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
                 xs = sprite_attr.x_pos + xs;
 
                 var y: usize = 0;
-                while (y < pattern.height()) : (y += 1) {
-                    var ys = if (sprite_attr.flags.y_flip) pattern.width() - y - 1 else y;
+                while (y < pattern.height) : (y += 1) {
+                    var ys = if (sprite_attr.flags.y_flip) pattern.width - y - 1 else y;
                     ys = sprite_attr.y_pos + y;
 
                     const color = pattern.get(x, y);
@@ -339,8 +339,8 @@ pub const Ppu = struct {
             return null;
         }
 
-        const xbg = (mmu.dyn.io.ppu.SCX + x) % self.background.width();
-        const ybg = (mmu.dyn.io.ppu.SCY + y) % self.background.height();
+        const xbg = (mmu.dyn.io.ppu.SCX + x) % self.background.width;
+        const ybg = (mmu.dyn.io.ppu.SCY + y) % self.background.height;
 
         return self.background.get(xbg, ybg);
     }
@@ -351,12 +351,12 @@ pub const Ppu = struct {
         }
 
         const xw = x -% (mmu.dyn.io.ppu.WX -% 7);
-        if (xw >= self.window.width()) {
+        if (xw >= self.window.width) {
             return null;
         }
 
         const yw = y -% mmu.dyn.io.ppu.WY;
-        if (yw >= self.window.height()) {
+        if (yw >= self.window.height) {
             return null;
         }
 
@@ -382,7 +382,7 @@ pub const Ppu = struct {
         }
 
         var x: usize = 0;
-        while (x < self.screen.width()) : (x += 1) {
+        while (x < self.screen.width) : (x += 1) {
             const bg_pixel = self.getWindow(mmu, x, y) orelse self.getBg(mmu, x, y) orelse .White;
             const sprite_pixel = self.sprites.get(x + 8, y + 16);
 

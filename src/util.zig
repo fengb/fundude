@@ -5,14 +5,8 @@ pub fn Matrix(comptime T: type, width: usize, height: usize) type {
         const Self = @This();
 
         data: [height * width]T,
-
-        pub fn width(self: Self) usize {
-            return width;
-        }
-
-        pub fn height(self: Self) usize {
-            return height;
-        }
+        comptime width: usize = width,
+        comptime height: usize = height,
 
         pub fn toArraySlice(self: *Self) []T {
             return self.data[0..];
