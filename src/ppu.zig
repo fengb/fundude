@@ -120,8 +120,8 @@ pub const Vram = packed struct {
 
         pub fn get(self: *@This(), addressing: TileMapAddressing) MatrixSlice(u8) {
             return switch (addressing) {
-                ._9800 => self._9800.slice(),
-                ._9C00 => self._9C00.slice(),
+                ._9800 => self._9800.toSlice(),
+                ._9C00 => self._9C00.toSlice(),
             };
         }
     },
@@ -334,35 +334,6 @@ pub const Ppu = struct {
         }
     }
 
-    fn getBg(self: *Ppu, mmu: *base.Mmu, x: usize, y: usize) ?Shade {
-        if (!mmu.dyn.io.ppu.LCDC.bg_enable) {
-            return null;
-        }
-
-        const xbg = (mmu.dyn.io.ppu.SCX + x) % self.background.width;
-        const ybg = (mmu.dyn.io.ppu.SCY + y) % self.background.height;
-
-        return self.background.get(xbg, ybg);
-    }
-
-    fn getWindow(self: *Ppu, mmu: *base.Mmu, x: usize, y: usize) ?Shade {
-        if (!mmu.dyn.io.ppu.LCDC.window_enable) {
-            return null;
-        }
-
-        const xw = x -% (mmu.dyn.io.ppu.WX -% 7);
-        if (xw >= self.window.width) {
-            return null;
-        }
-
-        const yw = y -% mmu.dyn.io.ppu.WY;
-        if (yw >= self.window.height) {
-            return null;
-        }
-
-        return self.window.get(xw, yw);
-    }
-
     // TODO: audit this function
     fn render(self: *Ppu, mmu: *base.Mmu, y: usize) void {
         if (self.dirtyPatterns) {
@@ -376,21 +347,43 @@ pub const Ppu = struct {
         }
 
         if (self.dirtyBackground) {
-            self.cacheBg(mmu, self.background.slice(), mmu.dyn.io.ppu.LCDC.bg_tile_map);
-            self.cacheBg(mmu, self.window.slice(), mmu.dyn.io.ppu.LCDC.window_tile_map);
+            self.cacheBg(mmu, self.background.toSlice(), mmu.dyn.io.ppu.LCDC.bg_tile_map);
+            self.cacheBg(mmu, self.window.toSlice(), mmu.dyn.io.ppu.LCDC.window_tile_map);
             self.dirtyBackground = false;
         }
 
-        var x: usize = 0;
-        while (x < self.screen.width) : (x += 1) {
-            const bg_pixel = self.getWindow(mmu, x, y) orelse self.getBg(mmu, x, y) orelse .White;
-            const sprite_pixel = self.sprites.get(x + 8, y + 16);
+        const line = self.screen.sliceLine(0, y);
+        std.mem.set(Shade, line, .White);
 
-            const meta = self.spritesMeta.get(x + 8, y + 16);
-            if (meta.opaque and (meta.in_front or bg_pixel == .White)) {
-                self.screen.set(x, y, sprite_pixel);
-            } else {
-                self.screen.set(x, y, bg_pixel);
+        if (mmu.dyn.io.ppu.LCDC.bg_enable) {
+            const xbg = mmu.dyn.io.ppu.SCX % self.background.width;
+            const ybg = (mmu.dyn.io.ppu.SCY + y) % self.background.height;
+
+            const bg_start = self.background.sliceLine(xbg, ybg);
+            std.mem.copy(Shade, line, bg_start[0..std.math.min(bg_start.len, line.len)]);
+
+            if (line.len > bg_start.len) {
+                const bg_rest = self.background.sliceLine(0, ybg);
+                std.mem.copy(Shade, line[bg_start.len..], bg_rest[0 .. line.len - bg_start.len]);
+            }
+        }
+
+        const xw = mmu.dyn.io.ppu.WX -% 7;
+        const yw = y -% mmu.dyn.io.ppu.WY;
+        if (mmu.dyn.io.ppu.LCDC.window_enable and xw < self.window.width and yw < self.window.height) {
+            const win = self.window.sliceLine(0, yw);
+            std.mem.copy(Shade, line[xw..], win[0 .. line.len - xw]);
+        }
+
+        // TODO: vectorize
+        if (mmu.dyn.io.ppu.LCDC.obj_enable) {
+            const sprites = self.sprites.sliceLine(8, y + 16);
+            const metas = self.spritesMeta.sliceLine(8, y + 16);
+
+            for (line) |*pixel, x| {
+                if (metas[x].opaque and (metas[x].in_front or pixel.* == .White)) {
+                    pixel.* = sprites[x];
+                }
             }
         }
     }
