@@ -1,10 +1,9 @@
 import React from "react";
 import cx from "classnames";
-import { Signal } from "micro-signals";
 
 import nano from "./nano";
 import { PtrMatrix } from "../wasm";
-import { clamp } from "./smalldash";
+import PicoSignal from "../wasm/PicoSignal";
 
 const CSS = {
   root: nano.rule({
@@ -40,7 +39,7 @@ export default function Display(props: {
   className?: string;
   pixels: PtrMatrix;
   scale?: number;
-  signal?: Signal<any>;
+  signal?: PicoSignal<any>;
   gridColor?: string;
   blend?: boolean;
 }) {

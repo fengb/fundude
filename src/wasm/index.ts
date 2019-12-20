@@ -1,7 +1,6 @@
 //@ts-ignore
 import WASM from "../../zig-cache/fundude.wasm";
-
-import { Signal } from "micro-signals";
+import PicoSignal from "./PicoSignal";
 
 Object.assign(window, { WASM });
 
@@ -77,7 +76,7 @@ enum InputBitMapping {
 export type Input = keyof typeof InputBitMapping;
 
 export default class FundudeWasm {
-  public changed = new Signal<void>();
+  public changed = new PicoSignal<void>();
 
   private readonly pointer: number;
   cart!: Uint8Array;

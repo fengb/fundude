@@ -3847,11 +3847,6 @@ methods@~1.1.2:
   resolved "https://registry.yarnpkg.com/methods/-/methods-1.1.2.tgz#5529a4d67654134edcc5266656835b0f851afcee"
   integrity sha1-VSmk1nZUE07cxSZmVoNbD4Ua/O4=
 
-micro-signals@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/micro-signals/-/micro-signals-2.1.0.tgz#d7fdbee8c3214a1f062156d42bc7d0b32047b794"
-  integrity sha512-qkQMziH15Ze3an1Z2I3+Dg2ZrI8W9GadskqQ0ycRpd8RQ3mp/XqWnaFZ0bCBzREPbqg75qzb8eTsBedQyHkELw==
-
 micromatch@^3.0.4, micromatch@^3.1.10, micromatch@^3.1.4:
   version "3.1.10"
   resolved "https://registry.yarnpkg.com/micromatch/-/micromatch-3.1.10.tgz#70859bc95c9840952f359a068a3fc49f9ecfac23"
