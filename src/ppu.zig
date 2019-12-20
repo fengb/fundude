@@ -86,10 +86,6 @@ pub const SpriteAttr = packed struct {
         y_flip: bool,
         priority: bool,
     },
-
-    pub fn isOffScreen(self: SpriteAttr) bool {
-        return self.x_pos == 0 and self.y_pos == 0;
-    }
 };
 
 const SpritePalette = enum(u1) {
@@ -202,42 +198,54 @@ pub const Ppu = struct {
 
         self.clock += cycles;
 
-        while (self.clock > DOTS_PER_FRAME) : (self.clock -= DOTS_PER_FRAME) {}
-
-        const new_ly = self.clock / DOTS_PER_LINE;
-        if (mmu.dyn.io.ppu.LY != new_ly) {
-            mmu.dyn.io.ppu.LY = @intCast(u8, new_ly);
-            mmu.dyn.io.ppu.STAT.coincidence = new_ly == mmu.dyn.io.ppu.LYC;
+        if (self.clock > DOTS_PER_FRAME) {
+            self.clock -= DOTS_PER_FRAME;
         }
 
-        if ((mmu.dyn.io.ppu.STAT.irq_coincidence and mmu.dyn.io.ppu.STAT.coincidence) or
-            (mmu.dyn.io.ppu.STAT.irq_hblank and mmu.dyn.io.ppu.STAT.mode == .hblank) or
-            (mmu.dyn.io.ppu.STAT.irq_vblank and mmu.dyn.io.ppu.STAT.mode == .vblank) or
-            (mmu.dyn.io.ppu.STAT.irq_oam and mmu.dyn.io.ppu.STAT.mode == .searching))
-        {
-            mmu.dyn.io.IF.lcd_stat = true;
-        }
+        const line_num = self.clock / DOTS_PER_LINE;
+        if (mmu.dyn.io.ppu.LY != line_num) {
+            mmu.dyn.io.ppu.LY = @intCast(u8, line_num);
+            mmu.dyn.io.ppu.STAT.coincidence = line_num == mmu.dyn.io.ppu.LYC;
 
-        if (self.clock > SCREEN_HEIGHT * DOTS_PER_LINE) {
-            if (mmu.dyn.io.ppu.STAT.mode != .vblank) {
-                mmu.dyn.io.ppu.STAT.mode = .vblank;
-                mmu.dyn.io.IF.vblank = true;
+            if (mmu.dyn.io.ppu.STAT.irq_coincidence and mmu.dyn.io.ppu.STAT.coincidence) {
+                mmu.dyn.io.IF.lcd_stat = true;
             }
+        }
+
+        const new_mode: LcdcMode = if (line_num >= SCREEN_HEIGHT)
+            .vblank
+        else
+            @as(LcdcMode, switch (self.clock % DOTS_PER_LINE) {
+                0...79 => .searching,
+                80...291 => .transferring,
+                else => .hblank,
+            });
+
+        if (mmu.dyn.io.ppu.STAT.mode == new_mode) {
             return;
         }
+        mmu.dyn.io.ppu.STAT.mode = new_mode;
 
-        const offset = self.clock % DOTS_PER_LINE;
-        if (offset < 80) {
-            mmu.dyn.io.ppu.STAT.mode = .searching;
-        } else if (offset < 291) {
-            // TODO: offset depends on sprite
-            mmu.dyn.io.ppu.STAT.mode = .transferring;
-        } else {
-            if (mmu.dyn.io.ppu.STAT.mode != .hblank) {
-                mmu.dyn.io.ppu.STAT.mode = .hblank;
-                const line = self.clock / DOTS_PER_LINE;
-                self.render(mmu, line);
-            }
+        switch (new_mode) {
+            .searching => {
+                // TODO: ready the pixel gun here and draw the dots across transferring
+                self.render(mmu, line_num);
+                if (mmu.dyn.io.ppu.STAT.irq_oam) {
+                    mmu.dyn.io.IF.lcd_stat = true;
+                }
+            },
+            .transferring => {},
+            .hblank => {
+                if (mmu.dyn.io.ppu.STAT.irq_hblank) {
+                    mmu.dyn.io.IF.lcd_stat = true;
+                }
+            },
+            .vblank => {
+                mmu.dyn.io.IF.vblank = true;
+                if (mmu.dyn.io.ppu.STAT.irq_vblank) {
+                    mmu.dyn.io.IF.lcd_stat = true;
+                }
+            },
         }
     }
 
@@ -312,13 +320,13 @@ pub const Ppu = struct {
 
             var x: usize = 0;
             while (x < pattern.width) : (x += 1) {
-                var xs = if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
-                xs = sprite_attr.x_pos + xs;
+                const xs = sprite_attr.x_pos +
+                    if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
 
                 var y: usize = 0;
                 while (y < pattern.height) : (y += 1) {
-                    var ys = if (sprite_attr.flags.y_flip) pattern.width - y - 1 else y;
-                    ys = sprite_attr.y_pos + y;
+                    const ys = sprite_attr.y_pos +
+                        if (sprite_attr.flags.y_flip) pattern.width - y - 1 else y;
 
                     const color = pattern.get(x, y);
                     if (color != ._0) {
