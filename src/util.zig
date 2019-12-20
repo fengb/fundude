@@ -9,7 +9,7 @@ pub fn Matrix(comptime T: type, width: usize, height: usize) type {
         comptime height: usize = height,
 
         pub fn toArraySlice(self: *Self) []T {
-            return self.data[0..];
+            return &self.data;
         }
 
         pub fn toSlice(self: *Self) MatrixSlice(T) {
@@ -21,7 +21,7 @@ pub fn Matrix(comptime T: type, width: usize, height: usize) type {
         }
 
         pub fn reset(self: *Self, val: T) void {
-            std.mem.set(T, self.data[0..], val);
+            std.mem.set(T, &self.data, val);
         }
 
         pub fn get(self: Self, x: usize, y: usize) T {

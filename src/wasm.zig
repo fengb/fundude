@@ -114,12 +114,12 @@ export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
     const new_addr = addr +% res.length;
     fd.cpu.reg._16.set(.PC, new_addr);
 
-    if (new_addr >= fd.mmu.mbc.cart.len or new_addr < addr) {
+    if (new_addr >= std.math.min(fd.mmu.mbc.cart.len, 0x7FFF) or new_addr < addr) {
         fd.cpu.mode = .fatal;
     }
-    std.mem.copy(u8, fd.disassembly[0..], res.name);
+    std.mem.copy(u8, &fd.disassembly, res.name);
     fd.disassembly[res.name.len] = 0;
-    return fd.disassembly[0..].ptr;
+    return &fd.disassembly;
 }
 
 export fn fd_patterns_ptr(fd: *base.Fundude) *c_void {
