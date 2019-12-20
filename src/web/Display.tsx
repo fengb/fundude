@@ -42,8 +42,12 @@ export default function Display(props: {
   scale?: number;
   signal?: Signal<any>;
   gridColor?: string;
-  frameFade?: number;
+  blend?: boolean;
 }) {
+  const prev = React.useMemo(() => {
+    return new Uint8Array(props.pixels.width * props.pixels.height);
+  }, []);
+
   const imageData = React.useMemo(() => {
     const imageData = new ImageData(props.pixels.width, props.pixels.height);
     for (let i = 0; i < props.pixels.length(); i++) {
@@ -58,18 +62,21 @@ export default function Display(props: {
     if (!drawRef.current) return;
 
     const ctx = drawRef.current.getContext("2d")!;
-    for (let i = 0; i < props.pixels.length(); i++) {
-      const colorIndex = props.pixels.base[i];
-      if (TRANSPARENCY_PALETTE.hasOwnProperty(colorIndex)) {
-        const alphaIdx = 4 * i + 3;
-        const oldAlpha = imageData.data[alphaIdx];
-        // const newAlpha = TRANSPARENCY_PALETTE[colorIndex];
-        const newAlpha = colorIndex * 85;
-        imageData.data[alphaIdx] = clamp(
-          newAlpha,
-          oldAlpha - (props.frameFade || 255),
-          oldAlpha + (props.frameFade || 255)
-        );
+    if (props.blend) {
+      for (let i = 0; i < props.pixels.length(); i++) {
+        const shade = props.pixels.base[i];
+        const prevAlpha = prev[i];
+        // const newAlpha = TRANSPARENCY_PALETTE[shade];
+        const newAlpha = shade * 85;
+        imageData.data[4 * i + 3] = (prevAlpha + newAlpha) >> 1;
+        prev[i] = newAlpha;
+      }
+    } else {
+      for (let i = 0; i < props.pixels.length(); i++) {
+        const shade = props.pixels.base[i];
+        // const newAlpha = TRANSPARENCY_PALETTE[shade];
+        const newAlpha = shade * 85;
+        imageData.data[4 * i + 3] = newAlpha;
       }
     }
     ctx.putImageData(imageData, PADDING, PADDING);

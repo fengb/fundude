@@ -98,7 +98,7 @@ export function App(props: { debug?: boolean }) {
             pixels={fd.display()}
             signal={fd.changed}
             scale={2}
-            frameFade={25}
+            blend
           />
           <h1 className={CSS.title}>
             <Logo className={CSS.logo} />
