@@ -2,6 +2,7 @@ const std = @import("std");
 const base = @import("base.zig");
 const Matrix = @import("util.zig").Matrix;
 const MatrixSlice = @import("util.zig").MatrixSlice;
+const EnumArray = @import("util.zig").EnumArray;
 
 const SCREEN_WIDTH = 160;
 const SCREEN_HEIGHT = 144;
@@ -65,9 +66,13 @@ const Shade = enum(u8) {
 const ColorPalette = packed struct {
     _: u8,
 
-    pub fn toShade(self: ColorPalette, color: Color) Shade {
-        const int = @intCast(u3, @enumToInt(color));
-        return @intToEnum(Shade, self._ >> (int * 2) & 0b11);
+    fn lookup(self: ColorPalette) EnumArray(Color, Shade) {
+        var result: EnumArray(Color, Shade) = undefined;
+        result.set(._0, @intToEnum(Shade, self._ >> (0 * 2) & 0b11));
+        result.set(._1, @intToEnum(Shade, self._ >> (1 * 2) & 0b11));
+        result.set(._2, @intToEnum(Shade, self._ >> (2 * 2) & 0b11));
+        result.set(._3, @intToEnum(Shade, self._ >> (3 * 2) & 0b11));
+        return result;
     }
 };
 
@@ -271,7 +276,7 @@ pub const Ppu = struct {
     fn cacheBg(self: *Ppu, mmu: *base.Mmu, matrix: MatrixSlice(Shade), tile_map_addr: TileMapAddressing) void {
         const tile_map = mmu.dyn.vram.tile_maps.get(tile_map_addr);
         const tile_addressing = mmu.dyn.io.ppu.LCDC.bg_window_tile_data;
-        const palette = mmu.dyn.io.ppu.BGP;
+        const palette = mmu.dyn.io.ppu.BGP.lookup();
 
         // O(n^4)...
         var i: u16 = 0;
@@ -289,7 +294,7 @@ pub const Ppu = struct {
                     while (y < pattern.height) : (y += 1) {
                         const ybg = y + j * pattern.height;
                         const pixel = pattern.get(x, y);
-                        matrix.set(xbg, ybg, palette.toShade(pixel));
+                        matrix.set(xbg, ybg, palette.get(pixel));
                     }
                 }
             }
@@ -312,8 +317,8 @@ pub const Ppu = struct {
 
         for (sorted) |sprite_attr, i| {
             const palette = switch (sprite_attr.flags.palette) {
-                .OBP0 => mmu.dyn.io.ppu.OBP0,
-                .OBP1 => mmu.dyn.io.ppu.OBP1,
+                .OBP0 => mmu.dyn.io.ppu.OBP0.lookup(),
+                .OBP1 => mmu.dyn.io.ppu.OBP1.lookup(),
             };
 
             const pattern = self.patterns[sprite_attr.pattern];
@@ -330,7 +335,7 @@ pub const Ppu = struct {
 
                     const color = pattern.get(x, y);
                     if (color != ._0) {
-                        const pixel = palette.toShade(color);
+                        const pixel = palette.get(color);
                         self.sprites.set(xs, ys, pixel);
                         self.spritesMeta.set(xs, ys, .{
                             .opaque = color != ._0,
