@@ -15,7 +15,7 @@ Playable:
 | | |
 |-|-|
 | CPU | some bugs, incorrect instruction durations |
-| PPU | vaguely works -- window is broken, no transparency, render hacks |
+| PPU | mostly working -- render hacks |
 | Joypad | should work |
 | Timer | untested, poor timing |
 | Interrupts | untested |
