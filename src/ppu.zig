@@ -128,67 +128,173 @@ pub const Vram = packed struct {
     },
 };
 
-const SpriteMeta = extern struct {
-    opaque: bool = false,
-    in_front: bool = true,
-};
-
 pub const Ppu = struct {
     screen: Matrix(Shade, SCREEN_WIDTH, SCREEN_HEIGHT),
 
-    spritesMeta: Matrix(SpriteMeta, 256 + 2 * 8, 256 + 2 * 16),
-    sprites: Matrix(Shade, 256 + 2 * 8, 256 + 2 * 16),
-    background: Matrix(Shade, 256, 256),
-    window: Matrix(Shade, 256, 256),
-
-    patterns: [3 * 128]Matrix(Color, 8, 8),
-
     clock: u32,
-    dirtyPatterns: bool,
-    dirtyBackground: bool,
-    dirtyWindow: bool,
-    dirtySprites: bool,
+    cache: struct {
+        const PatternsData = [3 * 128]Matrix(Color, 8, 8);
+
+        const TilesCache = struct {
+            data: Matrix(Shade, 256, 256),
+            dirty: bool,
+
+            fn run(self: *@This(), mmu: *base.Mmu, patternsData: PatternsData, tile_map_addr: TileMapAddressing) void {
+                if (!self.dirty) return;
+
+                const tile_map = mmu.dyn.vram.tile_maps.get(tile_map_addr);
+                const tile_addressing = mmu.dyn.io.ppu.LCDC.bg_window_tile_data;
+                const palette = mmu.dyn.io.ppu.BGP.lookup();
+
+                // O(n^4)...
+                var i: u16 = 0;
+                while (i < tile_map.width) : (i += 1) {
+                    var j: u16 = 0;
+                    while (j < tile_map.height) : (j += 1) {
+                        const idx = tile_addressing.translate(tile_map.get(i, j));
+                        const pattern = patternsData[idx];
+
+                        var x: usize = 0;
+                        while (x < pattern.width) : (x += 1) {
+                            const xbg = x + i * pattern.width;
+
+                            var y: usize = 0;
+                            while (y < pattern.height) : (y += 1) {
+                                const ybg = y + j * pattern.height;
+                                const pixel = pattern.get(x, y);
+                                self.data.set(xbg, ybg, palette.get(pixel));
+                            }
+                        }
+                    }
+                }
+
+                self.dirty = false;
+            }
+        };
+
+        patterns: struct {
+            data: PatternsData,
+            dirty: bool,
+
+            fn run(self: *@This(), mmu: *base.Mmu) void {
+                if (!self.dirty) return;
+
+                for (mmu.dyn.vram.patterns) |raw_pattern, i| {
+                    var patterns = &self.data[i];
+
+                    var y: usize = 0;
+                    while (y < patterns.height) : (y += 1) {
+                        const line = raw_pattern._[y];
+
+                        var x: usize = 0;
+                        while (x < patterns.width) : (x += 1) {
+                            const bit = @intCast(u4, patterns.width - x - 1);
+                            const hi = @intCast(u2, line >> bit & 1);
+                            const lo = @intCast(u2, line >> (bit + 8) & 1);
+                            patterns.set(x, y, @intToEnum(Color, hi << 1 | lo));
+                        }
+                    }
+                }
+
+                self.dirty = false;
+            }
+        },
+        sprites: struct {
+            const SpriteMeta = extern struct {
+                opaque: bool = false,
+                in_front: bool = true,
+            };
+
+            data: Matrix(Shade, 256 + 2 * 8, 256 + 2 * 16),
+            meta: Matrix(SpriteMeta, 256 + 2 * 8, 256 + 2 * 16),
+            dirty: bool,
+
+            fn oamLessThan(lhs: SpriteAttr, rhs: SpriteAttr) bool {
+                return lhs.x_pos > rhs.x_pos;
+            }
+
+            fn run(self: *@This(), mmu: *base.Mmu, patternsData: PatternsData) void {
+                if (!self.dirty) return;
+
+                self.data.reset(.White);
+                self.meta.reset(.{});
+
+                var sorted = mmu.dyn.oam;
+                std.sort.sort(SpriteAttr, &sorted, oamLessThan);
+                // Lower == higher priority, so we need to iterate backwards for painters algorithm
+                // TODO: ignore sprites > 10
+                std.mem.reverse(SpriteAttr, &sorted);
+
+                const obp0 = mmu.dyn.io.ppu.OBP0.lookup();
+                const obp1 = mmu.dyn.io.ppu.OBP1.lookup();
+                for (sorted) |sprite_attr, i| {
+                    const palette = switch (sprite_attr.flags.palette) {
+                        .OBP0 => obp0,
+                        .OBP1 => obp1,
+                    };
+
+                    const pattern = patternsData[sprite_attr.pattern];
+
+                    var x: usize = 0;
+                    while (x < pattern.width) : (x += 1) {
+                        const xs = sprite_attr.x_pos +
+                            if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
+
+                        var y: usize = 0;
+                        while (y < pattern.height) : (y += 1) {
+                            const ys = sprite_attr.y_pos +
+                                if (sprite_attr.flags.y_flip) pattern.width - y - 1 else y;
+
+                            const color = pattern.get(x, y);
+                            if (color != ._0) {
+                                const pixel = palette.get(color);
+                                self.data.set(xs, ys, pixel);
+                                self.meta.set(xs, ys, .{
+                                    .opaque = color != ._0,
+                                    .in_front = !sprite_attr.flags.priority,
+                                });
+                            }
+                        }
+                    }
+                }
+                self.dirty = false;
+            }
+        },
+        background: TilesCache,
+        window: TilesCache,
+    },
 
     pub fn reset(self: *Ppu) void {
-        self.clock = 0;
-        self.dirtyPatterns = true;
-        self.dirtyBackground = true;
-        self.dirtyWindow = true;
-        self.dirtySprites = true;
-
         self.screen.reset(.White);
-        for (self.patterns) |*patterns| {
-            patterns.reset(._0);
-        }
-        self.spritesMeta.reset(.{});
-        self.sprites.reset(.White);
-        self.background.reset(.White);
-        self.window.reset(.White);
+        self.clock = 0;
+
+        self.cache.patterns.dirty = true;
+        self.cache.sprites.dirty = true;
+        self.cache.window.dirty = true;
+        self.cache.background.dirty = true;
     }
 
     pub fn updatedVram(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
+        self.cache.patterns.dirty = true;
+        self.cache.window.dirty = true;
+        self.cache.background.dirty = true;
+
         if (addr < 0x9800) {
-            self.dirtyPatterns = true;
-            self.dirtyBackground = true;
-            self.dirtyWindow = true;
-            self.dirtySprites = true;
-        } else {
-            self.dirtyBackground = true;
-            self.dirtyWindow = true;
+            self.cache.sprites.dirty = true;
         }
     }
 
     pub fn updatedOam(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
-        self.dirtySprites = true;
+        self.cache.sprites.dirty = true;
     }
 
     pub fn updatedIo(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
         switch (addr) {
             0xFF40, 0xFF47 => {
-                self.dirtyBackground = true;
-                self.dirtyWindow = true;
+                self.cache.window.dirty = true;
+                self.cache.background.dirty = true;
             },
-            0xFF46, 0xFF48, 0xFF49 => self.dirtySprites = true,
+            0xFF46, 0xFF48, 0xFF49 => self.cache.sprites.dirty = true,
             else => {},
         }
     }
@@ -261,144 +367,41 @@ pub const Ppu = struct {
         }
     }
 
-    fn cachePatterns(self: *Ppu, mmu: *base.Mmu) void {
-        if (!self.dirtyPatterns) return;
-
-        for (mmu.dyn.vram.patterns) |raw_pattern, i| {
-            var patterns = &self.patterns[i];
-
-            var y: usize = 0;
-            while (y < patterns.height) : (y += 1) {
-                const line = raw_pattern._[y];
-
-                var x: usize = 0;
-                while (x < patterns.width) : (x += 1) {
-                    const bit = @intCast(u4, patterns.width - x - 1);
-                    const hi = @intCast(u2, line >> bit & 1);
-                    const lo = @intCast(u2, line >> (bit + 8) & 1);
-                    patterns.set(x, y, @intToEnum(Color, hi << 1 | lo));
-                }
-            }
-        }
-
-        self.dirtyPatterns = false;
-    }
-
-    fn cacheTiles(self: *Ppu, mmu: *base.Mmu, tile_map_addr: TileMapAddressing, matrix: MatrixSlice(Shade), dirty: *bool) void {
-        if (!dirty.*) return;
-
-        const tile_map = mmu.dyn.vram.tile_maps.get(tile_map_addr);
-        const tile_addressing = mmu.dyn.io.ppu.LCDC.bg_window_tile_data;
-        const palette = mmu.dyn.io.ppu.BGP.lookup();
-
-        // O(n^4)...
-        var i: u16 = 0;
-        while (i < tile_map.width) : (i += 1) {
-            var j: u16 = 0;
-            while (j < tile_map.height) : (j += 1) {
-                const idx = tile_addressing.translate(tile_map.get(i, j));
-                const pattern = self.patterns[idx];
-
-                var x: usize = 0;
-                while (x < pattern.width) : (x += 1) {
-                    const xbg = x + i * pattern.width;
-
-                    var y: usize = 0;
-                    while (y < pattern.height) : (y += 1) {
-                        const ybg = y + j * pattern.height;
-                        const pixel = pattern.get(x, y);
-                        matrix.set(xbg, ybg, palette.get(pixel));
-                    }
-                }
-            }
-        }
-
-        dirty.* = false;
-    }
-
-    fn oamLessThan(lhs: SpriteAttr, rhs: SpriteAttr) bool {
-        return lhs.x_pos > rhs.x_pos;
-    }
-
-    fn cacheSprites(self: *Ppu, mmu: *base.Mmu) void {
-        if (!self.dirtySprites) return;
-
-        self.sprites.reset(.White);
-        self.spritesMeta.reset(.{});
-
-        var sorted = mmu.dyn.oam;
-        std.sort.sort(SpriteAttr, &sorted, oamLessThan);
-        // Lower == higher priority, so we need to iterate backwards for painters algorithm
-        // TODO: ignore sprites > 10
-        std.mem.reverse(SpriteAttr, &sorted);
-
-        for (sorted) |sprite_attr, i| {
-            const palette = switch (sprite_attr.flags.palette) {
-                .OBP0 => mmu.dyn.io.ppu.OBP0.lookup(),
-                .OBP1 => mmu.dyn.io.ppu.OBP1.lookup(),
-            };
-
-            const pattern = self.patterns[sprite_attr.pattern];
-
-            var x: usize = 0;
-            while (x < pattern.width) : (x += 1) {
-                const xs = sprite_attr.x_pos +
-                    if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
-
-                var y: usize = 0;
-                while (y < pattern.height) : (y += 1) {
-                    const ys = sprite_attr.y_pos +
-                        if (sprite_attr.flags.y_flip) pattern.width - y - 1 else y;
-
-                    const color = pattern.get(x, y);
-                    if (color != ._0) {
-                        const pixel = palette.get(color);
-                        self.sprites.set(xs, ys, pixel);
-                        self.spritesMeta.set(xs, ys, .{
-                            .opaque = color != ._0,
-                            .in_front = !sprite_attr.flags.priority,
-                        });
-                    }
-                }
-            }
-        }
-        self.dirtySprites = false;
-    }
-
     // TODO: audit this function
     fn render(self: *Ppu, mmu: *base.Mmu, y: usize) void {
-        self.cachePatterns(mmu);
-        self.cacheSprites(mmu);
-        self.cacheTiles(mmu, mmu.dyn.io.ppu.LCDC.bg_tile_map, self.background.toSlice(), &self.dirtyBackground);
-        self.cacheTiles(mmu, mmu.dyn.io.ppu.LCDC.window_tile_map, self.window.toSlice(), &self.dirtyWindow);
+        self.cache.patterns.run(mmu);
+        self.cache.sprites.run(mmu, self.cache.patterns.data);
+        self.cache.background.run(mmu, self.cache.patterns.data, mmu.dyn.io.ppu.LCDC.bg_tile_map);
+        self.cache.window.run(mmu, self.cache.patterns.data, mmu.dyn.io.ppu.LCDC.window_tile_map);
 
         const line = self.screen.sliceLine(0, y);
-        std.mem.set(Shade, line, .White);
 
         if (mmu.dyn.io.ppu.LCDC.bg_enable) {
-            const xbg = mmu.dyn.io.ppu.SCX % self.background.width;
-            const ybg = (mmu.dyn.io.ppu.SCY + y) % self.background.height;
+            const xbg = mmu.dyn.io.ppu.SCX % self.cache.background.data.width;
+            const ybg = (mmu.dyn.io.ppu.SCY + y) % self.cache.background.data.height;
 
-            const bg_start = self.background.sliceLine(xbg, ybg);
+            const bg_start = self.cache.background.data.sliceLine(xbg, ybg);
             std.mem.copy(Shade, line, bg_start[0..std.math.min(bg_start.len, line.len)]);
 
             if (line.len > bg_start.len) {
-                const bg_rest = self.background.sliceLine(0, ybg);
+                const bg_rest = self.cache.background.data.sliceLine(0, ybg);
                 std.mem.copy(Shade, line[bg_start.len..], bg_rest[0 .. line.len - bg_start.len]);
             }
+        } else {
+            std.mem.set(Shade, line, .White);
         }
 
         const xw = mmu.dyn.io.ppu.WX -% 7;
         const yw = y -% mmu.dyn.io.ppu.WY;
-        if (mmu.dyn.io.ppu.LCDC.window_enable and xw < self.window.width and yw < self.window.height) {
-            const win = self.window.sliceLine(0, yw);
+        if (mmu.dyn.io.ppu.LCDC.window_enable and xw < self.cache.window.data.width and yw < self.cache.window.data.height) {
+            const win = self.cache.window.data.sliceLine(0, yw);
             std.mem.copy(Shade, line[xw..], win[0 .. line.len - xw]);
         }
 
         // TODO: vectorize
         if (mmu.dyn.io.ppu.LCDC.obj_enable) {
-            const sprites = self.sprites.sliceLine(8, y + 16);
-            const metas = self.spritesMeta.sliceLine(8, y + 16);
+            const sprites = self.cache.sprites.data.sliceLine(8, y + 16);
+            const metas = self.cache.sprites.meta.sliceLine(8, y + 16);
 
             for (line) |*pixel, x| {
                 if (metas[x].opaque and (metas[x].in_front or pixel.* == .White)) {

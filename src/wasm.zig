@@ -123,19 +123,19 @@ export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
 }
 
 export fn fd_patterns_ptr(fd: *base.Fundude) *c_void {
-    return &fd.ppu.patterns;
+    return &fd.ppu.cache.patterns.data;
 }
 
 export fn fd_background_ptr(fd: *base.Fundude) *c_void {
-    return &fd.ppu.background;
+    return &fd.ppu.cache.background.data;
 }
 
 export fn fd_window_ptr(fd: *base.Fundude) *c_void {
-    return &fd.ppu.window;
+    return &fd.ppu.cache.window.data;
 }
 
 export fn fd_sprites_ptr(fd: *base.Fundude) *c_void {
-    return &fd.ppu.sprites;
+    return &fd.ppu.cache.sprites.data;
 }
 
 // TODO: rename?
