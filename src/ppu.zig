@@ -146,12 +146,14 @@ pub const Ppu = struct {
     clock: u32,
     dirtyPatterns: bool,
     dirtyBackground: bool,
+    dirtyWindow: bool,
     dirtySprites: bool,
 
     pub fn reset(self: *Ppu) void {
         self.clock = 0;
         self.dirtyPatterns = true;
         self.dirtyBackground = true;
+        self.dirtyWindow = true;
         self.dirtySprites = true;
 
         self.screen.reset(.White);
@@ -168,9 +170,11 @@ pub const Ppu = struct {
         if (addr < 0x9800) {
             self.dirtyPatterns = true;
             self.dirtyBackground = true;
+            self.dirtyWindow = true;
             self.dirtySprites = true;
         } else {
             self.dirtyBackground = true;
+            self.dirtyWindow = true;
         }
     }
 
@@ -180,7 +184,10 @@ pub const Ppu = struct {
 
     pub fn updatedIo(self: *Ppu, mmu: *base.Mmu, addr: u16, val: u8) void {
         switch (addr) {
-            0xFF40, 0xFF47 => self.dirtyBackground = true,
+            0xFF40, 0xFF47 => {
+                self.dirtyBackground = true;
+                self.dirtyWindow = true;
+            },
             0xFF46, 0xFF48, 0xFF49 => self.dirtySprites = true,
             else => {},
         }
@@ -255,6 +262,8 @@ pub const Ppu = struct {
     }
 
     fn cachePatterns(self: *Ppu, mmu: *base.Mmu) void {
+        if (!self.dirtyPatterns) return;
+
         for (mmu.dyn.vram.patterns) |raw_pattern, i| {
             var patterns = &self.patterns[i];
 
@@ -271,9 +280,13 @@ pub const Ppu = struct {
                 }
             }
         }
+
+        self.dirtyPatterns = false;
     }
 
-    fn cacheBg(self: *Ppu, mmu: *base.Mmu, matrix: MatrixSlice(Shade), tile_map_addr: TileMapAddressing) void {
+    fn cacheTiles(self: *Ppu, mmu: *base.Mmu, tile_map_addr: TileMapAddressing, matrix: MatrixSlice(Shade), dirty: *bool) void {
+        if (!dirty.*) return;
+
         const tile_map = mmu.dyn.vram.tile_maps.get(tile_map_addr);
         const tile_addressing = mmu.dyn.io.ppu.LCDC.bg_window_tile_data;
         const palette = mmu.dyn.io.ppu.BGP.lookup();
@@ -299,6 +312,8 @@ pub const Ppu = struct {
                 }
             }
         }
+
+        dirty.* = false;
     }
 
     fn oamLessThan(lhs: SpriteAttr, rhs: SpriteAttr) bool {
@@ -306,6 +321,8 @@ pub const Ppu = struct {
     }
 
     fn cacheSprites(self: *Ppu, mmu: *base.Mmu) void {
+        if (!self.dirtySprites) return;
+
         self.sprites.reset(.White);
         self.spritesMeta.reset(.{});
 
@@ -345,25 +362,15 @@ pub const Ppu = struct {
                 }
             }
         }
+        self.dirtySprites = false;
     }
 
     // TODO: audit this function
     fn render(self: *Ppu, mmu: *base.Mmu, y: usize) void {
-        if (self.dirtyPatterns) {
-            self.cachePatterns(mmu);
-            self.dirtyPatterns = false;
-        }
-
-        if (self.dirtySprites) {
-            self.cacheSprites(mmu);
-            self.dirtySprites = false;
-        }
-
-        if (self.dirtyBackground) {
-            self.cacheBg(mmu, self.background.toSlice(), mmu.dyn.io.ppu.LCDC.bg_tile_map);
-            self.cacheBg(mmu, self.window.toSlice(), mmu.dyn.io.ppu.LCDC.window_tile_map);
-            self.dirtyBackground = false;
-        }
+        self.cachePatterns(mmu);
+        self.cacheSprites(mmu);
+        self.cacheTiles(mmu, mmu.dyn.io.ppu.LCDC.bg_tile_map, self.background.toSlice(), &self.dirtyBackground);
+        self.cacheTiles(mmu, mmu.dyn.io.ppu.LCDC.window_tile_map, self.window.toSlice(), &self.dirtyWindow);
 
         const line = self.screen.sliceLine(0, y);
         std.mem.set(Shade, line, .White);
