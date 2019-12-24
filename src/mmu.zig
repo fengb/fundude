@@ -52,7 +52,7 @@ pub const Mmu = struct {
     }
 
     pub fn load(self: *Mmu, cart: []u8) !void {
-        return self.mbc.load(cart);
+        self.mbc = try mbc.Mbc.init(cart);
     }
 
     // TODO: delete me

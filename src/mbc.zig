@@ -82,23 +82,21 @@ pub const Mbc = struct {
 
     // TODO: RAM banking
 
-    pub fn load(self: *Mbc, cart: []u8) CartHeaderError!void {
+    pub fn init(cart: []u8) CartHeaderError!Mbc {
         const size = try RomSize.init(cart[0x148]);
         if (cart.len != size.bytes()) {
             return error.RomSizeError;
         }
 
-        switch (cart[0x147]) {
-            0x0 => {
-                self.setFn = Nope.set;
+        return Mbc{
+            .cart = cart,
+            .bank_offset = BANK_SIZE,
+            .setFn = switch (cart[0x147]) {
+                0x0 => Nope.set,
+                0x1 => Mbc1.set,
+                else => return error.CartTypeError,
             },
-            0x1 => {
-                self.setFn = Mbc1.set;
-            },
-            else => return error.CartTypeError,
-        }
-        self.cart = cart;
-        self.bank_offset = BANK_SIZE;
+        };
     }
 
     // TODO: remove me
