@@ -97,7 +97,6 @@ export function Right() {
           signal={fd.changed}
           gridColor="lightgray"
         />
-        />
       </div>
       <Mmu fd={fd} />
     </div>
