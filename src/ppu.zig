@@ -141,6 +141,7 @@ pub const Ppu = struct {
 
             fn run(self: *@This(), mmu: *base.Mmu, patternsData: PatternsData, tile_map_addr: TileMapAddressing) void {
                 if (!self.dirty) return;
+                self.dirty = false;
 
                 const tile_map = mmu.dyn.vram.tile_maps.get(tile_map_addr);
                 const tile_addressing = mmu.dyn.io.ppu.LCDC.bg_window_tile_data;
@@ -167,8 +168,6 @@ pub const Ppu = struct {
                         }
                     }
                 }
-
-                self.dirty = false;
             }
         };
 
@@ -178,6 +177,7 @@ pub const Ppu = struct {
 
             fn run(self: *@This(), mmu: *base.Mmu) void {
                 if (!self.dirty) return;
+                self.dirty = false;
 
                 for (mmu.dyn.vram.patterns) |raw_pattern, i| {
                     var patterns = &self.data[i];
@@ -195,8 +195,6 @@ pub const Ppu = struct {
                         }
                     }
                 }
-
-                self.dirty = false;
             }
         },
         sprites: struct {
@@ -215,6 +213,7 @@ pub const Ppu = struct {
 
             fn run(self: *@This(), mmu: *base.Mmu, patternsData: PatternsData) void {
                 if (!self.dirty) return;
+                self.dirty = false;
 
                 self.data.reset(.White);
                 self.meta.reset(.{});
@@ -257,7 +256,6 @@ pub const Ppu = struct {
                         }
                     }
                 }
-                self.dirty = false;
             }
         },
         background: TilesCache,
@@ -346,13 +344,14 @@ pub const Ppu = struct {
 
         switch (new_mode) {
             .searching => {
-                // TODO: ready the pixel gun here and draw the dots across transferring
-                self.render(mmu, line_num);
                 if (mmu.dyn.io.ppu.STAT.irq_oam) {
                     mmu.dyn.io.IF.lcd_stat = true;
                 }
             },
-            .transferring => {},
+            .transferring => {
+                // TODO: ready the pixel gun in .searching and draw the dots across .transferring
+                self.render(mmu, line_num);
+            },
             .hblank => {
                 if (mmu.dyn.io.ppu.STAT.irq_hblank) {
                     mmu.dyn.io.IF.lcd_stat = true;
