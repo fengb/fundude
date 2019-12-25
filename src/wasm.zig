@@ -46,27 +46,8 @@ export fn fd_step(fd: *base.Fundude) i32 {
     return cycles;
 }
 
-export fn fd_step_frame(fd: *base.Fundude) i32 {
-    const start = fd_step_cycles(fd, CYCLES_PER_FRAME / 2);
-
-    const remaining = if (!fd.mmu.dyn.io.ppu.LCDC.lcd_enable)
-        CYCLES_PER_FRAME / 2
-    else if (fd.ppu.clock < 30)
-        0
-    else
-        CYCLES_PER_FRAME - fd.ppu.clock;
-
-    return start + fd_step_cycles(fd, @intCast(i32, remaining));
-}
-
 export fn fd_step_frames(fd: *base.Fundude, frames: i16) i32 {
-    var cycles: i32 = 0;
-
-    var i: i16 = 0;
-    while (i < frames) : (i += 1) {
-        cycles += fd_step_frame(fd);
-    }
-    return cycles;
+    return fd_step_cycles(fd, frames * @as(i32, CYCLES_PER_FRAME));
 }
 
 export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
@@ -154,6 +135,10 @@ export fn fd_window_ptr(fd: *base.Fundude) *c_void {
 
 export fn fd_sprites_ptr(fd: *base.Fundude) *c_void {
     return &fd.ppu.cache.sprites.data;
+}
+
+export fn fd_screen_ptr(fd: *base.Fundude) *c_void {
+    return fd.ppu.screen.data.ptr;
 }
 
 // TODO: rename?

@@ -93,8 +93,12 @@ export default class FundudeWasm {
     this.height = 144;
   }
 
-  display() {
-    return PtrArray.matrix(this.pointer, this.width, this.height);
+  screen() {
+    return PtrArray.matrix(
+      WASM.fd_screen_ptr(this.pointer),
+      this.width,
+      this.height
+    );
   }
 
   background() {

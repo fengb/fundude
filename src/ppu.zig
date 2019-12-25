@@ -129,7 +129,11 @@ pub const Vram = packed struct {
 };
 
 pub const Ppu = struct {
-    screen: Matrix(Shade, SCREEN_WIDTH, SCREEN_HEIGHT),
+    buffer0: Matrix(Shade, SCREEN_WIDTH, SCREEN_HEIGHT),
+    buffer1: Matrix(Shade, SCREEN_WIDTH, SCREEN_HEIGHT),
+
+    screen: MatrixSlice(Shade),
+    draw: MatrixSlice(Shade),
 
     clock: u32,
     cache: struct {
@@ -263,7 +267,9 @@ pub const Ppu = struct {
     },
 
     pub fn reset(self: *Ppu) void {
-        self.screen.reset(.White);
+        self.buffer0.reset(.White);
+        self.screen = self.buffer0.toSlice();
+        self.draw = self.buffer1.toSlice();
         self.clock = 0;
 
         self.cache.patterns.dirty = true;
@@ -307,8 +313,14 @@ pub const Ppu = struct {
         }
 
         if (!mmu.dyn.io.ppu.LCDC.lcd_enable) {
-            self.clock = 0;
-            mmu.dyn.io.ppu.STAT.mode = .hblank;
+            if (self.clock != 0) {
+                self.buffer0.reset(.White);
+                self.screen = self.buffer0.toSlice();
+                self.draw = self.buffer1.toSlice();
+                self.clock = 0;
+
+                mmu.dyn.io.ppu.STAT.mode = .hblank;
+            }
             return;
         }
 
@@ -344,20 +356,23 @@ pub const Ppu = struct {
 
         switch (new_mode) {
             .searching => {
+                // TODO: ready the pixel gun here and draw the dots across .transferring
+                self.render(mmu, line_num);
                 if (mmu.dyn.io.ppu.STAT.irq_oam) {
                     mmu.dyn.io.IF.lcd_stat = true;
                 }
             },
-            .transferring => {
-                // TODO: ready the pixel gun in .searching and draw the dots across .transferring
-                self.render(mmu, line_num);
-            },
+            .transferring => {},
             .hblank => {
                 if (mmu.dyn.io.ppu.STAT.irq_hblank) {
                     mmu.dyn.io.IF.lcd_stat = true;
                 }
             },
             .vblank => {
+                const swap = self.screen;
+                self.screen = self.draw;
+                self.draw = swap;
+
                 mmu.dyn.io.IF.vblank = true;
                 if (mmu.dyn.io.ppu.STAT.irq_vblank) {
                     mmu.dyn.io.IF.lcd_stat = true;
@@ -373,7 +388,7 @@ pub const Ppu = struct {
         self.cache.background.run(mmu, self.cache.patterns.data, mmu.dyn.io.ppu.LCDC.bg_tile_map);
         self.cache.window.run(mmu, self.cache.patterns.data, mmu.dyn.io.ppu.LCDC.window_tile_map);
 
-        const line = self.screen.sliceLine(0, y);
+        const line = self.draw.sliceLine(0, y);
 
         if (mmu.dyn.io.ppu.LCDC.bg_enable) {
             const xbg = mmu.dyn.io.ppu.SCX % self.cache.background.data.width;
