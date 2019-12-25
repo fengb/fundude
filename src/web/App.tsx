@@ -95,7 +95,7 @@ export function App(props: { debug?: boolean }) {
         <div className={CSS.displayWrapper}>
           <Display
             className={CSS.display}
-            pixels={fd.screen()}
+            pixels={() => fd.screen()}
             signal={fd.changed}
             scale={2}
             blend

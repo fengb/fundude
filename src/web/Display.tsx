@@ -37,19 +37,21 @@ const WHITE = Uint8Array.of(15, 56, 15, 1);
 
 export default function Display(props: {
   className?: string;
-  pixels: PtrMatrix;
+  pixels: () => PtrMatrix;
   scale?: number;
   signal?: PicoSignal<any>;
   gridColor?: string;
   blend?: boolean;
 }) {
+  const pixels = props.pixels();
+
   const prev = React.useMemo(() => {
-    return new Uint8Array(props.pixels.width * props.pixels.height);
+    return new Uint8Array(pixels.width * pixels.height);
   }, []);
 
   const imageData = React.useMemo(() => {
-    const imageData = new ImageData(props.pixels.width, props.pixels.height);
-    for (let i = 0; i < props.pixels.length(); i++) {
+    const imageData = new ImageData(pixels.width, pixels.height);
+    for (let i = 0; i < pixels.length(); i++) {
       imageData.data.set(WHITE, 4 * i);
     }
     return imageData;
@@ -61,9 +63,10 @@ export default function Display(props: {
     if (!drawRef.current) return;
 
     const ctx = drawRef.current.getContext("2d")!;
+    const pixels = props.pixels();
     if (props.blend) {
-      for (let i = 0; i < props.pixels.length(); i++) {
-        const shade = props.pixels.base[i];
+      for (let i = 0; i < pixels.length(); i++) {
+        const shade = pixels.base[i];
         const prevAlpha = prev[i];
         // const newAlpha = TRANSPARENCY_PALETTE[shade];
         const newAlpha = shade * 85;
@@ -71,8 +74,8 @@ export default function Display(props: {
         prev[i] = newAlpha;
       }
     } else {
-      for (let i = 0; i < props.pixels.length(); i++) {
-        const shade = props.pixels.base[i];
+      for (let i = 0; i < pixels.length(); i++) {
+        const shade = pixels.base[i];
         // const newAlpha = TRANSPARENCY_PALETTE[shade];
         const newAlpha = shade * 85;
         imageData.data[4 * i + 3] = newAlpha;
@@ -92,8 +95,8 @@ export default function Display(props: {
   }, [props.signal]);
 
   const scale = props.scale || 1;
-  const width = props.pixels.width + PADDING * 2;
-  const height = props.pixels.height + PADDING * 2;
+  const width = pixels.width + PADDING * 2;
+  const height = pixels.height + PADDING * 2;
 
   return (
     <div className={cx(CSS.root, props.className)}>
@@ -101,8 +104,8 @@ export default function Display(props: {
         <div
           className={CSS.grid}
           style={{
-            width: props.pixels.width + PADDING * 2,
-            height: props.pixels.height + PADDING * 2,
+            width: pixels.width + PADDING * 2,
+            height: pixels.height + PADDING * 2,
             transform: `scale(${scale})`,
             backgroundImage: [
               `linear-gradient(to right, ${props.gridColor} 2px, transparent 1px)`,

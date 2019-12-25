@@ -77,23 +77,23 @@ export function Right() {
       {/* TODO: convert to tile display */}
       <Display
         className={CSS.displayPatterns}
-        pixels={fd.patterns()}
+        pixels={() => fd.patterns()}
         signal={fd.changed}
         gridColor="lightgray"
       />
       <Display
-        pixels={fd.sprites()}
+        pixels={() => fd.sprites()}
         signal={fd.changed}
         gridColor="lightgray"
       />
       <div className={CSS.displays}>
         <Display
-          pixels={fd.background()}
+          pixels={() => fd.background()}
           signal={fd.changed}
           gridColor="lightgray"
         />
         <Display
-          pixels={fd.window()}
+          pixels={() => fd.window()}
           signal={fd.changed}
           gridColor="lightgray"
         />
