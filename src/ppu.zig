@@ -14,7 +14,10 @@ pub const Io = packed struct {
     LCDC: packed struct {
         bg_enable: bool,
         obj_enable: bool,
-        obj_size: u1,
+        obj_size: enum(u1) {
+            Small = 0,
+            Large = 1,
+        },
         bg_tile_map: TileMapAddressing,
         bg_window_tile_data: TileAddressing,
         window_enable: bool,
@@ -230,35 +233,88 @@ pub const Ppu = struct {
 
                 const obp0 = mmu.dyn.io.ppu.OBP0.lookup();
                 const obp1 = mmu.dyn.io.ppu.OBP1.lookup();
-                for (sorted) |sprite_attr, i| {
-                    const palette = switch (sprite_attr.flags.palette) {
-                        .OBP0 => obp0,
-                        .OBP1 => obp1,
-                    };
+                switch (mmu.dyn.io.ppu.LCDC.obj_size) {
+                    .Small => {
+                        for (sorted) |sprite_attr, i| {
+                            const palette = switch (sprite_attr.flags.palette) {
+                                .OBP0 => obp0,
+                                .OBP1 => obp1,
+                            };
 
-                    const pattern = patternsData[sprite_attr.pattern];
+                            const pattern = patternsData[sprite_attr.pattern];
 
-                    var x: usize = 0;
-                    while (x < pattern.width) : (x += 1) {
-                        const xs = sprite_attr.x_pos +
-                            if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
+                            var x: usize = 0;
+                            while (x < pattern.width) : (x += 1) {
+                                const xs = sprite_attr.x_pos +
+                                    if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
 
-                        var y: usize = 0;
-                        while (y < pattern.height) : (y += 1) {
-                            const ys = sprite_attr.y_pos +
-                                if (sprite_attr.flags.y_flip) pattern.width - y - 1 else y;
+                                var y: usize = 0;
+                                while (y < pattern.height) : (y += 1) {
+                                    const ys = sprite_attr.y_pos +
+                                        if (sprite_attr.flags.y_flip) pattern.height - y - 1 else y;
 
-                            const color = pattern.get(x, y);
-                            if (color != ._0) {
-                                const pixel = palette.get(color);
-                                self.data.set(xs, ys, pixel);
-                                self.meta.set(xs, ys, .{
-                                    .opaque = color != ._0,
-                                    .in_front = !sprite_attr.flags.priority,
-                                });
+                                    const color = pattern.get(x, y);
+                                    if (color != ._0) {
+                                        const pixel = palette.get(color);
+                                        self.data.set(xs, ys, pixel);
+                                        self.meta.set(xs, ys, .{
+                                            .opaque = color != ._0,
+                                            .in_front = !sprite_attr.flags.priority,
+                                        });
+                                    }
+                                }
                             }
                         }
-                    }
+                    },
+                    .Large => {
+                        for (sorted) |sprite_attr, i| {
+                            const palette = switch (sprite_attr.flags.palette) {
+                                .OBP0 => obp0,
+                                .OBP1 => obp1,
+                            };
+
+                            const pattern0 = patternsData[sprite_attr.pattern & 0xFE];
+                            const pattern1 = patternsData[sprite_attr.pattern | 0x01];
+
+                            var x: usize = 0;
+                            while (x < pattern0.width) : (x += 1) {
+                                const xs = sprite_attr.x_pos +
+                                    if (sprite_attr.flags.x_flip) pattern0.width - x - 1 else x;
+
+                                var y: usize = 0;
+                                while (y < pattern0.height) : (y += 1) {
+                                    const ys = sprite_attr.y_pos +
+                                        if (sprite_attr.flags.y_flip) (pattern0.height * 2) - y - 1 else y;
+
+                                    const color = pattern0.get(x, y);
+                                    if (color != ._0) {
+                                        const pixel = palette.get(color);
+                                        self.data.set(xs, ys, pixel);
+                                        self.meta.set(xs, ys, .{
+                                            .opaque = color != ._0,
+                                            .in_front = !sprite_attr.flags.priority,
+                                        });
+                                    }
+                                }
+
+                                y = 0;
+                                while (y < pattern1.height) : (y += 1) {
+                                    const ys = sprite_attr.y_pos +
+                                        if (sprite_attr.flags.y_flip) (pattern1.height * 2 - 1 - y - pattern0.height) else (y + pattern0.height);
+
+                                    const color = pattern1.get(x, y);
+                                    if (color != ._0) {
+                                        const pixel = palette.get(color);
+                                        self.data.set(xs, ys, pixel);
+                                        self.meta.set(xs, ys, .{
+                                            .opaque = color != ._0,
+                                            .in_front = !sprite_attr.flags.priority,
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    },
                 }
             }
         },
