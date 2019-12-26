@@ -6,7 +6,7 @@ import useDimensions from "react-use-dimensions";
 import nano from "../nano";
 import { hex2, hex4 } from "./util";
 
-import FundudeWasm, { PtrArray, MMU_OFFSETS } from "../../wasm";
+import FundudeWasm, { MMU_OFFSETS } from "../../wasm";
 import Form from "../Form";
 
 const CSS = {
@@ -63,12 +63,14 @@ for (const segment of MMU_OFFSETS.segments) {
 const WIDTH = 16;
 
 function MmuOutput(props: {
-  mem: PtrArray;
+  mem: () => Uint8Array;
   focus: number;
   highlightClasses: Record<number, string>;
 }) {
   const [rootRef, { height }] = useDimensions();
   const gridRef = React.createRef<FixedSizeGrid>();
+
+  const mem = props.mem();
 
   React.useEffect(() => {
     const i = props.focus - MMU_OFFSETS.shift;
@@ -86,7 +88,7 @@ function MmuOutput(props: {
         height={height || 0}
         width={430}
         columnCount={WIDTH}
-        rowCount={props.mem.length() / WIDTH}
+        rowCount={mem.length / WIDTH}
         columnWidth={25}
         rowHeight={15}
       >
@@ -103,7 +105,7 @@ function MmuOutput(props: {
                 loc === props.focus && "active"
               )}
             >
-              {hex2(props.mem.base[i] || 0)}
+              {hex2(props.mem[i] || 0)}
             </div>
           );
         }}
@@ -137,7 +139,7 @@ export default function Mmu(props: { fd: FundudeWasm }) {
         </Form>
       </div>
       <MmuOutput
-        mem={props.fd.mmu()}
+        mem={() => props.fd.mmu()}
         focus={focus}
         highlightClasses={{
           [cpu.HL()]: CSS.hl,

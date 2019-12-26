@@ -2,7 +2,7 @@ import React from "react";
 import cx from "classnames";
 
 import nano from "./nano";
-import { PtrMatrix } from "../wasm";
+import { Matrix } from "../wasm";
 import PicoSignal from "../wasm/PicoSignal";
 
 const CSS = {
@@ -37,7 +37,7 @@ const WHITE = Uint8Array.of(15, 56, 15, 1);
 
 export default function Display(props: {
   className?: string;
-  pixels: () => PtrMatrix;
+  pixels: () => Matrix<Uint8Array>;
   scale?: number;
   signal?: PicoSignal<any>;
   gridColor?: string;
@@ -51,7 +51,7 @@ export default function Display(props: {
 
   const imageData = React.useMemo(() => {
     const imageData = new ImageData(pixels.width, pixels.height);
-    for (let i = 0; i < pixels.length(); i++) {
+    for (let i = 0; i < pixels.length; i++) {
       imageData.data.set(WHITE, 4 * i);
     }
     return imageData;
@@ -65,8 +65,8 @@ export default function Display(props: {
     const ctx = drawRef.current.getContext("2d")!;
     const pixels = props.pixels();
     if (props.blend) {
-      for (let i = 0; i < pixels.length(); i++) {
-        const shade = pixels.base[i];
+      for (let i = 0; i < pixels.length; i++) {
+        const shade = pixels[i];
         const prevAlpha = prev[i];
         // const newAlpha = TRANSPARENCY_PALETTE[shade];
         const newAlpha = shade * 85;
@@ -74,8 +74,8 @@ export default function Display(props: {
         prev[i] = newAlpha;
       }
     } else {
-      for (let i = 0; i < pixels.length(); i++) {
-        const shade = pixels.base[i];
+      for (let i = 0; i < pixels.length; i++) {
+        const shade = pixels[i];
         // const newAlpha = TRANSPARENCY_PALETTE[shade];
         const newAlpha = shade * 85;
         imageData.data[4 * i + 3] = newAlpha;

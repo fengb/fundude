@@ -4,48 +4,26 @@ import PicoSignal from "./PicoSignal";
 
 Object.assign(window, { WASM });
 
-export interface PtrMatrix extends PtrArray {
+export type Matrix<T> = T & {
   width: number;
   height: number;
+};
+
+function wasmArray(ptr: number, length: number) {
+  return new Uint8Array(WASM.memory.buffer, ptr, length);
 }
 
-export class PtrArray {
-  public base: Uint8Array;
-  readonly ptr: number;
-  readonly _length: number;
-
-  constructor(ptr: number, length: number) {
-    this.ptr = ptr;
-    this._length = length;
-    this.base = new Uint8Array(WASM.memory.buffer, ptr, length);
-  }
-
-  static clone(array: Uint8Array): PtrArray {
-    const ptr = WASM.malloc(array.length);
-    const ptrArray = new PtrArray(ptr, array.length);
-    ptrArray.base.set(array);
-    return ptrArray;
-  }
-
-  static matrix(ptr: number, width: number, height: number): PtrMatrix {
-    return Object.assign(new PtrArray(ptr, width * height), {
-      width,
-      height
-    });
-  }
-
-  length(): number {
-    if (this.base.length == 0) {
-      this.base = new Uint8Array(WASM.memory.buffer, this.ptr, this._length);
-    }
-
-    return this.base.length;
-  }
+function wasmMatrix(
+  ptr: number,
+  width: number,
+  height: number
+): Matrix<Uint8Array> {
+  return Object.assign(wasmArray(ptr, width * height), { width, height });
 }
 
 function toUTF8(ptr: number) {
   const scan = new Uint8Array(WASM.memory.buffer, ptr);
-  const end = scan.findIndex(c => c === 0);
+  const end = scan.indexOf(0);
   const rawBytes = scan.subarray(0, end);
   return new TextDecoder("utf-8").decode(rawBytes);
 }
@@ -79,8 +57,8 @@ export default class FundudeWasm {
   public changed = new PicoSignal<void>();
 
   private readonly pointer: number;
-  cart!: Uint8Array;
-  private cartClone?: PtrArray;
+  cart: Uint8Array;
+  private cartCopyPtr: number;
 
   readonly width: number;
   readonly height: number;
@@ -94,7 +72,7 @@ export default class FundudeWasm {
   }
 
   screen() {
-    return PtrArray.matrix(
+    return wasmMatrix(
       WASM.fd_screen_ptr(this.pointer),
       this.width,
       this.height
@@ -102,15 +80,15 @@ export default class FundudeWasm {
   }
 
   background() {
-    return PtrArray.matrix(WASM.fd_background_ptr(this.pointer), 256, 256);
+    return wasmMatrix(WASM.fd_background_ptr(this.pointer), 256, 256);
   }
 
   window() {
-    return PtrArray.matrix(WASM.fd_window_ptr(this.pointer), 256, 256);
+    return wasmMatrix(WASM.fd_window_ptr(this.pointer), 256, 256);
   }
 
   sprites() {
-    return PtrArray.matrix(
+    return wasmMatrix(
       WASM.fd_sprites_ptr(this.pointer),
       256 + 2 * 8,
       256 + 2 * 16
@@ -118,34 +96,36 @@ export default class FundudeWasm {
   }
 
   patterns() {
-    return PtrArray.matrix(WASM.fd_patterns_ptr(this.pointer), 8, 8 * 128 * 3);
+    return wasmMatrix(WASM.fd_patterns_ptr(this.pointer), 8, 8 * 128 * 3);
   }
 
   cpu() {
-    const raw = new PtrArray(WASM.fd_cpu_ptr(this.pointer), 12);
+    const raw = wasmArray(WASM.fd_cpu_ptr(this.pointer), 12);
     return Object.assign(raw, {
-      AF: () => raw.base[0] + (raw.base[1] << 8),
-      BC: () => raw.base[2] + (raw.base[3] << 8),
-      DE: () => raw.base[4] + (raw.base[5] << 8),
-      HL: () => raw.base[6] + (raw.base[7] << 8),
-      SP: () => raw.base[8] + (raw.base[9] << 8),
-      PC: () => raw.base[10] + (raw.base[11] << 8)
+      AF: () => raw[0] + (raw[1] << 8),
+      BC: () => raw[2] + (raw[3] << 8),
+      DE: () => raw[4] + (raw[5] << 8),
+      HL: () => raw[6] + (raw[7] << 8),
+      SP: () => raw[8] + (raw[9] << 8),
+      PC: () => raw[10] + (raw[11] << 8)
     });
   }
 
   mmu() {
-    return new PtrArray(WASM.fd_mmu_ptr(this.pointer), 0x8000);
+    return wasmArray(WASM.fd_mmu_ptr(this.pointer), 0x8000);
   }
 
   init(cart: Uint8Array) {
-    if (this.cartClone) {
-      WASM.free(this.cartClone.ptr);
+    if (this.cartCopyPtr) {
+      WASM.free(this.cartCopyPtr);
     }
 
     this.cart = cart;
-    this.cartClone = PtrArray.clone(cart);
+    this.cartCopyPtr = WASM.malloc(cart.length);
+    const copy = wasmArray(this.cartCopyPtr, cart.length);
+    copy.set(cart);
 
-    const status = WASM.fd_init(this.pointer, cart.length, this.cartClone.ptr);
+    const status = WASM.fd_init(this.pointer, cart.length, this.cartCopyPtr);
     switch (status) {
       case 0:
         break;
@@ -163,9 +143,7 @@ export default class FundudeWasm {
   }
 
   dealloc() {
-    if (this.cartClone) {
-      WASM.free(this.cartClone.ptr);
-    }
+    WASM.free(this.cartCopyPtr);
     WASM.free(this.pointer);
   }
 
@@ -218,8 +196,8 @@ export default class FundudeWasm {
     return this._inputStatus(WASM.fd_input_release(this.pointer, 0xff));
   }
 
-  static *disassemble(cart: Uint8Array): IterableIterator<[number, string]> {
-    const fd = new FundudeWasm(cart);
+  *disassemble(): IterableIterator<[number, string]> {
+    const fd = new FundudeWasm(this.cart);
     try {
       while (true) {
         const addr = fd.cpu().PC();

@@ -44,7 +44,7 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
   const [assembly, setAssembly] = React.useState({} as Record<number, string>);
 
   React.useEffect(() => {
-    const assembly = FundudeWasm.disassemble(props.fd.cart);
+    const assembly = props.fd.disassemble();
     setAssembly(fromEntries(assembly));
   }, [props.fd.cart]);
 

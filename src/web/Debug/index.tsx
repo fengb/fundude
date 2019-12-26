@@ -64,7 +64,7 @@ export function Left() {
           </button>
         </div>
       </div>
-      <Cpu reg={fd.cpu()} />
+      <Cpu reg={() => fd.cpu()} />
       <Disassembler fd={fd} />
     </div>
   );
