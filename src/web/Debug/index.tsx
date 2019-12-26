@@ -57,9 +57,9 @@ export function Left() {
         </div>
         <div>
           <button onClick={() => fd.step() && pause()}>Step</button>
-          <button onClick={() => fd.stepFrame() && pause()}>Frame</button>
-          <button onClick={() => fd.stepFrame(60) && pause()}>Sec</button>
-          <button onClick={timed(() => fd.stepFrame(TURBO_FRAMES) && pause())}>
+          <button onClick={() => fd.stepFrames(1) && pause()}>Frame</button>
+          <button onClick={() => fd.stepFrames(60) && pause()}>Sec</button>
+          <button onClick={timed(() => fd.stepFrames(TURBO_FRAMES) && pause())}>
             &#9992;
           </button>
         </div>

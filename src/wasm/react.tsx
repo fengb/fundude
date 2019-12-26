@@ -15,18 +15,21 @@ interface Props {
 
 interface State {
   fd: FundudeWasm;
-  isRunning: boolean;
 }
 
-export const Context = React.createContext<Item>(null!);
+const MAX_SKIP_MS = 5000;
+const MHz = 4194304;
+
+export const Context = React.createContext<Item>(null);
 
 export class Provider extends React.Component<Props, State> {
+  prevSpin?: number;
+
   constructor(props: Props) {
     super(props);
 
     this.state = {
-      fd: new FundudeWasm(props.bootCart),
-      isRunning: false
+      fd: new FundudeWasm(props.bootCart)
     };
 
     Object.assign(window, { fd: this.state.fd });
@@ -49,12 +52,16 @@ export class Provider extends React.Component<Props, State> {
     this.forceUpdate();
   }
 
-  spin() {
-    if (!this.state.isRunning) {
+  spin(ts: DOMHighResTimeStamp) {
+    if (!this.prevSpin) {
       return;
     }
 
-    this.state.fd.stepFrame();
+    // TODO: re-enable no-skip
+    // this.state.fd.stepFrames(1);
+    const elapsed = Math.min(ts - this.prevSpin, MAX_SKIP_MS);
+    this.state.fd.stepCycles(Math.round((MHz * elapsed) / 1000));
+    this.prevSpin = ts;
 
     if (this.state.fd.cpu().PC() === this.state.fd.breakpoint) {
       return this.pause();
@@ -64,24 +71,21 @@ export class Provider extends React.Component<Props, State> {
   }
 
   run() {
-    if (!this.state.isRunning) {
+    if (!this.prevSpin) {
       this.state.fd.changed.remove(this.handleChange);
-      this.setState({ isRunning: true }, this.spin);
+      this.prevSpin = performance.now();
+      requestAnimationFrame(this.spin);
     }
   }
 
   pause() {
-    if (this.state.isRunning) {
+    if (this.prevSpin) {
       this.state.fd.changed.add(this.handleChange);
-      this.setState({ isRunning: false });
+      this.prevSpin = null;
     }
   }
 
   render() {
-    if (!this.state.fd) {
-      return null;
-    }
-
     return (
       <Context.Provider
         value={{ fd: this.state.fd, run: this.run, pause: this.pause }}
