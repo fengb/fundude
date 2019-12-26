@@ -140,13 +140,13 @@ pub const Ppu = struct {
 
     clock: u32,
     cache: struct {
-        const PatternsData = [3 * 128]Matrix(Color, 8, 8);
+        const CachedPattern = Matrix(Color, 8, 8);
 
         const TilesCache = struct {
             data: Matrix(Shade, 256, 256),
             dirty: bool,
 
-            fn run(self: *@This(), mmu: *base.Mmu, patternsData: PatternsData, tile_map_addr: TileMapAddressing) void {
+            fn run(self: *@This(), mmu: *base.Mmu, patternsData: []CachedPattern, tile_map_addr: TileMapAddressing) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -179,7 +179,7 @@ pub const Ppu = struct {
         };
 
         patterns: struct {
-            data: PatternsData,
+            data: [3 * 128]CachedPattern,
             dirty: bool,
 
             fn run(self: *@This(), mmu: *base.Mmu) void {
@@ -218,7 +218,7 @@ pub const Ppu = struct {
                 return lhs.x_pos > rhs.x_pos;
             }
 
-            fn run(self: *@This(), mmu: *base.Mmu, patternsData: PatternsData) void {
+            fn run(self: *@This(), mmu: *base.Mmu, patternsData: []CachedPattern) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -233,88 +233,50 @@ pub const Ppu = struct {
 
                 const obp0 = mmu.dyn.io.ppu.OBP0.lookup();
                 const obp1 = mmu.dyn.io.ppu.OBP1.lookup();
-                switch (mmu.dyn.io.ppu.LCDC.obj_size) {
-                    .Small => {
-                        for (sorted) |sprite_attr, i| {
-                            const palette = switch (sprite_attr.flags.palette) {
-                                .OBP0 => obp0,
-                                .OBP1 => obp1,
-                            };
 
-                            const pattern = patternsData[sprite_attr.pattern];
+                const mask: u8 = switch (mmu.dyn.io.ppu.LCDC.obj_size) {
+                    .Small => 0xFF,
+                    .Large => 0xFE,
+                };
+                const height: usize = switch (mmu.dyn.io.ppu.LCDC.obj_size) {
+                    .Small => 8,
+                    .Large => 16,
+                };
 
-                            var x: usize = 0;
-                            while (x < pattern.width) : (x += 1) {
-                                const xs = sprite_attr.x_pos +
-                                    if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
+                for (sorted) |sprite_attr, i| {
+                    const palette = switch (sprite_attr.flags.palette) {
+                        .OBP0 => obp0,
+                        .OBP1 => obp1,
+                    };
 
-                                var y: usize = 0;
-                                while (y < pattern.height) : (y += 1) {
-                                    const ys = sprite_attr.y_pos +
-                                        if (sprite_attr.flags.y_flip) pattern.height - y - 1 else y;
+                    const pattern0 = patternsData[sprite_attr.pattern & mask];
+                    const pattern1 = patternsData[sprite_attr.pattern | ~mask];
 
-                                    const color = pattern.get(x, y);
-                                    if (color != ._0) {
-                                        const pixel = palette.get(color);
-                                        self.data.set(xs, ys, pixel);
-                                        self.meta.set(xs, ys, .{
-                                            .opaque = color != ._0,
-                                            .in_front = !sprite_attr.flags.priority,
-                                        });
-                                    }
-                                }
+                    var x: usize = 0;
+                    while (x < pattern0.width) : (x += 1) {
+                        const xs = sprite_attr.x_pos +
+                            if (sprite_attr.flags.x_flip) pattern0.width - x - 1 else x;
+
+                        var y: usize = 0;
+                        while (y < height) : (y += 1) {
+                            const ys = sprite_attr.y_pos +
+                                if (sprite_attr.flags.y_flip) height - y - 1 else y;
+
+                            const color = if (y < pattern0.height)
+                                pattern0.get(x, y)
+                            else
+                                pattern1.get(x, y - pattern0.height);
+
+                            if (color != ._0) {
+                                const pixel = palette.get(color);
+                                self.data.set(xs, ys, pixel);
+                                self.meta.set(xs, ys, .{
+                                    .opaque = color != ._0,
+                                    .in_front = !sprite_attr.flags.priority,
+                                });
                             }
                         }
-                    },
-                    .Large => {
-                        for (sorted) |sprite_attr, i| {
-                            const palette = switch (sprite_attr.flags.palette) {
-                                .OBP0 => obp0,
-                                .OBP1 => obp1,
-                            };
-
-                            const pattern0 = patternsData[sprite_attr.pattern & 0xFE];
-                            const pattern1 = patternsData[sprite_attr.pattern | 0x01];
-
-                            var x: usize = 0;
-                            while (x < pattern0.width) : (x += 1) {
-                                const xs = sprite_attr.x_pos +
-                                    if (sprite_attr.flags.x_flip) pattern0.width - x - 1 else x;
-
-                                var y: usize = 0;
-                                while (y < pattern0.height) : (y += 1) {
-                                    const ys = sprite_attr.y_pos +
-                                        if (sprite_attr.flags.y_flip) (pattern0.height * 2) - y - 1 else y;
-
-                                    const color = pattern0.get(x, y);
-                                    if (color != ._0) {
-                                        const pixel = palette.get(color);
-                                        self.data.set(xs, ys, pixel);
-                                        self.meta.set(xs, ys, .{
-                                            .opaque = color != ._0,
-                                            .in_front = !sprite_attr.flags.priority,
-                                        });
-                                    }
-                                }
-
-                                y = 0;
-                                while (y < pattern1.height) : (y += 1) {
-                                    const ys = sprite_attr.y_pos +
-                                        if (sprite_attr.flags.y_flip) (pattern1.height * 2 - 1 - y - pattern0.height) else (y + pattern0.height);
-
-                                    const color = pattern1.get(x, y);
-                                    if (color != ._0) {
-                                        const pixel = palette.get(color);
-                                        self.data.set(xs, ys, pixel);
-                                        self.meta.set(xs, ys, .{
-                                            .opaque = color != ._0,
-                                            .in_front = !sprite_attr.flags.priority,
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    },
+                    }
                 }
             }
         },
@@ -425,9 +387,7 @@ pub const Ppu = struct {
                 }
             },
             .vblank => {
-                const swap = self.screen;
-                self.screen = self.draw;
-                self.draw = swap;
+                std.mem.swap(MatrixSlice(Shade), &self.screen, &self.draw);
 
                 mmu.dyn.io.IF.vblank = true;
                 if (mmu.dyn.io.ppu.STAT.irq_vblank) {
@@ -440,9 +400,9 @@ pub const Ppu = struct {
     // TODO: audit this function
     fn render(self: *Ppu, mmu: *base.Mmu, y: usize) void {
         self.cache.patterns.run(mmu);
-        self.cache.sprites.run(mmu, self.cache.patterns.data);
-        self.cache.background.run(mmu, self.cache.patterns.data, mmu.dyn.io.ppu.LCDC.bg_tile_map);
-        self.cache.window.run(mmu, self.cache.patterns.data, mmu.dyn.io.ppu.LCDC.window_tile_map);
+        self.cache.sprites.run(mmu, &self.cache.patterns.data);
+        self.cache.background.run(mmu, &self.cache.patterns.data, mmu.dyn.io.ppu.LCDC.bg_tile_map);
+        self.cache.window.run(mmu, &self.cache.patterns.data, mmu.dyn.io.ppu.LCDC.window_tile_map);
 
         const line = self.draw.sliceLine(0, y);
 
