@@ -20,11 +20,7 @@ pub const Fundude = struct {
     inputs: ggp.Inputs,
     timer: timer.Timer,
 
-    clock: struct {
-        cpu: i32,
-        ppu: i32,
-    },
-
+    step_underflow: i32,
     breakpoint: u16,
     disassembly: [24]u8,
 };

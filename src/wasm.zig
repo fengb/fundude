@@ -35,14 +35,14 @@ export fn fd_reset(fd: *base.Fundude) void {
     fd.cpu.reset();
     fd.inputs.reset();
     fd.timer.reset();
-    fd.clock.cpu = 0;
+    fd.step_underflow = 0;
 }
 
 export fn fd_step(fd: *base.Fundude) i32 {
     // Reset tracking -- single step will always accrue negatives
-    fd.clock.cpu = 0;
+    fd.step_underflow = 0;
     const cycles = fd_step_cycles(fd, 1);
-    fd.clock.cpu = 0;
+    fd.step_underflow = 0;
     return cycles;
 }
 
@@ -55,8 +55,8 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
         return -9999;
     }
 
-    const adjusted_cycles: i32 = fd.clock.cpu + cycles;
-    var track = adjusted_cycles;
+    const target_cycles: i32 = fd.step_underflow + cycles;
+    var track = target_cycles;
 
     while (track >= 0) {
         const res = @call(.{ .modifier = .never_inline }, fd.cpu.step, .{&fd.mmu});
@@ -72,13 +72,13 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
         track -= @intCast(i32, res.duration);
 
         if (fd.breakpoint == pc_val) {
-            fd.clock.cpu = 0;
-            return adjusted_cycles - track;
+            fd.step_underflow = 0;
+            return target_cycles - track;
         }
     }
 
-    fd.clock.cpu = track;
-    return adjusted_cycles + track;
+    fd.step_underflow = track;
+    return target_cycles - track;
 }
 
 export fn fd_input_press(fd: *base.Fundude, input: u8) u8 {
