@@ -93,7 +93,7 @@ pub const Mmu = struct {
             fd.ppu.updatedOam(self, addr, val);
         } else if (addr >= 0xFF00) {
             if (addr == 0xFF00) {
-                fd.inputs.update(self);
+                fd.inputs.sync(self);
             } else if (addr >= 0xFF40 and addr < 0xFF4C) {
                 fd.ppu.updatedIo(self, addr, val);
             }

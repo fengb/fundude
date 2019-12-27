@@ -33,7 +33,7 @@ export fn fd_reset(fd: *base.Fundude) void {
     fd.mmu.reset();
     fd.ppu.reset();
     fd.cpu.reset();
-    fd.inputs._ = 0;
+    fd.inputs.reset();
     fd.timer.reset();
     fd.clock.cpu = 0;
 }
@@ -82,22 +82,17 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
 }
 
 export fn fd_input_press(fd: *base.Fundude, input: u8) u8 {
-    const changed_to_true = (input ^ fd.inputs._) ^ (~fd.inputs._);
-    if (changed_to_true != 0) {
-        if (fd.cpu.mode == .stop) {
-            fd.cpu.mode = .norm;
-        }
+    const changed = fd.inputs.press(&fd.mmu, .{ .raw = input });
+    if (changed) {
+        fd.cpu.mode = .norm;
         fd.mmu.dyn.io.IF.joypad = true;
-        fd.inputs._ |= input;
-        fd.inputs.update(&fd.mmu);
     }
-    return fd.inputs._;
+    return fd.inputs.raw;
 }
 
 export fn fd_input_release(fd: *base.Fundude, input: u8) u8 {
-    fd.inputs._ &= ~input;
-    fd.inputs.update(&fd.mmu);
-    return fd.inputs._;
+    _ = fd.inputs.release(&fd.mmu, .{ .raw = input });
+    return fd.inputs.raw;
 }
 
 export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {

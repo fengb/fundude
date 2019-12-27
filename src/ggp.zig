@@ -9,15 +9,10 @@ pub const Io = packed union {
         buttons: u1,
         _padding: u2,
     },
-
-    pub fn set(self: *Io, val: u8, inputs: Inputs) void {
-        self._ = val;
-        self.sync(inputs);
-    }
 };
 
 pub const Inputs = packed union {
-    _: u8,
+    raw: u8,
 
     keys: packed struct {
         right: u1,
@@ -35,7 +30,29 @@ pub const Inputs = packed union {
         buttons: u4,
     },
 
-    pub fn update(self: Inputs, mmu: *base.Mmu) void {
+    pub fn reset(self: *Inputs) void {
+        self.raw = 0;
+    }
+
+    pub fn press(self: *Inputs, mmu: *base.Mmu, update: Inputs) bool {
+        const changed_to_pressed = (update.raw ^ self.raw) ^ (~self.raw);
+        if (changed_to_pressed == 0) return false;
+
+        self.raw |= update.raw;
+        self.sync(mmu);
+        return true;
+    }
+
+    pub fn release(self: *Inputs, mmu: *base.Mmu, update: Inputs) bool {
+        const changed_to_released = update.raw & self.raw;
+        if (changed_to_released == 0) return false;
+
+        self.raw &= ~update.raw;
+        self.sync(mmu);
+        return true;
+    }
+
+    pub fn sync(self: Inputs, mmu: *base.Mmu) void {
         // Hardware quirk: 0 == active
         if (mmu.dyn.io.ggp.bitfields.buttons == 0) {
             mmu.dyn.io.ggp.bitfields.read = ~self.nibbles.buttons;
