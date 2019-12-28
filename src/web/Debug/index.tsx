@@ -7,6 +7,7 @@ import Display from "../Display";
 import Disassembler from "./Disassembler";
 import Cpu from "./Cpu";
 import Mmu from "./Mmu";
+import FundudeWasm from "../../wasm";
 
 const TURBO_FRAMES = 60 * 250;
 
@@ -70,7 +71,7 @@ export function Left() {
   );
 }
 
-export function Right() {
+function Displays(props: { fd: FundudeWasm }) {
   const { fd } = React.useContext(FD.Context);
 
   const [_, setRerender] = React.useState();
@@ -85,7 +86,7 @@ export function Right() {
   const mmu = fd.mmu();
 
   return (
-    <div className={CSS.base}>
+    <React.Fragment>
       {/* TODO: convert to tile display */}
       <Display
         className={CSS.displayPatterns}
@@ -105,6 +106,16 @@ export function Right() {
         />
         <Display pixels={() => fd.window()} gridColor="lightgray" />
       </div>
+    </React.Fragment>
+  );
+}
+
+export function Right() {
+  const { fd } = React.useContext(FD.Context);
+
+  return (
+    <div className={CSS.base}>
+      <Displays fd={fd} />
       <Mmu fd={fd} />
     </div>
   );
