@@ -72,31 +72,38 @@ export function Left() {
 
 export function Right() {
   const { fd } = React.useContext(FD.Context);
+
+  const [_, setRerender] = React.useState();
+  React.useEffect(() => {
+    function forceRender() {
+      setRerender(prev => !prev);
+    }
+    fd.changed.add(forceRender);
+    return () => fd.changed.remove(forceRender);
+  }, []);
+
+  const mmu = fd.mmu();
+
   return (
     <div className={CSS.base}>
       {/* TODO: convert to tile display */}
       <Display
         className={CSS.displayPatterns}
         pixels={() => fd.patterns()}
-        signal={fd.changed}
         gridColor="lightgray"
       />
       <Display
         pixels={() => fd.sprites()}
-        signal={fd.changed}
+        window={[8, 16]}
         gridColor="lightgray"
       />
       <div className={CSS.displays}>
         <Display
           pixels={() => fd.background()}
-          signal={fd.changed}
+          window={[mmu[0xff43 - 0x8000 /*SCX*/], mmu[0xff42 - 0x8000 /*SCY*/]]}
           gridColor="lightgray"
         />
-        <Display
-          pixels={() => fd.window()}
-          signal={fd.changed}
-          gridColor="lightgray"
-        />
+        <Display pixels={() => fd.window()} gridColor="lightgray" />
       </div>
       <Mmu fd={fd} />
     </div>

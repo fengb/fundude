@@ -26,6 +26,14 @@ const CSS = {
     transformOrigin: "0 0",
     backgroundSize: `8px 8px`,
     zIndex: 0
+  }),
+
+  window: nano.rule({
+    position: "absolute",
+    width: "160px",
+    height: "144px",
+    zIndex: 1,
+    boxShadow: "inset 0 0 0 1px black"
   })
 };
 
@@ -40,6 +48,7 @@ export default function Display(props: {
   pixels: () => Matrix<Uint8Array>;
   scale?: number;
   signal?: PicoSignal<any>;
+  window?: [number, number];
   gridColor?: string;
   blend?: boolean;
 }) {
@@ -84,7 +93,7 @@ export default function Display(props: {
     ctx.putImageData(imageData, PADDING, PADDING);
   }, []);
 
-  React.useEffect(render, [drawRef.current]);
+  React.useEffect(render, [drawRef.current, props.pixels]);
 
   React.useEffect(() => {
     if (props.signal) {
@@ -121,6 +130,16 @@ export default function Display(props: {
         height={height}
         style={{ width: width * scale }}
       />
+      {props.window && (
+        <div
+          className={CSS.window}
+          style={{
+            left: props.window[0] + 1,
+            top: props.window[1] + 1,
+            transform: `scale(${scale})`
+          }}
+        />
+      )}
     </div>
   );
 }
