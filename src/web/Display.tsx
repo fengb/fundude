@@ -9,7 +9,6 @@ const CSS = {
   root: nano.rule({
     position: "relative",
     backgroundColor: "white",
-    padding: "1px",
     flex: "0 auto"
   }),
 
@@ -24,8 +23,13 @@ const CSS = {
     top: "0",
     left: "0",
     transformOrigin: "0 0",
-    backgroundSize: `8px 8px`,
-    zIndex: 0
+    zIndex: 0,
+    backgroundImage: [
+      `linear-gradient(to right, lightgray 2px, transparent 1px)`,
+      `linear-gradient(to bottom, lightgray 2px, transparent 1px)`
+    ].join(","),
+    backgroundSize: '8px 8px',
+    backgroundPosition: "-1px -1px"
   }),
 
   window: nano.rule({
@@ -113,13 +117,9 @@ export default function Display(props: {
         <div
           className={CSS.grid}
           style={{
-            width: pixels.width + PADDING * 2,
-            height: pixels.height + PADDING * 2,
-            transform: `scale(${scale})`,
-            backgroundImage: [
-              `linear-gradient(to right, ${props.gridColor} 2px, transparent 1px)`,
-              `linear-gradient(to bottom, ${props.gridColor} 2px, transparent 1px)`
-            ].join(",")
+            width: pixels.width,
+            height: pixels.height,
+            transform: `scale(${scale})`
           }}
         />
       )}
@@ -134,8 +134,8 @@ export default function Display(props: {
         <div
           className={CSS.window}
           style={{
-            left: props.window[0] + 1,
-            top: props.window[1] + 1,
+            left: props.window[0],
+            top: props.window[1],
             transform: `scale(${scale})`
           }}
         />
