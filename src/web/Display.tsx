@@ -9,7 +9,6 @@ const CSS = {
   root: nano.rule({
     position: "relative",
     backgroundColor: "white",
-    padding: "1px",
     flex: "0 auto"
   }),
 
@@ -24,8 +23,21 @@ const CSS = {
     top: "0",
     left: "0",
     transformOrigin: "0 0",
-    backgroundSize: `8px 8px`,
-    zIndex: 0
+    zIndex: 0,
+    backgroundImage: [
+      `linear-gradient(to right, lightgray 2px, transparent 1px)`,
+      `linear-gradient(to bottom, lightgray 2px, transparent 1px)`
+    ].join(","),
+    backgroundSize: '8px 8px',
+    backgroundPosition: "-1px -1px"
+  }),
+
+  window: nano.rule({
+    position: "absolute",
+    width: "160px",
+    height: "144px",
+    zIndex: 1,
+    boxShadow: "inset 0 0 0 1px black"
   })
 };
 
@@ -40,6 +52,7 @@ export default function Display(props: {
   pixels: () => Matrix<Uint8Array>;
   scale?: number;
   signal?: PicoSignal<any>;
+  window?: [number, number];
   gridColor?: string;
   blend?: boolean;
 }) {
@@ -84,7 +97,7 @@ export default function Display(props: {
     ctx.putImageData(imageData, PADDING, PADDING);
   }, []);
 
-  React.useEffect(render, [drawRef.current]);
+  React.useEffect(render, [drawRef.current, props.pixels]);
 
   React.useEffect(() => {
     if (props.signal) {
@@ -104,13 +117,9 @@ export default function Display(props: {
         <div
           className={CSS.grid}
           style={{
-            width: pixels.width + PADDING * 2,
-            height: pixels.height + PADDING * 2,
-            transform: `scale(${scale})`,
-            backgroundImage: [
-              `linear-gradient(to right, ${props.gridColor} 2px, transparent 1px)`,
-              `linear-gradient(to bottom, ${props.gridColor} 2px, transparent 1px)`
-            ].join(",")
+            width: pixels.width,
+            height: pixels.height,
+            transform: `scale(${scale})`
           }}
         />
       )}
@@ -121,6 +130,16 @@ export default function Display(props: {
         height={height}
         style={{ width: width * scale }}
       />
+      {props.window && (
+        <div
+          className={CSS.window}
+          style={{
+            left: props.window[0],
+            top: props.window[1],
+            transform: `scale(${scale})`
+          }}
+        />
+      )}
     </div>
   );
 }

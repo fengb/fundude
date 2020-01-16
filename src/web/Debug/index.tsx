@@ -7,6 +7,7 @@ import Display from "../Display";
 import Disassembler from "./Disassembler";
 import Cpu from "./Cpu";
 import Mmu from "./Mmu";
+import FundudeWasm from "../../wasm";
 
 const CSS = {
   base: nano.rule({
@@ -68,34 +69,51 @@ export function Left() {
   );
 }
 
-export function Right() {
+function Displays(props: { fd: FundudeWasm }) {
   const { fd } = React.useContext(FD.Context);
+
+  const [_, setRerender] = React.useState();
+  React.useEffect(() => {
+    function forceRender() {
+      setRerender(prev => !prev);
+    }
+    fd.changed.add(forceRender);
+    return () => fd.changed.remove(forceRender);
+  }, []);
+
+  const mmu = fd.mmu();
+
   return (
-    <div className={CSS.base}>
+    <React.Fragment>
       {/* TODO: convert to tile display */}
       <Display
         className={CSS.displayPatterns}
         pixels={() => fd.patterns()}
-        signal={fd.changed}
         gridColor="lightgray"
       />
       <Display
         pixels={() => fd.sprites()}
-        signal={fd.changed}
+        window={[8, 16]}
         gridColor="lightgray"
       />
       <div className={CSS.displays}>
         <Display
           pixels={() => fd.background()}
-          signal={fd.changed}
+          window={[mmu[0xff43 - 0x8000 /*SCX*/], mmu[0xff42 - 0x8000 /*SCY*/]]}
           gridColor="lightgray"
         />
-        <Display
-          pixels={() => fd.window()}
-          signal={fd.changed}
-          gridColor="lightgray"
-        />
+        <Display pixels={() => fd.window()} gridColor="lightgray" />
       </div>
+    </React.Fragment>
+  );
+}
+
+export function Right() {
+  const { fd } = React.useContext(FD.Context);
+
+  return (
+    <div className={CSS.base}>
+      <Displays fd={fd} />
       <Mmu fd={fd} />
     </div>
   );
