@@ -8,6 +8,7 @@ pub fn build(b: *std.build.Builder) void {
     lib.setOutputDir("zig-cache");
     lib.setBuildMode(mode);
     lib.setTarget(.wasm32, .freestanding, .none);
+    lib.disable_gen_h = true;
 
     //var main_tests = b.addTest("src/fundude.zig");
     //main_tests.setBuildMode(mode);

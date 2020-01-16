@@ -516,7 +516,7 @@ pub const ExportC = struct {
 
     pub fn run(comptime conf: ExportC) void {
         const Funcs = struct {
-            extern fn malloc(size: usize) ?*c_void {
+            fn malloc(size: usize) callconv(.C) ?*c_void {
                 if (size == 0) {
                     return null;
                 }
@@ -524,7 +524,7 @@ pub const ExportC = struct {
                 const result = conf.allocator.reallocFn(conf.allocator, &[_]u8{}, 0, size, 1) catch return null;
                 return result.ptr;
             }
-            extern fn calloc(num_elements: usize, element_size: usize) ?*c_void {
+            fn calloc(num_elements: usize, element_size: usize) callconv(.C) ?*c_void {
                 const size = num_elements *% element_size;
                 const c_ptr = @noInlineCall(malloc, size);
                 if (c_ptr) |ptr| {
@@ -533,7 +533,7 @@ pub const ExportC = struct {
                 }
                 return c_ptr;
             }
-            extern fn realloc(c_ptr: ?*c_void, new_size: usize) ?*c_void {
+            fn realloc(c_ptr: ?*c_void, new_size: usize) callconv(.C) ?*c_void {
                 if (new_size == 0) {
                     @noInlineCall(free, c_ptr);
                     return null;
@@ -547,7 +547,7 @@ pub const ExportC = struct {
                     return @noInlineCall(malloc, new_size);
                 }
             }
-            extern fn free(c_ptr: ?*c_void) void {
+            fn free(c_ptr: ?*c_void) callconv(.C) void {
                 if (c_ptr) |ptr| {
                     // Use a synthetic slice. zee_alloc will free via corresponding metadata.
                     const p = @ptrCast([*]u8, ptr);
@@ -558,16 +558,16 @@ pub const ExportC = struct {
         };
 
         if (conf.malloc) {
-            @export("malloc", Funcs.malloc, .Strong);
+            @export(Funcs.malloc, .{ .name = "malloc" });
         }
         if (conf.calloc) {
-            @export("calloc", Funcs.calloc, .Strong);
+            @export(Funcs.calloc, .{ .name = "calloc" });
         }
         if (conf.realloc) {
-            @export("realloc", Funcs.realloc, .Strong);
+            @export(Funcs.realloc, .{ .name = "realloc" });
         }
         if (conf.free) {
-            @export("free", Funcs.free, .Strong);
+            @export(Funcs.free, .{ .name = "free" });
         }
     }
 };
