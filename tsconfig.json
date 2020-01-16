@@ -15,5 +15,5 @@
     "esModuleInterop": true
   },
 
-  "include": ["src/roms/*.gb"]
+  "include": ["src/**/*.gb"]
 }
