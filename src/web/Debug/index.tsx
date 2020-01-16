@@ -83,26 +83,39 @@ function Displays(props: { fd: FundudeWasm }) {
 
   const mmu = fd.mmu();
 
+  const scx = mmu[0xff43 - 0x8000];
+  const scy = mmu[0xff42 - 0x8000];
+
   return (
     <React.Fragment>
       {/* TODO: convert to tile display */}
       <Display
         className={CSS.displayPatterns}
         pixels={() => fd.patterns()}
+        viewports={[]}
         gridColor="lightgray"
       />
       <Display
         pixels={() => fd.sprites()}
-        window={[8, 16]}
+        viewports={[[8, 16]]}
         gridColor="lightgray"
       />
       <div className={CSS.displays}>
         <Display
           pixels={() => fd.background()}
-          window={[mmu[0xff43 - 0x8000 /*SCX*/], mmu[0xff42 - 0x8000 /*SCY*/]]}
+          viewports={[
+            [scx, scy],
+            [scx - 256, scy],
+            [scx, scy - 256],
+            [scx - 256, scy - 256]
+          ]}
           gridColor="lightgray"
         />
-        <Display pixels={() => fd.window()} gridColor="lightgray" />
+        <Display
+          pixels={() => fd.window()}
+          gridColor="lightgray"
+          viewports={[]}
+        />
       </div>
     </React.Fragment>
   );
