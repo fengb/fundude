@@ -171,8 +171,8 @@ export default class FundudeWasm {
     return actual;
   }
 
-  stepFrames(frames: number): number {
-    const cycles = WASM.fd_step_frames(this.pointer, frames);
+  stepMs(ms: number): number {
+    const cycles = WASM.fd_step_ms(this.pointer, ms);
     this.changed.dispatch();
     return cycles;
   }

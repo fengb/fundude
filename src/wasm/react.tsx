@@ -68,7 +68,7 @@ export class Provider extends React.Component<Props, State> {
     // TODO: re-enable no-skip
     // this.state.fd.stepFrames(1);
     const elapsed = ts - this.prevSpin;
-    this.state.fd.stepCycles(Math.round((MHz * elapsed) / 1000));
+    this.state.fd.stepMs(elapsed);
     this.prevSpin = ts;
 
     if (this.state.fd.cpu().PC() === this.state.fd.breakpoint) {

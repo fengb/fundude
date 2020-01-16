@@ -8,8 +8,6 @@ import Disassembler from "./Disassembler";
 import Cpu from "./Cpu";
 import Mmu from "./Mmu";
 
-const TURBO_FRAMES = 60 * 250;
-
 const CSS = {
   base: nano.rule({
     display: "flex",
@@ -57,9 +55,9 @@ export function Left() {
         </div>
         <div>
           <button onClick={() => fd.step() && pause()}>Step</button>
-          <button onClick={() => fd.stepFrames(1) && pause()}>Frame</button>
-          <button onClick={() => fd.stepFrames(60) && pause()}>Sec</button>
-          <button onClick={timed(() => fd.stepFrames(TURBO_FRAMES) && pause())}>
+          <button onClick={() => fd.stepMs(16.75) && pause()}>Frame</button>
+          <button onClick={() => fd.stepMs(1000) && pause()}>Sec</button>
+          <button onClick={timed(() => fd.stepMs(250000) && pause())}>
             &#9992;
           </button>
         </div>

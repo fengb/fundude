@@ -3,7 +3,7 @@ const zee_alloc = @import("vendor/zee_alloc.zig");
 
 const base = @import("base.zig");
 
-const CYCLES_PER_FRAME = 70224;
+const CYCLES_PER_MS = base.MHz / 1000;
 
 const allocator = zee_alloc.ZeeAllocDefaults.wasm_allocator;
 
@@ -46,8 +46,10 @@ export fn fd_step(fd: *base.Fundude) i32 {
     return cycles;
 }
 
-export fn fd_step_frames(fd: *base.Fundude, frames: i16) i32 {
-    return fd_step_cycles(fd, frames * @as(i32, CYCLES_PER_FRAME));
+export fn fd_step_ms(fd: *base.Fundude, ms: f64) i32 {
+    const cycles = @as(f64, ms) * CYCLES_PER_MS;
+    std.debug.assert(cycles < std.math.maxInt(i32));
+    return fd_step_cycles(fd, @floatToInt(i32, cycles));
 }
 
 export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
