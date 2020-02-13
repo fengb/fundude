@@ -35,6 +35,7 @@ export fn fd_reset(fd: *base.Fundude) void {
     fd.cpu.reset();
     fd.inputs.reset();
     fd.timer.reset();
+    fd.serial.reset();
     fd.step_underflow = 0;
 }
 

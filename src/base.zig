@@ -3,6 +3,7 @@ const video = @import("video.zig");
 const joypad = @import("joypad.zig");
 const mmu = @import("mmu.zig");
 const timer = @import("timer.zig");
+const serial = @import("serial.zig");
 
 pub const Cpu = cpu.Cpu;
 pub const Mmu = mmu.Mmu;
@@ -17,6 +18,7 @@ pub const Fundude = struct {
     cpu: cpu.Cpu,
     mmu: mmu.Mmu,
 
+    serial: serial.Serial,
     inputs: joypad.Inputs,
     timer: timer.Timer,
 
