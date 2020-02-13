@@ -9,16 +9,28 @@ export type Matrix<T> = T & {
   height: number;
 };
 
-function wasmArray(ptr: number, length: number) {
-  return new Uint8Array(WASM.memory.buffer, ptr, length);
-}
+class WasmSlice extends Uint8Array {
+  constructor(private ptr: number, length: number) {
+    super(WASM.memory.buffer, ptr, length);
+  }
 
-function wasmMatrix(
-  ptr: number,
-  width: number,
-  height: number
-): Matrix<Uint8Array> {
-  return Object.assign(wasmArray(ptr, width * height), { width, height });
+  toInt(): BigInt {
+    return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
+  }
+
+  // TODO: remove floats
+  // JS can't handle i64 yet so we're using f64 for now
+  toFloat(): number {
+    let buf = new ArrayBuffer(8);
+    let u32s = new Uint32Array(buf);
+    u32s[0] = this.ptr;
+    u32s[1] = this.length;
+    return new Float64Array(buf)[0];
+  }
+
+  static matrix(ptr: number, width: number, height: number): Matrix<WasmSlice> {
+    return Object.assign(new WasmSlice(ptr, width * height), { width, height });
+  }
 }
 
 function toUTF8(ptr: number) {
@@ -72,7 +84,7 @@ export default class FundudeWasm {
   }
 
   screen() {
-    return wasmMatrix(
+    return WasmSlice.matrix(
       WASM.fd_screen_ptr(this.pointer),
       this.width,
       this.height
@@ -80,15 +92,15 @@ export default class FundudeWasm {
   }
 
   background() {
-    return wasmMatrix(WASM.fd_background_ptr(this.pointer), 256, 256);
+    return WasmSlice.matrix(WASM.fd_background_ptr(this.pointer), 256, 256);
   }
 
   window() {
-    return wasmMatrix(WASM.fd_window_ptr(this.pointer), 256, 256);
+    return WasmSlice.matrix(WASM.fd_window_ptr(this.pointer), 256, 256);
   }
 
   sprites() {
-    return wasmMatrix(
+    return WasmSlice.matrix(
       WASM.fd_sprites_ptr(this.pointer),
       256 + 2 * 8,
       256 + 2 * 16
@@ -96,11 +108,11 @@ export default class FundudeWasm {
   }
 
   patterns() {
-    return wasmMatrix(WASM.fd_patterns_ptr(this.pointer), 8, 8 * 128 * 3);
+    return WasmSlice.matrix(WASM.fd_patterns_ptr(this.pointer), 8, 8 * 128 * 3);
   }
 
   cpu() {
-    const raw = wasmArray(WASM.fd_cpu_ptr(this.pointer), 12);
+    const raw = new WasmSlice(WASM.fd_cpu_ptr(this.pointer), 12);
     return Object.assign(raw, {
       AF: () => raw[0] + (raw[1] << 8),
       BC: () => raw[2] + (raw[3] << 8),
@@ -112,7 +124,7 @@ export default class FundudeWasm {
   }
 
   mmu() {
-    return wasmArray(WASM.fd_mmu_ptr(this.pointer), 0x8000);
+    return new WasmSlice(WASM.fd_mmu_ptr(this.pointer), 0x8000);
   }
 
   init(cart: Uint8Array) {
@@ -122,10 +134,10 @@ export default class FundudeWasm {
 
     this.cart = cart;
     this.cartCopyPtr = WASM.malloc(cart.length);
-    const copy = wasmArray(this.cartCopyPtr, cart.length);
+    const copy = new WasmSlice(this.cartCopyPtr, cart.length);
     copy.set(cart);
 
-    const status = WASM.fd_init(this.pointer, cart.length, this.cartCopyPtr);
+    const status = WASM.fd_init(this.pointer, copy.toFloat());
     switch (status) {
       case 0:
         break;

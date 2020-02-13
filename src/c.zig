@@ -19,12 +19,66 @@ else if (builtin.arch.isWasm()) blk: {
     @compileError("No allocator found. Did you remember to link libc?");
 };
 
+/// Convert a slice into known memory representation -- enables C ABI
+fn Slice(comptime T: type) type {
+    return packed struct {
+        const Self = @This();
+        const Int = @IntType(true, 2 * @bitSizeOf(usize));
+        const Float = @Type(builtin.TypeInfo{ .Float = .{ .bits = 2 * @bitSizeOf(usize) } });
+
+        ptr: [*]T,
+        len: usize,
+
+        // TODO: remove floats
+        // JS can't handle i64 yet so we're using f64 for now
+        pub fn floatToSlice(value: Float) []T {
+            return Self.fromFloat(value).toSlice();
+        }
+
+        pub fn sliceToFloat(slice: []T) Float {
+            return Self.fromSlice(slice).toFloat();
+        }
+
+        pub fn intToSlice(value: Int) []T {
+            return Self.fromInt(value).toSlice();
+        }
+
+        pub fn sliceToInt(slice: []T) Int {
+            return Self.fromSlice(slice).toInt();
+        }
+
+        pub fn fromFloat(num: Float) Self {
+            return @bitCast(Self, num);
+        }
+
+        pub fn toFloat(self: Self) Float {
+            return @bitCast(Float, self);
+        }
+
+        pub fn fromInt(num: Int) Self {
+            return @bitCast(Self, num);
+        }
+
+        pub fn toInt(self: Self) Int {
+            return @bitCast(Int, self);
+        }
+
+        pub fn fromSlice(slice: []T) Self {
+            return .{ .ptr = slice.ptr, .len = slice.len };
+        }
+
+        pub fn toSlice(self: Self) []T {
+            return self.ptr[0..self.len];
+        }
+    };
+}
+
 export fn fd_alloc() ?*main.Fundude {
     return allocator.create(main.Fundude) catch null;
 }
 
-export fn fd_init(fd: *main.Fundude, cart_length: usize, cart: [*]u8) u8 {
-    fd.mmu.load(cart[0..cart_length]) catch |err| return switch (err) {
+export fn fd_init(fd: *main.Fundude, cart: Slice(u8).Float) u8 {
+    fd.mmu.load(Slice(u8).floatToSlice(cart)) catch |err| return switch (err) {
         error.CartTypeError => 1,
         error.RomSizeError => 2,
         error.RamSizeError => 3,
