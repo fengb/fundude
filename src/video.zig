@@ -1,5 +1,5 @@
 const std = @import("std");
-const base = @import("base.zig");
+const main = @import("main.zig");
 const Matrix = @import("util.zig").Matrix;
 const MatrixSlice = @import("util.zig").MatrixSlice;
 const EnumArray = @import("util.zig").EnumArray;
@@ -146,7 +146,7 @@ pub const Video = struct {
             data: Matrix(Shade, 256, 256),
             dirty: bool,
 
-            fn run(self: *@This(), mmu: *base.Mmu, patternsData: []CachedPattern, tile_map_addr: TileMapAddressing) void {
+            fn run(self: *@This(), mmu: *main.Mmu, patternsData: []CachedPattern, tile_map_addr: TileMapAddressing) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -182,7 +182,7 @@ pub const Video = struct {
             data: [3 * 128]CachedPattern,
             dirty: bool,
 
-            fn run(self: *@This(), mmu: *base.Mmu) void {
+            fn run(self: *@This(), mmu: *main.Mmu) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -218,7 +218,7 @@ pub const Video = struct {
                 return lhs.x_pos > rhs.x_pos;
             }
 
-            fn run(self: *@This(), mmu: *base.Mmu, patternsData: []CachedPattern) void {
+            fn run(self: *@This(), mmu: *main.Mmu, patternsData: []CachedPattern) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -296,7 +296,7 @@ pub const Video = struct {
         self.cache.background.dirty = true;
     }
 
-    pub fn updatedVram(self: *Video, mmu: *base.Mmu, addr: u16, val: u8) void {
+    pub fn updatedVram(self: *Video, mmu: *main.Mmu, addr: u16, val: u8) void {
         self.cache.patterns.dirty = true;
         self.cache.window.dirty = true;
         self.cache.background.dirty = true;
@@ -306,11 +306,11 @@ pub const Video = struct {
         }
     }
 
-    pub fn updatedOam(self: *Video, mmu: *base.Mmu, addr: u16, val: u8) void {
+    pub fn updatedOam(self: *Video, mmu: *main.Mmu, addr: u16, val: u8) void {
         self.cache.sprites.dirty = true;
     }
 
-    pub fn updatedIo(self: *Video, mmu: *base.Mmu, addr: u16, val: u8) void {
+    pub fn updatedIo(self: *Video, mmu: *main.Mmu, addr: u16, val: u8) void {
         switch (addr) {
             0xFF40, 0xFF47 => {
                 self.cache.window.dirty = true;
@@ -321,7 +321,7 @@ pub const Video = struct {
         }
     }
 
-    pub fn step(self: *Video, mmu: *base.Mmu, cycles: u16) void {
+    pub fn step(self: *Video, mmu: *main.Mmu, cycles: u16) void {
         // FIXME: this isn't how DMA works
         if (mmu.dyn.io.video.DMA != 0) {
             const addr = @intCast(u16, mmu.dyn.io.video.DMA) << 8;
@@ -398,7 +398,7 @@ pub const Video = struct {
     }
 
     // TODO: audit this function
-    fn render(self: *Video, mmu: *base.Mmu, y: usize) void {
+    fn render(self: *Video, mmu: *main.Mmu, y: usize) void {
         self.cache.patterns.run(mmu);
         self.cache.sprites.run(mmu, &self.cache.patterns.data);
         self.cache.background.run(mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map);

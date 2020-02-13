@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const base = @import("base.zig");
+const main = @import("main.zig");
 
 const joypad = @import("joypad.zig");
 const serial = @import("serial.zig");
@@ -85,7 +85,7 @@ pub const Mmu = struct {
         raw[addr - BEYOND_CART] = val;
 
         // TODO: replace magic with sibling references
-        const fd = @fieldParentPtr(base.Fundude, "mmu", self);
+        const fd = @fieldParentPtr(main.Fundude, "mmu", self);
 
         if (addr >= 0x8000 and addr < 0xA000) {
             fd.video.updatedVram(self, addr, val);

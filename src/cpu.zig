@@ -1,4 +1,4 @@
-const base = @import("base.zig");
+const main = @import("main.zig");
 const op = @import("cpu_op.zig");
 const irq = @import("irq.zig");
 const util = @import("util.zig");
@@ -64,11 +64,11 @@ pub const Cpu = struct {
         self.reg._16.set(.PC, 0);
     }
 
-    pub fn step(self: *Cpu, mmu: *base.Mmu) Result {
+    pub fn step(self: *Cpu, mmu: *main.Mmu) Result {
         if (self.irqStep(mmu)) |res| {
             return res;
         } else if (self.mode == .halt) {
-            return base.cpu.Result{
+            return main.cpu.Result{
                 .name = "SKIP",
                 .length = 0,
                 .duration = 4,
@@ -79,7 +79,7 @@ pub const Cpu = struct {
         }
     }
 
-    fn irqStep(self: *Cpu, mmu: *base.Mmu) ?Result {
+    fn irqStep(self: *Cpu, mmu: *main.Mmu) ?Result {
         if (!self.interrupt_master) {
             return null;
         }
@@ -119,7 +119,7 @@ pub const Cpu = struct {
         return self.opStep(mmu, &inst);
     }
 
-    fn opStep(cpu: *Cpu, mmu: *base.Mmu, inst: [*]const u8) Result {
+    fn opStep(cpu: *Cpu, mmu: *main.Mmu, inst: [*]const u8) Result {
         return switch (inst[0]) {
             0x00 => op.nop(cpu, mmu),
             0x01 => op.ld__ww_df(cpu, mmu, .BC, with16(inst)),

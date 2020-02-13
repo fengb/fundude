@@ -1,4 +1,4 @@
-const base = @import("base.zig");
+const main = @import("main.zig");
 
 pub const Io = packed union {
     _: u8,
@@ -34,7 +34,7 @@ pub const Inputs = packed union {
         self.raw = 0;
     }
 
-    pub fn press(self: *Inputs, mmu: *base.Mmu, update: Inputs) bool {
+    pub fn press(self: *Inputs, mmu: *main.Mmu, update: Inputs) bool {
         const changed_to_pressed = (update.raw ^ self.raw) ^ (~self.raw);
         if (changed_to_pressed == 0) return false;
 
@@ -43,7 +43,7 @@ pub const Inputs = packed union {
         return true;
     }
 
-    pub fn release(self: *Inputs, mmu: *base.Mmu, update: Inputs) bool {
+    pub fn release(self: *Inputs, mmu: *main.Mmu, update: Inputs) bool {
         const changed_to_released = update.raw & self.raw;
         if (changed_to_released == 0) return false;
 
@@ -52,7 +52,7 @@ pub const Inputs = packed union {
         return true;
     }
 
-    pub fn sync(self: Inputs, mmu: *base.Mmu) void {
+    pub fn sync(self: Inputs, mmu: *main.Mmu) void {
         // Hardware quirk: 0 == active
         if (mmu.dyn.io.joypad.bitfields.buttons == 0) {
             mmu.dyn.io.joypad.bitfields.read = ~self.nibbles.buttons;

@@ -1,4 +1,4 @@
-const base = @import("base.zig");
+const main = @import("main.zig");
 
 pub const Io = packed struct {
     DIV: u8, // $FF04
@@ -20,7 +20,7 @@ pub const Timer = struct {
         self.timer = 0;
     }
 
-    pub fn step(self: *Timer, mmu: *base.Mmu, cycles: u8) void {
+    pub fn step(self: *Timer, mmu: *main.Mmu, cycles: u8) void {
         self.clock +%= cycles;
         mmu.dyn.io.timer.DIV = @intCast(u8, self.clock / 256);
 
