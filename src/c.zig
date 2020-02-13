@@ -155,9 +155,9 @@ export fn fd_input_release(fd: *main.Fundude, input: u8) u8 {
     return fd.inputs.raw;
 }
 
-export fn fd_disassemble(fd: *main.Fundude) ?[*]u8 {
+export fn fd_disassemble(fd: *main.Fundude) Slice(u8).Float {
     if (fd.cpu.mode == .fatal) {
-        return null;
+        return Slice(u8).sliceToFloat(&[_]u8{});
     }
 
     fd.mmu.dyn.io.boot_complete = 1;
@@ -172,8 +172,7 @@ export fn fd_disassemble(fd: *main.Fundude) ?[*]u8 {
         fd.cpu.mode = .fatal;
     }
     std.mem.copy(u8, &fd.disassembly, res.name);
-    fd.disassembly[res.name.len] = 0;
-    return &fd.disassembly;
+    return Slice(u8).sliceToFloat(fd.disassembly[0..res.name.len]);
 }
 
 export fn fd_patterns_ptr(fd: *main.Fundude) *c_void {

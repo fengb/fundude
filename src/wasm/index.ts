@@ -18,6 +18,10 @@ class WasmSlice extends Uint8Array {
     return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
   }
 
+  toUTF8() {
+    return new TextDecoder("utf-8").decode(this);
+  }
+
   // TODO: remove floats
   // JS can't handle i64 yet so we're using f64 for now
   toFloat(): number {
@@ -28,16 +32,16 @@ class WasmSlice extends Uint8Array {
     return new Float64Array(buf)[0];
   }
 
+  static fromFloat(value: number): WasmSlice {
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = value;
+    let u32s = new Uint32Array(buf);
+    return new WasmSlice(u32s[0], u32s[1]);
+  }
+
   static matrix(ptr: number, width: number, height: number): Matrix<WasmSlice> {
     return Object.assign(new WasmSlice(ptr, width * height), { width, height });
   }
-}
-
-function toUTF8(ptr: number) {
-  const scan = new Uint8Array(WASM.memory.buffer, ptr);
-  const end = scan.indexOf(0);
-  const rawBytes = scan.subarray(0, end);
-  return new TextDecoder("utf-8").decode(rawBytes);
 }
 
 export const MMU_OFFSETS = {
@@ -219,11 +223,12 @@ export default class FundudeWasm {
     try {
       while (true) {
         const addr = fd.cpu().PC();
-        const outPtr = WASM.fd_disassemble(fd.pointer);
-        if (!outPtr) {
+        const outSlice = WasmSlice.fromFloat(WASM.fd_disassemble(fd.pointer));
+
+        if (!outSlice.length) {
           return;
         }
-        yield [addr, toUTF8(outPtr)];
+        yield [addr, outSlice.toUTF8()];
       }
     } finally {
       fd.dealloc();
