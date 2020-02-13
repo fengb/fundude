@@ -9,7 +9,7 @@ export type Matrix<T> = T & {
   height: number;
 };
 
-class WasmSlice extends Uint8Array {
+class U8Chunk extends Uint8Array {
   constructor(private ptr: number, length: number) {
     super(WASM.memory.buffer, ptr, length);
   }
@@ -32,15 +32,15 @@ class WasmSlice extends Uint8Array {
     return new Float64Array(buf)[0];
   }
 
-  static fromFloat(value: number): WasmSlice {
+  static fromFloat(value: number): U8Chunk {
     let buf = new ArrayBuffer(8);
     new Float64Array(buf)[0] = value;
     let u32s = new Uint32Array(buf);
-    return new WasmSlice(u32s[0], u32s[1]);
+    return new U8Chunk(u32s[0], u32s[1]);
   }
 
-  static matrix(ptr: number, width: number, height: number): Matrix<WasmSlice> {
-    return Object.assign(new WasmSlice(ptr, width * height), { width, height });
+  static matrix(ptr: number, width: number, height: number): Matrix<U8Chunk> {
+    return Object.assign(new U8Chunk(ptr, width * height), { width, height });
   }
 }
 
@@ -88,7 +88,7 @@ export default class FundudeWasm {
   }
 
   screen() {
-    return WasmSlice.matrix(
+    return U8Chunk.matrix(
       WASM.fd_screen_ptr(this.pointer),
       this.width,
       this.height
@@ -96,15 +96,15 @@ export default class FundudeWasm {
   }
 
   background() {
-    return WasmSlice.matrix(WASM.fd_background_ptr(this.pointer), 256, 256);
+    return U8Chunk.matrix(WASM.fd_background_ptr(this.pointer), 256, 256);
   }
 
   window() {
-    return WasmSlice.matrix(WASM.fd_window_ptr(this.pointer), 256, 256);
+    return U8Chunk.matrix(WASM.fd_window_ptr(this.pointer), 256, 256);
   }
 
   sprites() {
-    return WasmSlice.matrix(
+    return U8Chunk.matrix(
       WASM.fd_sprites_ptr(this.pointer),
       256 + 2 * 8,
       256 + 2 * 16
@@ -112,11 +112,11 @@ export default class FundudeWasm {
   }
 
   patterns() {
-    return WasmSlice.matrix(WASM.fd_patterns_ptr(this.pointer), 8, 8 * 128 * 3);
+    return U8Chunk.matrix(WASM.fd_patterns_ptr(this.pointer), 8, 8 * 128 * 3);
   }
 
   cpu() {
-    const raw = new WasmSlice(WASM.fd_cpu_ptr(this.pointer), 12);
+    const raw = new U8Chunk(WASM.fd_cpu_ptr(this.pointer), 12);
     return Object.assign(raw, {
       AF: () => raw[0] + (raw[1] << 8),
       BC: () => raw[2] + (raw[3] << 8),
@@ -128,7 +128,7 @@ export default class FundudeWasm {
   }
 
   mmu() {
-    return new WasmSlice(WASM.fd_mmu_ptr(this.pointer), 0x8000);
+    return new U8Chunk(WASM.fd_mmu_ptr(this.pointer), 0x8000);
   }
 
   init(cart: Uint8Array) {
@@ -138,7 +138,7 @@ export default class FundudeWasm {
 
     this.cart = cart;
     this.cartCopyPtr = WASM.malloc(cart.length);
-    const copy = new WasmSlice(this.cartCopyPtr, cart.length);
+    const copy = new U8Chunk(this.cartCopyPtr, cart.length);
     copy.set(cart);
 
     const status = WASM.fd_init(this.pointer, copy.toFloat());
@@ -223,12 +223,12 @@ export default class FundudeWasm {
     try {
       while (true) {
         const addr = fd.cpu().PC();
-        const outSlice = WasmSlice.fromFloat(WASM.fd_disassemble(fd.pointer));
+        const outChunk = U8Chunk.fromFloat(WASM.fd_disassemble(fd.pointer));
 
-        if (!outSlice.length) {
+        if (!outChunk.length) {
           return;
         }
-        yield [addr, outSlice.toUTF8()];
+        yield [addr, outChunk.toUTF8()];
       }
     } finally {
       fd.dealloc();

@@ -20,65 +20,62 @@ else if (builtin.arch.isWasm()) blk: {
 };
 
 /// Convert a slice into known memory representation -- enables C ABI
-fn Slice(comptime T: type) type {
-    return packed struct {
-        const Self = @This();
-        const Int = @IntType(true, 2 * @bitSizeOf(usize));
-        const Float = @Type(builtin.TypeInfo{ .Float = .{ .bits = 2 * @bitSizeOf(usize) } });
+const U8Chunk = packed struct {
+    const Int = @IntType(true, 2 * @bitSizeOf(usize));
+    const Float = @Type(builtin.TypeInfo{ .Float = .{ .bits = 2 * @bitSizeOf(usize) } });
 
-        ptr: [*]T,
-        len: usize,
+    ptr: [*]u8,
+    len: usize,
 
-        // TODO: remove floats
-        // JS can't handle i64 yet so we're using f64 for now
-        pub fn floatToSlice(value: Float) []T {
-            return Self.fromFloat(value).toSlice();
-        }
+    // TODO: remove floats
+    // JS can't handle i64 yet so we're using f64 for now
+    pub fn floatToSlice(value: Float) []u8 {
+        return U8Chunk.fromFloat(value).toSlice();
+    }
 
-        pub fn sliceToFloat(slice: []T) Float {
-            return Self.fromSlice(slice).toFloat();
-        }
+    pub fn sliceToFloat(slice: []u8) Float {
+        return U8Chunk.fromSlice(slice).toFloat();
+    }
 
-        pub fn intToSlice(value: Int) []T {
-            return Self.fromInt(value).toSlice();
-        }
+    pub fn intToSlice(value: Int) []u8 {
+        return U8Chunk.fromInt(value).toSlice();
+    }
 
-        pub fn sliceToInt(slice: []T) Int {
-            return Self.fromSlice(slice).toInt();
-        }
+    pub fn sliceToInt(slice: []u8) Int {
+        return U8Chunk.fromSlice(slice).toInt();
+    }
 
-        pub fn fromFloat(num: Float) Self {
-            return @bitCast(Self, num);
-        }
+    pub fn fromFloat(num: Float) U8Chunk {
+        return @bitCast(U8Chunk, num);
+    }
 
-        pub fn toFloat(self: Self) Float {
-            return @bitCast(Float, self);
-        }
+    pub fn toFloat(self: U8Chunk) Float {
+        return @bitCast(Float, self);
+    }
 
-        pub fn fromInt(num: Int) Self {
-            return @bitCast(Self, num);
-        }
+    pub fn fromInt(num: Int) U8Chunk {
+        return @bitCast(U8Chunk, num);
+    }
 
-        pub fn toInt(self: Self) Int {
-            return @bitCast(Int, self);
-        }
+    pub fn toInt(self: U8Chunk) Int {
+        return @bitCast(Int, self);
+    }
 
-        pub fn fromSlice(slice: []T) Self {
-            return .{ .ptr = slice.ptr, .len = slice.len };
-        }
+    pub fn fromSlice(slice: []u8) U8Chunk {
+        return .{ .ptr = slice.ptr, .len = slice.len };
+    }
 
-        pub fn toSlice(self: Self) []T {
-            return self.ptr[0..self.len];
-        }
-    };
-}
+    pub fn toSlice(self: U8Chunk) []u8 {
+        return self.ptr[0..self.len];
+    }
+};
 
 export fn fd_alloc() ?*main.Fundude {
     return allocator.create(main.Fundude) catch null;
 }
 
-export fn fd_init(fd: *main.Fundude, cart: Slice(u8).Float) u8 {
-    fd.mmu.load(Slice(u8).floatToSlice(cart)) catch |err| return switch (err) {
+export fn fd_init(fd: *main.Fundude, cart: U8Chunk.Float) u8 {
+    fd.mmu.load(U8Chunk.floatToSlice(cart)) catch |err| return switch (err) {
         error.CartTypeError => 1,
         error.RomSizeError => 2,
         error.RamSizeError => 3,
@@ -155,9 +152,9 @@ export fn fd_input_release(fd: *main.Fundude, input: u8) u8 {
     return fd.inputs.raw;
 }
 
-export fn fd_disassemble(fd: *main.Fundude) Slice(u8).Float {
+export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Float {
     if (fd.cpu.mode == .fatal) {
-        return Slice(u8).sliceToFloat(&[_]u8{});
+        return U8Chunk.sliceToFloat(&[_]u8{});
     }
 
     fd.mmu.dyn.io.boot_complete = 1;
@@ -172,7 +169,7 @@ export fn fd_disassemble(fd: *main.Fundude) Slice(u8).Float {
         fd.cpu.mode = .fatal;
     }
     std.mem.copy(u8, &fd.disassembly, res.name);
-    return Slice(u8).sliceToFloat(fd.disassembly[0..res.name.len]);
+    return U8Chunk.sliceToFloat(fd.disassembly[0..res.name.len]);
 }
 
 export fn fd_patterns_ptr(fd: *main.Fundude) *c_void {
