@@ -1,6 +1,6 @@
 pub const cpu = @import("cpu.zig");
-const ppu = @import("ppu.zig");
-const ggp = @import("ggp.zig");
+const video = @import("video.zig");
+const joypad = @import("joypad.zig");
 const mmu = @import("mmu.zig");
 const timer = @import("timer.zig");
 
@@ -13,11 +13,11 @@ pub const HEIGHT = 144;
 pub const MHz = 4194304;
 
 pub const Fundude = struct {
-    ppu: ppu.Ppu,
+    video: video.Video,
     cpu: cpu.Cpu,
     mmu: mmu.Mmu,
 
-    inputs: ggp.Inputs,
+    inputs: joypad.Inputs,
     timer: timer.Timer,
 
     step_underflow: i32,

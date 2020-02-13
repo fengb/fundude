@@ -2,26 +2,26 @@ const std = @import("std");
 
 const base = @import("base.zig");
 
-const ggp = @import("ggp.zig");
-const lpt = @import("lpt.zig");
+const joypad = @import("joypad.zig");
+const serial = @import("serial.zig");
 const timer = @import("timer.zig");
 const irq = @import("irq.zig");
-const apu = @import("apu.zig");
-const ppu = @import("ppu.zig");
+const audio = @import("audio.zig");
+const video = @import("video.zig");
 const mbc = @import("mbc.zig");
 
 const BEYOND_BOOTLOADER = 0x100;
 const BEYOND_CART = 0x8000;
 
 pub const Io = packed struct {
-    ggp: ggp.Io, // [$FF00]
-    lpt: lpt.Io, // [$FF01 - $FF02]
+    joypad: joypad.Io, // [$FF00]
+    serial: serial.Io, // [$FF01 - $FF02]
     _pad_ff03: u8,
     timer: timer.Io, // [$FF04 - $FF07]
     _pad_ff08_0e: [7]u8, // [$FF08 - $FF0E]
     IF: irq.Flags, // [$FF0F]
-    apu: apu.Io, // [$FF10 - $FF3F]
-    ppu: ppu.Io, // [$FF40 - $FF4C]
+    audio: audio.Io, // [$FF10 - $FF3F]
+    video: video.Io, // [$FF40 - $FF4C]
     _pad_ff4d_4f: [0x0004]u8, // [$FF4D - $FF4F]
     boot_complete: u8, // [$FF50] Bootloader sets this on 0x00FE
     _pad_ff51: u8,
@@ -33,11 +33,11 @@ pub const Io = packed struct {
 
 pub const Mmu = struct {
     dyn: packed struct {
-        vram: ppu.Vram, // [$8000 - $A000)
+        vram: video.Vram, // [$8000 - $A000)
         switchable_ram: [0x2000]u8, // [$A000 - $C000)
         ram: [0x2000]u8, // [$C000 - $E000)
         _pad_ram_echo: [0x1E00]u8, // [$E000 - $FE00)
-        oam: [40]ppu.SpriteAttr, // [$FE00 - $FEA0)
+        oam: [40]video.SpriteAttr, // [$FE00 - $FEA0)
         _pad_fea0_ff00: [0x0060]u8, // [$FEA0 - $FF00)
         io: Io, // [$FF00 - $FF80)
         high_ram: [0x007F]u8, // [$FF80 - $FFFF)
@@ -88,14 +88,14 @@ pub const Mmu = struct {
         const fd = @fieldParentPtr(base.Fundude, "mmu", self);
 
         if (addr >= 0x8000 and addr < 0xA000) {
-            fd.ppu.updatedVram(self, addr, val);
+            fd.video.updatedVram(self, addr, val);
         } else if (addr >= 0xFE00 and addr < 0xFEA0) {
-            fd.ppu.updatedOam(self, addr, val);
+            fd.video.updatedOam(self, addr, val);
         } else if (addr >= 0xFF00) {
             if (addr == 0xFF00) {
                 fd.inputs.sync(self);
             } else if (addr >= 0xFF40 and addr < 0xFF4C) {
-                fd.ppu.updatedIo(self, addr, val);
+                fd.video.updatedIo(self, addr, val);
             }
         }
     }

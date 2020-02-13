@@ -31,7 +31,7 @@ export fn fd_init(fd: *base.Fundude, cart_length: usize, cart: [*]u8) u8 {
 
 export fn fd_reset(fd: *base.Fundude) void {
     fd.mmu.reset();
-    fd.ppu.reset();
+    fd.video.reset();
     fd.cpu.reset();
     fd.inputs.reset();
     fd.timer.reset();
@@ -64,7 +64,7 @@ export fn fd_step_cycles(fd: *base.Fundude, cycles: i32) i32 {
         const res = @call(.{ .modifier = .never_inline }, fd.cpu.step, .{&fd.mmu});
         std.debug.assert(res.duration > 0);
 
-        @call(.{ .modifier = .never_inline }, fd.ppu.step, .{ &fd.mmu, res.duration });
+        @call(.{ .modifier = .never_inline }, fd.video.step, .{ &fd.mmu, res.duration });
         @call(.{ .modifier = .never_inline }, fd.timer.step, .{ &fd.mmu, res.duration });
 
         const pc_val = res.jump orelse fd.cpu.reg._16.get(.PC) + res.length;
@@ -119,23 +119,23 @@ export fn fd_disassemble(fd: *base.Fundude) ?[*]u8 {
 }
 
 export fn fd_patterns_ptr(fd: *base.Fundude) *c_void {
-    return &fd.ppu.cache.patterns.data;
+    return &fd.video.cache.patterns.data;
 }
 
 export fn fd_background_ptr(fd: *base.Fundude) *c_void {
-    return &fd.ppu.cache.background.data;
+    return &fd.video.cache.background.data;
 }
 
 export fn fd_window_ptr(fd: *base.Fundude) *c_void {
-    return &fd.ppu.cache.window.data;
+    return &fd.video.cache.window.data;
 }
 
 export fn fd_sprites_ptr(fd: *base.Fundude) *c_void {
-    return &fd.ppu.cache.sprites.data;
+    return &fd.video.cache.sprites.data;
 }
 
 export fn fd_screen_ptr(fd: *base.Fundude) *c_void {
-    return fd.ppu.screen.data.ptr;
+    return fd.video.screen.data.ptr;
 }
 
 // TODO: rename?
