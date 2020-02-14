@@ -22,43 +22,21 @@ else if (builtin.arch.isWasm()) blk: {
 /// Convert a slice into known memory representation -- enables C ABI
 const U8Chunk = packed struct {
     const Int = @IntType(true, 2 * @bitSizeOf(usize));
+
+    // TODO: remove floats
+    // JS can't handle i64 yet so we're using f64 for now
     const Float = @Type(builtin.TypeInfo{ .Float = .{ .bits = 2 * @bitSizeOf(usize) } });
+    const Abi = if (builtin.arch.isWasm()) Float else Int;
 
     ptr: [*]u8,
     len: usize,
 
-    // TODO: remove floats
-    // JS can't handle i64 yet so we're using f64 for now
-    pub fn floatToSlice(value: Float) []u8 {
-        return U8Chunk.fromFloat(value).toSlice();
-    }
-
-    pub fn sliceToFloat(slice: []u8) Float {
-        return U8Chunk.fromSlice(slice).toFloat();
-    }
-
-    pub fn intToSlice(value: Int) []u8 {
-        return U8Chunk.fromInt(value).toSlice();
-    }
-
-    pub fn sliceToInt(slice: []u8) Int {
-        return U8Chunk.fromSlice(slice).toInt();
-    }
-
-    pub fn fromFloat(num: Float) U8Chunk {
+    pub fn fromAbi(num: Abi) U8Chunk {
         return @bitCast(U8Chunk, num);
     }
 
-    pub fn toFloat(self: U8Chunk) Float {
+    pub fn toAbi(self: U8Chunk) Abi {
         return @bitCast(Float, self);
-    }
-
-    pub fn fromInt(num: Int) U8Chunk {
-        return @bitCast(U8Chunk, num);
-    }
-
-    pub fn toInt(self: U8Chunk) Int {
-        return @bitCast(Int, self);
     }
 
     pub fn fromSlice(slice: []u8) U8Chunk {
@@ -74,8 +52,8 @@ export fn fd_alloc() ?*main.Fundude {
     return allocator.create(main.Fundude) catch null;
 }
 
-export fn fd_init(fd: *main.Fundude, cart: U8Chunk.Float) u8 {
-    fd.mmu.load(U8Chunk.floatToSlice(cart)) catch |err| return switch (err) {
+export fn fd_init(fd: *main.Fundude, cart: U8Chunk.Abi) u8 {
+    fd.mmu.load(U8Chunk.fromAbi(cart).toSlice()) catch |err| return switch (err) {
         error.CartTypeError => 1,
         error.RomSizeError => 2,
         error.RamSizeError => 3,
@@ -152,9 +130,9 @@ export fn fd_input_release(fd: *main.Fundude, input: u8) u8 {
     return fd.inputs.raw;
 }
 
-export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Float {
+export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
     if (fd.cpu.mode == .fatal) {
-        return U8Chunk.sliceToFloat(&[_]u8{});
+        return U8Chunk.fromSlice(&[_]u8{}).toAbi();
     }
 
     fd.mmu.dyn.io.boot_complete = 1;
@@ -169,7 +147,7 @@ export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Float {
         fd.cpu.mode = .fatal;
     }
     std.mem.copy(u8, &fd.disassembly, res.name);
-    return U8Chunk.sliceToFloat(fd.disassembly[0..res.name.len]);
+    return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]).toAbi();
 }
 
 export fn fd_patterns_ptr(fd: *main.Fundude) *c_void {
@@ -192,12 +170,12 @@ export fn fd_screen_ptr(fd: *main.Fundude) *c_void {
     return fd.video.screen.data.ptr;
 }
 
-export fn fd_cpu_reg(fd: *main.Fundude) U8Chunk.Float {
-    return U8Chunk.sliceToFloat(std.mem.asBytes(&fd.cpu.reg));
+export fn fd_cpu_reg(fd: *main.Fundude) U8Chunk.Abi {
+    return U8Chunk.fromSlice(std.mem.asBytes(&fd.cpu.reg)).toAbi();
 }
 
-export fn fd_mmu(fd: *main.Fundude) U8Chunk.Float {
-    return U8Chunk.sliceToFloat(std.mem.asBytes(&fd.mmu.dyn));
+export fn fd_mmu(fd: *main.Fundude) U8Chunk.Abi {
+    return U8Chunk.fromSlice(std.mem.asBytes(&fd.mmu.dyn)).toAbi();
 }
 
 export fn fd_set_breakpoint(fd: *main.Fundude, breakpoint: u16) void {
