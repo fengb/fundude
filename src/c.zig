@@ -192,13 +192,12 @@ export fn fd_screen_ptr(fd: *main.Fundude) *c_void {
     return fd.video.screen.data.ptr;
 }
 
-// TODO: rename?
-export fn fd_cpu_ptr(fd: *main.Fundude) *c_void {
-    return &fd.cpu.reg;
+export fn fd_cpu_reg(fd: *main.Fundude) U8Chunk.Float {
+    return U8Chunk.sliceToFloat(std.mem.asBytes(&fd.cpu.reg));
 }
 
-export fn fd_mmu_ptr(fd: *main.Fundude) *c_void {
-    return &fd.mmu.dyn;
+export fn fd_mmu(fd: *main.Fundude) U8Chunk.Float {
+    return U8Chunk.sliceToFloat(std.mem.asBytes(&fd.mmu.dyn));
 }
 
 export fn fd_set_breakpoint(fd: *main.Fundude, breakpoint: u16) void {

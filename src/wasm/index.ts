@@ -116,7 +116,7 @@ export default class FundudeWasm {
   }
 
   cpu() {
-    const raw = new U8Chunk(WASM.fd_cpu_ptr(this.pointer), 12);
+    const raw = U8Chunk.fromFloat(WASM.fd_cpu_reg(this.pointer));
     return Object.assign(raw, {
       AF: () => raw[0] + (raw[1] << 8),
       BC: () => raw[2] + (raw[3] << 8),
@@ -128,7 +128,7 @@ export default class FundudeWasm {
   }
 
   mmu() {
-    return new U8Chunk(WASM.fd_mmu_ptr(this.pointer), 0x8000);
+    return U8Chunk.fromFloat(WASM.fd_mmu(this.pointer));
   }
 
   init(cart: Uint8Array) {
