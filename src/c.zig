@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const zee_alloc = @import("vendor/zee_alloc.zig");
 
 const main = @import("main.zig");
+const util = @import("util.zig");
 
 const CYCLES_PER_MS = main.MHz / 1000;
 
@@ -36,7 +37,7 @@ const U8Chunk = packed struct {
     }
 
     pub fn toAbi(self: U8Chunk) Abi {
-        return @bitCast(Float, self);
+        return @bitCast(Abi, self);
     }
 
     pub fn fromSlice(slice: []u8) U8Chunk {
@@ -45,6 +46,42 @@ const U8Chunk = packed struct {
 
     pub fn toSlice(self: U8Chunk) []u8 {
         return self.ptr[0..self.len];
+    }
+};
+
+const U8MatrixChunk = packed struct {
+    const UsizeHalf = @IntType(true, @bitSizeOf(usize) / 2);
+    const Abi = U8Chunk.Abi;
+
+    ptr: [*]u8,
+    width: UsizeHalf,
+    height: UsizeHalf,
+
+    pub fn fromAbi(num: Abi) U8Chunk {
+        return @bitCast(U8MatrixChunk, num);
+    }
+
+    pub fn toAbi(self: U8MatrixChunk) Abi {
+        return @bitCast(Abi, self);
+    }
+
+    pub fn fromMatrix(matrix: var) U8MatrixChunk {
+        const T = std.meta.Child(@TypeOf(matrix.data));
+        if (@sizeOf(T) != 1) @compileError("Unsupported Matrix type: " ++ @typeName(T));
+
+        return .{
+            .ptr = @ptrCast([*]u8, matrix.data.ptr),
+            .width = @intCast(UsizeHalf, matrix.width),
+            .height = @intCast(UsizeHalf, matrix.height),
+        };
+    }
+
+    pub fn toMatrix(self: U8MatrixChunk) MatrixSlice(u8) {
+        return .{
+            .data = self.ptr[0 .. self.width * self.height],
+            .width = self.width,
+            .height = self.height,
+        };
     }
 };
 
@@ -150,24 +187,25 @@ export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
     return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]).toAbi();
 }
 
-export fn fd_patterns_ptr(fd: *main.Fundude) *c_void {
-    return &fd.video.cache.patterns.data;
+// Video
+export fn fd_screen(fd: *main.Fundude) U8MatrixChunk.Abi {
+    return U8MatrixChunk.fromMatrix(fd.video.screen).toAbi();
 }
 
-export fn fd_background_ptr(fd: *main.Fundude) *c_void {
-    return &fd.video.cache.background.data;
+export fn fd_background(fd: *main.Fundude) U8MatrixChunk.Abi {
+    return U8MatrixChunk.fromMatrix(fd.video.cache.background.data.toSlice()).toAbi();
 }
 
-export fn fd_window_ptr(fd: *main.Fundude) *c_void {
-    return &fd.video.cache.window.data;
+export fn fd_window(fd: *main.Fundude) U8MatrixChunk.Abi {
+    return U8MatrixChunk.fromMatrix(fd.video.cache.window.data.toSlice()).toAbi();
 }
 
-export fn fd_sprites_ptr(fd: *main.Fundude) *c_void {
-    return &fd.video.cache.sprites.data;
+export fn fd_sprites(fd: *main.Fundude) U8MatrixChunk.Abi {
+    return U8MatrixChunk.fromMatrix(fd.video.cache.sprites.data.toSlice()).toAbi();
 }
 
-export fn fd_screen_ptr(fd: *main.Fundude) *c_void {
-    return fd.video.screen.data.ptr;
+export fn fd_patterns(fd: *main.Fundude) U8MatrixChunk.Abi {
+    return U8MatrixChunk.fromMatrix(fd.video.cache.patterns.toMatrixSlice()).toAbi();
 }
 
 export fn fd_cpu_reg(fd: *main.Fundude) U8Chunk.Abi {

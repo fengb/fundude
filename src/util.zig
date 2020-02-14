@@ -1,8 +1,11 @@
 const std = @import("std");
 
-pub fn Matrix(comptime T: type, width: usize, height: usize) type {
+pub fn Matrix(comptime T: type, widt: usize, heigh: usize) type {
     return packed struct {
         const Self = @This();
+
+        pub const width = widt;
+        pub const height = heigh;
 
         data: [height * width]T,
         comptime width: usize = width,

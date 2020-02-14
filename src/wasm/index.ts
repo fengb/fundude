@@ -39,7 +39,13 @@ class U8Chunk extends Uint8Array {
     return new U8Chunk(u32s[0], u32s[1]);
   }
 
-  static matrix(ptr: number, width: number, height: number): Matrix<U8Chunk> {
+  static matrix(value: number): Matrix<U8Chunk> {
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = value;
+    let u16s = new Uint16Array(buf);
+    const ptr = u16s[0] | (u16s[1] << 16);
+    const width = u16s[2];
+    const height = u16s[3];
     return Object.assign(new U8Chunk(ptr, width * height), { width, height });
   }
 }
@@ -76,43 +82,29 @@ export default class FundudeWasm {
   cart: Uint8Array;
   private cartCopyPtr: number;
 
-  readonly width: number;
-  readonly height: number;
-
   constructor(cart: Uint8Array) {
     this.pointer = WASM.fd_alloc();
     this.init(cart);
-
-    this.width = 160;
-    this.height = 144;
   }
 
   screen() {
-    return U8Chunk.matrix(
-      WASM.fd_screen_ptr(this.pointer),
-      this.width,
-      this.height
-    );
+    return U8Chunk.matrix(WASM.fd_screen(this.pointer));
   }
 
   background() {
-    return U8Chunk.matrix(WASM.fd_background_ptr(this.pointer), 256, 256);
+    return U8Chunk.matrix(WASM.fd_background(this.pointer));
   }
 
   window() {
-    return U8Chunk.matrix(WASM.fd_window_ptr(this.pointer), 256, 256);
+    return U8Chunk.matrix(WASM.fd_window(this.pointer));
   }
 
   sprites() {
-    return U8Chunk.matrix(
-      WASM.fd_sprites_ptr(this.pointer),
-      256 + 2 * 8,
-      256 + 2 * 16
-    );
+    return U8Chunk.matrix(WASM.fd_sprites(this.pointer));
   }
 
   patterns() {
-    return U8Chunk.matrix(WASM.fd_patterns_ptr(this.pointer), 8, 8 * 128 * 3);
+    return U8Chunk.matrix(WASM.fd_patterns(this.pointer));
   }
 
   cpu() {

@@ -182,6 +182,15 @@ pub const Video = struct {
             data: [3 * 128]CachedPattern,
             dirty: bool,
 
+            // TODO: this is pretty brutal
+            fn toMatrixSlice(self: *@This()) MatrixSlice(u8) {
+                return .{
+                    .data = std.mem.asBytes(&self.data),
+                    .width = CachedPattern.width,
+                    .height = CachedPattern.height * self.data.len,
+                };
+            }
+
             fn run(self: *@This(), mmu: *main.Mmu) void {
                 if (!self.dirty) return;
                 self.dirty = false;
