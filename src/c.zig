@@ -21,62 +21,49 @@ else if (builtin.arch.isWasm()) blk: {
 };
 
 /// Convert a slice into known memory representation -- enables C ABI
-const U8Chunk = packed struct {
-    const Int = @IntType(true, 2 * @bitSizeOf(usize));
-
-    // TODO: remove floats
+pub const U8Chunk = packed struct {
+    // TODO: switch floats to ints
     // JS can't handle i64 yet so we're using f64 for now
+    // const Int = @IntType(true, 2 * @bitSizeOf(usize));
     const Float = @Type(builtin.TypeInfo{ .Float = .{ .bits = 2 * @bitSizeOf(usize) } });
-    const Abi = if (builtin.arch.isWasm()) Float else Int;
+    const Abi = if (builtin.arch.isWasm()) Float else U8Chunk;
 
     ptr: [*]u8,
     len: usize,
 
-    pub fn fromAbi(num: Abi) U8Chunk {
-        return @bitCast(U8Chunk, num);
-    }
-
-    pub fn toAbi(self: U8Chunk) Abi {
-        return @bitCast(Abi, self);
-    }
-
-    pub fn fromSlice(slice: []u8) U8Chunk {
-        return .{ .ptr = slice.ptr, .len = slice.len };
-    }
-
-    pub fn toSlice(self: U8Chunk) []u8 {
+    pub fn toSlice(raw: Abi) []u8 {
+        const self = @bitCast(U8Chunk, raw);
         return self.ptr[0..self.len];
+    }
+
+    pub fn fromSlice(slice: []u8) Abi {
+        const self = U8Chunk{ .ptr = slice.ptr, .len = slice.len };
+        return @bitCast(Abi, self);
     }
 };
 
-const U8MatrixChunk = packed struct {
+pub const U8MatrixChunk = packed struct {
     const UsizeHalf = @IntType(true, @bitSizeOf(usize) / 2);
-    const Abi = U8Chunk.Abi;
+    const Abi = if (builtin.arch.isWasm()) U8Chunk.Abi else U8MatrixChunk;
 
     ptr: [*]u8,
     width: UsizeHalf,
     height: UsizeHalf,
 
-    pub fn fromAbi(num: Abi) U8Chunk {
-        return @bitCast(U8MatrixChunk, num);
-    }
-
-    pub fn toAbi(self: U8MatrixChunk) Abi {
-        return @bitCast(Abi, self);
-    }
-
-    pub fn fromMatrix(matrix: var) U8MatrixChunk {
+    pub fn fromMatrix(matrix: var) Abi {
         const T = std.meta.Child(@TypeOf(matrix.data));
         if (@sizeOf(T) != 1) @compileError("Unsupported Matrix type: " ++ @typeName(T));
 
-        return .{
+        const self = U8MatrixChunk{
             .ptr = @ptrCast([*]u8, matrix.data.ptr),
             .width = @intCast(UsizeHalf, matrix.width),
             .height = @intCast(UsizeHalf, matrix.height),
         };
+        return @bitCast(Abi, self);
     }
 
-    pub fn toMatrix(self: U8MatrixChunk) MatrixSlice(u8) {
+    pub fn toMatrix(raw: Abi) MatrixSlice(u8) {
+        const self = @bitCast(U8MatrixChunk, raw);
         return .{
             .data = self.ptr[0 .. self.width * self.height],
             .width = self.width,
@@ -90,7 +77,7 @@ export fn fd_alloc() ?*main.Fundude {
 }
 
 export fn fd_init(fd: *main.Fundude, cart: U8Chunk.Abi) u8 {
-    fd.mmu.load(U8Chunk.fromAbi(cart).toSlice()) catch |err| return switch (err) {
+    fd.mmu.load(U8Chunk.toSlice(cart)) catch |err| return switch (err) {
         error.CartTypeError => 1,
         error.RomSizeError => 2,
         error.RamSizeError => 3,
@@ -169,7 +156,7 @@ export fn fd_input_release(fd: *main.Fundude, input: u8) u8 {
 
 export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
     if (fd.cpu.mode == .fatal) {
-        return U8Chunk.fromSlice(&[_]u8{}).toAbi();
+        return U8Chunk.fromSlice(&[_]u8{});
     }
 
     fd.mmu.dyn.io.boot_complete = 1;
@@ -184,36 +171,36 @@ export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
         fd.cpu.mode = .fatal;
     }
     std.mem.copy(u8, &fd.disassembly, res.name);
-    return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]).toAbi();
+    return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]);
 }
 
 // Video
 export fn fd_screen(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.screen).toAbi();
+    return U8MatrixChunk.fromMatrix(fd.video.screen);
 }
 
 export fn fd_background(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.cache.background.data.toSlice()).toAbi();
+    return U8MatrixChunk.fromMatrix(fd.video.cache.background.data.toSlice());
 }
 
 export fn fd_window(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.cache.window.data.toSlice()).toAbi();
+    return U8MatrixChunk.fromMatrix(fd.video.cache.window.data.toSlice());
 }
 
 export fn fd_sprites(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.cache.sprites.data.toSlice()).toAbi();
+    return U8MatrixChunk.fromMatrix(fd.video.cache.sprites.data.toSlice());
 }
 
 export fn fd_patterns(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.cache.patterns.toMatrixSlice()).toAbi();
+    return U8MatrixChunk.fromMatrix(fd.video.cache.patterns.toMatrixSlice());
 }
 
 export fn fd_cpu_reg(fd: *main.Fundude) U8Chunk.Abi {
-    return U8Chunk.fromSlice(std.mem.asBytes(&fd.cpu.reg)).toAbi();
+    return U8Chunk.fromSlice(std.mem.asBytes(&fd.cpu.reg));
 }
 
 export fn fd_mmu(fd: *main.Fundude) U8Chunk.Abi {
-    return U8Chunk.fromSlice(std.mem.asBytes(&fd.mmu.dyn)).toAbi();
+    return U8Chunk.fromSlice(std.mem.asBytes(&fd.mmu.dyn));
 }
 
 export fn fd_set_breakpoint(fd: *main.Fundude, breakpoint: u16) void {
