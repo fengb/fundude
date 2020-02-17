@@ -14,9 +14,9 @@ class U8Chunk extends Uint8Array {
     super(WASM.memory.buffer, ptr, length);
   }
 
-  toInt(): BigInt {
-    return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
-  }
+  //toInt(): bigint {
+  //  return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
+  //}
 
   toUTF8() {
     return new TextDecoder("utf-8").decode(this);
