@@ -44,13 +44,23 @@ const CSS = {
   })
 };
 
+type DefaultRecord<K extends keyof any, T> = Record<K, T> & { default: T };
+
+function route(
+  location: Location,
+  matches: DefaultRecord<string, () => React.ReactNode>
+): React.ReactNode {
+  for (let match in matches) {
+    if (location.hash.includes(match)) {
+      return matches[match]();
+    }
+  }
+  return matches["default"]();
+}
+
 export default function Page() {
-  const [debug, setDebug] = React.useState(
-    window.location.hash.includes("debug")
-  );
-  useEvent("hashchange", () =>
-    setDebug(window.location.hash.includes("debug"))
-  );
+  const [_, setRerender] = React.useState(false);
+  useEvent("hashchange", () => setRerender(val => !val));
 
   return (
     <Toaster.Provider show="topright">
@@ -61,7 +71,11 @@ export default function Page() {
       >
         Fork me on Github
       </a>
-      <App debug={debug} />
+      {route(window.location, {
+        audio: () => <App />,
+        debug: () => <App debug />,
+        default: () => <App />
+      })}
     </Toaster.Provider>
   );
 }
