@@ -108,15 +108,33 @@ const ChannelOn = packed struct {
 pub const cycles_per_sample = 44; // 4MHz / 44 = 95.325kHz
 pub const samples_per_frame = @divExact(main.CYCLES_PER_FRAME, cycles_per_sample);
 
-pub const Audio = struct {
-    buffer0: [samples_per_frame]f32,
-    buffer1: [samples_per_frame]f32,
+const Stereo = packed union {
+    linear: [samples_per_frame * 2]f32,
+    sep: packed struct {
+        left: [samples_per_frame]f32,
+        right: [samples_per_frame]f32,
+    },
 
-    out: []f32,
-    gen: []f32,
+    fn reset(self: *Stereo) void {
+        std.mem.set(f32, &self.linear, 0);
+    }
+};
+
+pub const Audio = struct {
+    buffer0: Stereo,
+    buffer1: Stereo,
+
+    out: *Stereo,
+    gen: *Stereo,
+
+    square1: Stereo,
+    square2: Stereo,
+    wave: Stereo,
+    noise: Stereo,
+    cur: usize,
 
     fn reset(self: *Audio) void {
-        std.mem.set(f32, self.buffer0[0..], 0);
+        self.buffer0.reset();
         self.out = &self.buffer0;
         self.gen = &self.buffer1;
     }

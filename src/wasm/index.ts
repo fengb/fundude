@@ -50,6 +50,44 @@ class U8Chunk extends Uint8Array {
   }
 }
 
+class F32Chunk extends Float32Array {
+  constructor(private ptr: number, length: number) {
+    super(WASM.memory.buffer, ptr, length);
+  }
+
+  //toInt(): bigint {
+  //  return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
+  //}
+
+  toUTF8() {
+    return new TextDecoder("utf-8").decode(this);
+  }
+
+  // TODO: remove floats
+  // JS can't handle i64 yet so we're using f64 for now
+  toFloat(): number {
+    let buf = new ArrayBuffer(8);
+    let u32s = new Uint32Array(buf);
+    u32s[0] = this.ptr;
+    u32s[1] = this.length;
+    return new Float64Array(buf)[0];
+  }
+
+  static fromFloat(value: number): F32Chunk {
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = value;
+    let u32s = new Uint32Array(buf);
+    return new F32Chunk(u32s[0], u32s[1]);
+  }
+
+  asStereo() {
+    return Object.assign(this, {
+      left: this.slice(0, this.length / 2),
+      right: this.slice(0, this.length / 2)
+    });
+  }
+}
+
 export const MMU_OFFSETS = {
   shift: 0x8000,
   segments: [
@@ -105,6 +143,26 @@ export default class FundudeWasm {
 
   patterns() {
     return U8Chunk.matrix(WASM.fd_patterns(this.pointer));
+  }
+
+  audio() {
+    return F32Chunk.fromFloat(WASM.fd_audio(this.pointer)).asStereo();
+  }
+
+  audioSquare1() {
+    return F32Chunk.fromFloat(WASM.fd_audio_square1(this.pointer)).asStereo();
+  }
+
+  audioSquare2() {
+    return F32Chunk.fromFloat(WASM.fd_audio_square2(this.pointer)).asStereo();
+  }
+
+  audioWave() {
+    return F32Chunk.fromFloat(WASM.fd_audio_wave(this.pointer)).asStereo();
+  }
+
+  audioNoise() {
+    return F32Chunk.fromFloat(WASM.fd_audio_noise(this.pointer)).asStereo();
   }
 
   cpu() {

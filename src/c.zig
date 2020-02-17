@@ -21,26 +21,32 @@ else if (builtin.arch.isWasm()) blk: {
 };
 
 /// Convert a slice into known memory representation -- enables C ABI
-pub const U8Chunk = packed struct {
-    // TODO: switch floats to ints
-    // JS can't handle i64 yet so we're using f64 for now
-    // const Int = @IntType(true, 2 * @bitSizeOf(usize));
-    const Float = @Type(builtin.TypeInfo{ .Float = .{ .bits = 2 * @bitSizeOf(usize) } });
-    const Abi = if (builtin.arch.isWasm()) Float else U8Chunk;
+pub fn Chunk(comptime T: type) type {
+    return packed struct {
+        const Self = @This();
+        // TODO: switch floats to ints
+        // JS can't handle i64 yet so we're using f64 for now
+        // const Int = @IntType(true, 2 * @bitSizeOf(usize));
+        const Float = @Type(builtin.TypeInfo{ .Float = .{ .bits = 2 * @bitSizeOf(usize) } });
+        const Abi = if (builtin.arch.isWasm()) Float else Self;
 
-    ptr: [*]u8,
-    len: usize,
+        ptr: [*]T,
+        len: usize,
 
-    pub fn toSlice(raw: Abi) []u8 {
-        const self = @bitCast(U8Chunk, raw);
-        return self.ptr[0..self.len];
-    }
+        pub fn toSlice(raw: Abi) []T {
+            const self = @bitCast(Self, raw);
+            return self.ptr[0..self.len];
+        }
 
-    pub fn fromSlice(slice: []u8) Abi {
-        const self = U8Chunk{ .ptr = slice.ptr, .len = slice.len };
-        return @bitCast(Abi, self);
-    }
-};
+        pub fn fromSlice(slice: []T) Abi {
+            const self = Self{ .ptr = slice.ptr, .len = slice.len };
+            return @bitCast(Abi, self);
+        }
+    };
+}
+
+pub const U8Chunk = Chunk(u8);
+pub const F32Chunk = Chunk(f32);
 
 pub const U8MatrixChunk = packed struct {
     const UsizeHalf = @IntType(true, @bitSizeOf(usize) / 2);
@@ -176,6 +182,18 @@ export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
     return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]);
 }
 
+export fn fd_cpu_reg(fd: *main.Fundude) U8Chunk.Abi {
+    return U8Chunk.fromSlice(std.mem.asBytes(&fd.cpu.reg));
+}
+
+export fn fd_mmu(fd: *main.Fundude) U8Chunk.Abi {
+    return U8Chunk.fromSlice(std.mem.asBytes(&fd.mmu.dyn));
+}
+
+export fn fd_set_breakpoint(fd: *main.Fundude, breakpoint: u16) void {
+    fd.breakpoint = breakpoint;
+}
+
 // Video
 export fn fd_screen(fd: *main.Fundude) U8MatrixChunk.Abi {
     return U8MatrixChunk.fromMatrix(fd.video.screen);
@@ -197,14 +215,23 @@ export fn fd_patterns(fd: *main.Fundude) U8MatrixChunk.Abi {
     return U8MatrixChunk.fromMatrix(fd.video.cache.patterns.toMatrixSlice());
 }
 
-export fn fd_cpu_reg(fd: *main.Fundude) U8Chunk.Abi {
-    return U8Chunk.fromSlice(std.mem.asBytes(&fd.cpu.reg));
+// Audio
+export fn fd_audio(fd: *main.Fundude) F32Chunk.Abi {
+    return F32Chunk.fromSlice(&fd.audio.out.linear);
 }
 
-export fn fd_mmu(fd: *main.Fundude) U8Chunk.Abi {
-    return U8Chunk.fromSlice(std.mem.asBytes(&fd.mmu.dyn));
+export fn fd_audio_square1(fd: *main.Fundude) F32Chunk.Abi {
+    return F32Chunk.fromSlice(&fd.audio.square1.linear);
 }
 
-export fn fd_set_breakpoint(fd: *main.Fundude, breakpoint: u16) void {
-    fd.breakpoint = breakpoint;
+export fn fd_audio_square2(fd: *main.Fundude) F32Chunk.Abi {
+    return F32Chunk.fromSlice(&fd.audio.square2.linear);
+}
+
+export fn fd_audio_wave(fd: *main.Fundude) F32Chunk.Abi {
+    return F32Chunk.fromSlice(&fd.audio.wave.linear);
+}
+
+export fn fd_audio_noise(fd: *main.Fundude) F32Chunk.Abi {
+    return F32Chunk.fromSlice(&fd.audio.noise.linear);
 }
