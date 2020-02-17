@@ -4,6 +4,7 @@ import useEvent from "react-use/lib/useEvent";
 import nano from "./nano";
 
 import App from "./App";
+import AudioBench from "./AudioBench";
 import Toaster from "./Toaster";
 
 nano.putMany({
@@ -72,7 +73,7 @@ export default function Page() {
         Fork me on Github
       </a>
       {route(window.location, {
-        audio: () => <App />,
+        audio: () => <AudioBench />,
         debug: () => <App debug />,
         default: () => <App />
       })}

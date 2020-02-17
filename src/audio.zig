@@ -30,7 +30,12 @@ pub const Io = packed struct {
     NR31: u8, // $FF1B
     NR32: packed struct { // $FF1C
         _pad1: u5,
-        volume: u2,
+        volume: enum(u2) {
+            Mute = 0,
+            Max = 1,
+            Half = 2,
+            Quarter = 3,
+        },
         _pad2: u1,
     },
     NR33_34: Frequency, // $FF1D-FF1E
@@ -41,7 +46,7 @@ pub const Io = packed struct {
     NR42: Volume, // $FF21
     NR43: packed struct { // $FF22
         divisor: u3,
-        width: u1,
+        width: enum(u1) { _15 = 0, _7 = 1 },
         shift: u4,
     },
     NR44: packed struct { // $FF23
@@ -94,10 +99,10 @@ const Frequency = packed struct {
 };
 
 const ChannelOn = packed struct {
-    _0: bool,
-    _1: bool,
-    _2: bool,
-    _3: bool,
+    Square1: bool,
+    Square2: bool,
+    Wave: bool,
+    Noise: bool,
 };
 
 pub const cycles_per_sample = 44; // 4MHz / 44 = 95.325kHz
