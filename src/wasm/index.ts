@@ -9,84 +9,68 @@ export type Matrix<T> = T & {
   height: number;
 };
 
-class U8Chunk extends Uint8Array {
-  constructor(private ptr: number, length: number) {
-    super(WASM.memory.buffer, ptr, length);
-  }
+type TypedArrayConstructor<T> = {
+  new (buffer: ArrayBufferLike, byteOffset: number, length?: number): T;
+};
 
-  //toInt(): bigint {
-  //  return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
-  //}
+type Chunk<T> = T & {
+  ptr: number;
+  toFloat: () => number;
+};
+const Chunk = {
+  create<T>(
+    constructor: TypedArrayConstructor<T>,
+    ptr: number,
+    length: number
+  ): Chunk<T> {
+    return Object.assign(new constructor(WASM.memory.buffer, ptr, length), {
+      ptr,
+      toFloat: () => Chunk.toFloat(ptr, length)
+    });
+  },
 
-  toUTF8() {
-    return new TextDecoder("utf-8").decode(this);
-  }
-
-  // TODO: remove floats
-  // JS can't handle i64 yet so we're using f64 for now
-  toFloat(): number {
-    let buf = new ArrayBuffer(8);
-    let u32s = new Uint32Array(buf);
-    u32s[0] = this.ptr;
-    u32s[1] = this.length;
-    return new Float64Array(buf)[0];
-  }
-
-  static fromFloat(value: number): U8Chunk {
+  fromFloat<T>(constructor: TypedArrayConstructor<T>, value: number): Chunk<T> {
     let buf = new ArrayBuffer(8);
     new Float64Array(buf)[0] = value;
     let u32s = new Uint32Array(buf);
-    return new U8Chunk(u32s[0], u32s[1]);
-  }
+    return Chunk.create(constructor, u32s[0], u32s[1]);
+  },
 
-  static matrix(value: number): Matrix<U8Chunk> {
+  u8FromFloat(value: number) {
+    return Chunk.fromFloat(Uint8Array, value);
+  },
+
+  u16FromFloat(value: number) {
+    return Chunk.fromFloat(Uint16Array, value);
+  },
+
+  f32FromFloat(value: number) {
+    return Chunk.fromFloat(Float32Array, value);
+  },
+
+  toFloat(ptr: number, length: number): number {
+    let buf = new ArrayBuffer(8);
+    let u32s = new Uint32Array(buf);
+    u32s[0] = ptr;
+    u32s[1] = length;
+    return new Float64Array(buf)[0];
+  }
+};
+
+const MatrixChunk = {
+  fromFloat(value: number): Matrix<Uint8Array> {
     let buf = new ArrayBuffer(8);
     new Float64Array(buf)[0] = value;
     let u16s = new Uint16Array(buf);
     const ptr = u16s[0] | (u16s[1] << 16);
     const width = u16s[2];
     const height = u16s[3];
-    return Object.assign(new U8Chunk(ptr, width * height), { width, height });
+    return Object.assign(
+      new Uint8Array(WASM.memory.buffer, ptr, width * height),
+      { width, height }
+    );
   }
-}
-
-class F32Chunk extends Float32Array {
-  constructor(private ptr: number, length: number) {
-    super(WASM.memory.buffer, ptr, length);
-  }
-
-  //toInt(): bigint {
-  //  return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
-  //}
-
-  toUTF8() {
-    return new TextDecoder("utf-8").decode(this);
-  }
-
-  // TODO: remove floats
-  // JS can't handle i64 yet so we're using f64 for now
-  toFloat(): number {
-    let buf = new ArrayBuffer(8);
-    let u32s = new Uint32Array(buf);
-    u32s[0] = this.ptr;
-    u32s[1] = this.length;
-    return new Float64Array(buf)[0];
-  }
-
-  static fromFloat(value: number): F32Chunk {
-    let buf = new ArrayBuffer(8);
-    new Float64Array(buf)[0] = value;
-    let u32s = new Uint32Array(buf);
-    return new F32Chunk(u32s[0], u32s[1]);
-  }
-
-  asStereo() {
-    return Object.assign(this, {
-      left: this.slice(0, this.length / 2),
-      right: this.slice(0, this.length / 2)
-    });
-  }
-}
+};
 
 export const MMU_OFFSETS = {
   shift: 0x8000,
@@ -126,59 +110,72 @@ export default class FundudeWasm {
   }
 
   screen() {
-    return U8Chunk.matrix(WASM.fd_screen(this.pointer));
+    return MatrixChunk.fromFloat(WASM.fd_screen(this.pointer));
   }
 
   background() {
-    return U8Chunk.matrix(WASM.fd_background(this.pointer));
+    return MatrixChunk.fromFloat(WASM.fd_background(this.pointer));
   }
 
   window() {
-    return U8Chunk.matrix(WASM.fd_window(this.pointer));
+    return MatrixChunk.fromFloat(WASM.fd_window(this.pointer));
   }
 
   sprites() {
-    return U8Chunk.matrix(WASM.fd_sprites(this.pointer));
+    return MatrixChunk.fromFloat(WASM.fd_sprites(this.pointer));
   }
 
   patterns() {
-    return U8Chunk.matrix(WASM.fd_patterns(this.pointer));
+    return MatrixChunk.fromFloat(WASM.fd_patterns(this.pointer));
+  }
+
+  _asStereo(value: Float32Array) {
+    return Object.assign(this, {
+      left: value.slice(0, value.length / 2),
+      right: value.slice(0, value.length / 2)
+    });
   }
 
   audio() {
-    return F32Chunk.fromFloat(WASM.fd_audio(this.pointer)).asStereo();
+    return this._asStereo(Chunk.f32FromFloat(WASM.fd_audio(this.pointer)));
   }
 
   audioSquare1() {
-    return F32Chunk.fromFloat(WASM.fd_audio_square1(this.pointer)).asStereo();
+    return this._asStereo(
+      Chunk.f32FromFloat(WASM.fd_audio_square1(this.pointer))
+    );
   }
 
   audioSquare2() {
-    return F32Chunk.fromFloat(WASM.fd_audio_square2(this.pointer)).asStereo();
+    return this._asStereo(
+      Chunk.f32FromFloat(WASM.fd_audio_square2(this.pointer))
+    );
   }
 
   audioWave() {
-    return F32Chunk.fromFloat(WASM.fd_audio_wave(this.pointer)).asStereo();
+    return this._asStereo(Chunk.f32FromFloat(WASM.fd_audio_wave(this.pointer)));
   }
 
   audioNoise() {
-    return F32Chunk.fromFloat(WASM.fd_audio_noise(this.pointer)).asStereo();
+    return this._asStereo(
+      Chunk.f32FromFloat(WASM.fd_audio_noise(this.pointer))
+    );
   }
 
   cpu() {
-    const raw = U8Chunk.fromFloat(WASM.fd_cpu_reg(this.pointer));
+    const raw = Chunk.u16FromFloat(WASM.fd_cpu_reg(this.pointer));
     return Object.assign(raw, {
-      AF: () => raw[0] + (raw[1] << 8),
-      BC: () => raw[2] + (raw[3] << 8),
-      DE: () => raw[4] + (raw[5] << 8),
-      HL: () => raw[6] + (raw[7] << 8),
-      SP: () => raw[8] + (raw[9] << 8),
-      PC: () => raw[10] + (raw[11] << 8)
+      AF: () => raw[0],
+      BC: () => raw[1],
+      DE: () => raw[2],
+      HL: () => raw[3],
+      SP: () => raw[4],
+      PC: () => raw[5]
     });
   }
 
   mmu() {
-    return U8Chunk.fromFloat(WASM.fd_mmu(this.pointer));
+    return Chunk.u8FromFloat(WASM.fd_mmu(this.pointer));
   }
 
   init(cart: Uint8Array) {
@@ -188,7 +185,7 @@ export default class FundudeWasm {
 
     this.cart = cart;
     this.cartCopyPtr = WASM.malloc(cart.length);
-    const copy = new U8Chunk(this.cartCopyPtr, cart.length);
+    const copy = Chunk.create(Uint8Array, this.cartCopyPtr, cart.length);
     copy.set(cart);
 
     const status = WASM.fd_init(this.pointer, copy.toFloat());
@@ -273,12 +270,12 @@ export default class FundudeWasm {
     try {
       while (true) {
         const addr = fd.cpu().PC();
-        const outChunk = U8Chunk.fromFloat(WASM.fd_disassemble(fd.pointer));
+        const outChunk = Chunk.u8FromFloat(WASM.fd_disassemble(fd.pointer));
 
         if (!outChunk.length) {
           return;
         }
-        yield [addr, outChunk.toUTF8()];
+        yield [addr, new TextDecoder("utf-8").decode(outChunk)];
       }
     } finally {
       fd.dealloc();
