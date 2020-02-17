@@ -88,8 +88,9 @@ export fn fd_init(fd: *main.Fundude, cart: U8Chunk.Abi) u8 {
 
 export fn fd_reset(fd: *main.Fundude) void {
     fd.mmu.reset();
-    fd.video.reset();
     fd.cpu.reset();
+    fd.video.reset();
+    fd.audio.reset();
     fd.inputs.reset();
     fd.timer.reset();
     fd.step_underflow = 0;
@@ -122,6 +123,7 @@ export fn fd_step_cycles(fd: *main.Fundude, cycles: i32) i32 {
         std.debug.assert(res.duration > 0);
 
         @call(.{ .modifier = .never_inline }, fd.video.step, .{ &fd.mmu, res.duration });
+        @call(.{ .modifier = .never_inline }, fd.audio.step, .{ &fd.mmu, res.duration });
         @call(.{ .modifier = .never_inline }, fd.timer.step, .{ &fd.mmu, res.duration });
 
         const pc_val = res.jump orelse fd.cpu.reg._16.get(.PC) + res.length;

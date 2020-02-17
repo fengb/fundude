@@ -1,5 +1,6 @@
 pub const cpu = @import("cpu.zig");
 const video = @import("video.zig");
+const audio = @import("audio.zig");
 const joypad = @import("joypad.zig");
 const mmu = @import("mmu.zig");
 const timer = @import("timer.zig");
@@ -11,9 +12,11 @@ pub const WIDTH = 160;
 pub const HEIGHT = 144;
 
 pub const MHz = 4194304;
+pub const CYCLES_PER_FRAME = 70224;
 
 pub const Fundude = struct {
     video: video.Video,
+    audio: audio.Audio,
     cpu: cpu.Cpu,
     mmu: mmu.Mmu,
 

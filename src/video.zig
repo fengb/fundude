@@ -9,6 +9,9 @@ const SCREEN_HEIGHT = 144;
 const DOTS_PER_LINE = 456;
 const BUFFER_LINES = 10;
 const DOTS_PER_FRAME = (SCREEN_HEIGHT + BUFFER_LINES) * DOTS_PER_LINE;
+comptime {
+    std.debug.assert(DOTS_PER_FRAME == main.CYCLES_PER_FRAME);
+}
 
 pub const Io = packed struct {
     LCDC: packed struct {
