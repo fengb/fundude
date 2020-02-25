@@ -7,7 +7,7 @@ pub fn build(b: *std.build.Builder) void {
     const lib = b.addStaticLibrary("fundude", "src/c.zig");
     lib.setOutputDir("zig-cache");
     lib.setBuildMode(mode);
-    lib.setTarget(.wasm32, .freestanding, .none);
+    lib.setTheTarget(.{ .Cross = .{ .cpu = std.Target.Cpu.baseline(.wasm32), .os = .freestanding, .abi = .none } });
     lib.disable_gen_h = true;
 
     //var main_tests = b.addTest("src/fundude.zig");

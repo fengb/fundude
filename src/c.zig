@@ -24,7 +24,7 @@ else if (builtin.arch.isWasm()) blk: {
 pub const U8Chunk = packed struct {
     // TODO: switch floats to ints
     // JS can't handle i64 yet so we're using f64 for now
-    // const Int = @IntType(true, 2 * @bitSizeOf(usize));
+    // const Int = std.meta.IntType(true, 2 * @bitSizeOf(usize));
     const Float = @Type(builtin.TypeInfo{ .Float = .{ .bits = 2 * @bitSizeOf(usize) } });
     const Abi = if (builtin.arch.isWasm()) Float else U8Chunk;
 
@@ -43,7 +43,7 @@ pub const U8Chunk = packed struct {
 };
 
 pub const U8MatrixChunk = packed struct {
-    const UsizeHalf = @IntType(true, @bitSizeOf(usize) / 2);
+    const UsizeHalf = std.meta.IntType(true, @bitSizeOf(usize) / 2);
     const Abi = if (builtin.arch.isWasm()) U8Chunk.Abi else U8MatrixChunk;
 
     ptr: [*]u8,

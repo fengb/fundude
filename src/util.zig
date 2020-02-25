@@ -86,7 +86,8 @@ pub fn MatrixSlice(comptime T: type) type {
 // Adapted from https://github.com/ziglang/zig/issues/793#issuecomment-482927820
 pub fn EnumArray(comptime E: type, comptime T: type) type {
     return packed struct {
-        data: [@memberCount(E)]T,
+        const len = @typeInfo(E).Enum.fields.len;
+        data: [len]T,
 
         fn get(self: @This(), tag: E) T {
             return self.data[@enumToInt(tag)];
