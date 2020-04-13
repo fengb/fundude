@@ -58,17 +58,17 @@ pub const Mmu = struct {
     // TODO: delete me
     fn ptr(self: *Mmu, addr: u16) [*]const u8 {
         if (self.dyn.io.boot_complete == 0 and addr < BEYOND_BOOTLOADER) {
-            return BOOTLOADER[0..].ptr + addr;
+            return @ptrCast([*]const u8, &BOOTLOADER) + addr;
         }
 
         if (addr < BEYOND_CART) {
             return self.mbc.ptr(@intCast(u15, addr));
         } else if (0xE000 <= addr and addr < 0xFE00) {
             // Echo of 8kB Internal RAM
-            return self.dyn.ram[0..].ptr + (addr - 0xE000);
+            return @ptrCast([*]const u8, &self.dyn.ram) + (addr - 0xE000);
         }
 
-        return @ptrCast([*]u8, self) + (addr - BEYOND_CART);
+        return @ptrCast([*]const u8, &self.dyn) + (addr - BEYOND_CART);
     }
 
     fn get(self: *Mmu, addr: u16) u8 {
