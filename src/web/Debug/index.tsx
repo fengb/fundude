@@ -72,7 +72,7 @@ export function Left() {
 function Displays(props: { fd: FundudeWasm }) {
   const { fd } = React.useContext(FD.Context);
 
-  const [_, setRerender] = React.useState();
+  const [_, setRerender] = React.useState(false);
   React.useEffect(() => {
     function forceRender() {
       setRerender(prev => !prev);
@@ -92,7 +92,6 @@ function Displays(props: { fd: FundudeWasm }) {
       {/* <Display
         className={CSS.displayPatterns}
         pixels={() => fd.patterns()}
-        viewports={[]}
         gridColor="lightgray"
       /> */}
       <Display

@@ -98,7 +98,6 @@ export function App(props: { debug?: boolean }) {
             pixels={() => fd.screen()}
             signal={fd.changed}
             scale={2}
-            viewports={[]}
             blend
           />
           <h1 className={CSS.title}>

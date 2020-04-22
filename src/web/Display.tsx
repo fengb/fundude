@@ -46,14 +46,12 @@ const CSS = {
 
 const PADDING = 1;
 
-const WHITE = Uint8Array.of(255, 255, 255, 255);
-
 export default function Display(props: {
   className?: string;
   pixels: () => Matrix<Uint16Array>;
   scale?: number;
   signal?: PicoSignal<any>;
-  viewports: [number, number][];
+  viewports?: [number, number][];
   gridColor?: string;
   blend?: boolean;
 }) {
@@ -65,15 +63,13 @@ export default function Display(props: {
 
   const imageData = React.useMemo(() => {
     const imageData = new ImageData(pixels.width, pixels.height);
-    for (let i = 0; i < pixels.length; i++) {
-      imageData.data.set(WHITE, 4 * i);
-    }
+    imageData.data.fill(255);
     return imageData;
   }, []);
 
   const drawRef = React.useRef<HTMLCanvasElement>(null);
 
-  const render = React.useCallback(() => {
+  const render = React.useCallback(function render() {
     if (!drawRef.current) return;
 
     const ctx = drawRef.current.getContext("2d")!;
@@ -82,23 +78,31 @@ export default function Display(props: {
     //   for (let i = 0; i < pixels.length; i++) {
     //     const shade = pixels[i];
     //     const prevAlpha = prev[i];
-    //     // const newAlpha = TRANSPARENCY_PALETTE[shade];
     //     const newAlpha = shade * 85;
     //     imageData.data[4 * i + 3] = (prevAlpha + newAlpha) >> 1;
     //     prev[i] = newAlpha;
     //   }
     // } else {
+    const i32s = new Int32Array(imageData.data.buffer);
     for (let i = 0; i < pixels.length; i++) {
-      const pixel = pixels[i];
-      // const newAlpha = TRANSPARENCY_PALETTE[shade];
-      const r = (pixel >> 0) & 0b11111;
-      const g = (pixel >> 5) & 0b11111;
-      const b = (pixel >> 10) & 0b11111;
-      const opaque = (pixel >> 15) & 0b1;
+      /* Naive solution
+       * const pixel = pixels[i];
+       * const r = (pixel >> 0) & 0b11111;
+       * const g = (pixel >> 5) & 0b11111;
+       * const b = (pixel >> 10) & 0b11111;
+       * // const opaque = (pixel >> 15) & 0b1;
 
-      imageData.data[4 * i + 0] = (r << (8 - 5)) | 0b111;
-      imageData.data[4 * i + 1] = (g << (8 - 5)) | 0b111;
-      imageData.data[4 * i + 2] = (b << (8 - 5)) | 0b111;
+       * imageData.data[4 * i + 0] = r << 3;
+       * imageData.data[4 * i + 1] = g << 3;
+       * imageData.data[4 * i + 2] = b << 3;
+       */
+
+      const raw = pixels[i];
+      var r0 = 31744 & raw;
+      var r1 = 255 & (raw << 3);
+      var r2 = 992 & raw;
+
+      i32s[i] = -16777216 | (r0 << 9) | r1 | (r2 << 6);
     }
     // }
     ctx.putImageData(imageData, PADDING, PADDING);
@@ -137,12 +141,12 @@ export default function Display(props: {
         height={height}
         style={{ width: width * scale }}
       />
-      {props.viewports.map((viewport) => (
+      {(props.viewports || []).map(([left, top]) => (
         <div
           className={CSS.viewport}
           style={{
-            left: viewport[0],
-            top: viewport[1],
+            left,
+            top,
             transform: `scale(${scale})`,
           }}
         />
