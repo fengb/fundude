@@ -42,35 +42,38 @@ pub const U8Chunk = packed struct {
     }
 };
 
-pub const U8MatrixChunk = packed struct {
-    const UsizeHalf = std.meta.IntType(true, @bitSizeOf(usize) / 2);
-    const Abi = if (builtin.arch.isWasm()) U8Chunk.Abi else U8MatrixChunk;
+pub fn MatrixChunk(comptime T: type) type {
+    return packed struct {
+        const UsizeHalf = std.meta.IntType(true, @bitSizeOf(usize) / 2);
+        const Abi = if (builtin.arch.isWasm()) U8Chunk.Abi else MatrixChunk(T);
 
-    ptr: [*]u8,
-    width: UsizeHalf,
-    height: UsizeHalf,
+        // TODO: apply a better alignment
+        ptr: [*]align(1) T,
+        width: UsizeHalf,
+        height: UsizeHalf,
 
-    pub fn fromMatrix(matrix: var) Abi {
-        const T = std.meta.Child(@TypeOf(matrix.data));
-        if (@sizeOf(T) != 1) @compileError("Unsupported Matrix type: " ++ @typeName(T));
+        pub fn fromMatrix(matrix: var) Abi {
+            const M = std.meta.Child(@TypeOf(matrix.data));
+            if (@sizeOf(M) != @sizeOf(T)) @compileError("Unsupported Matrix type: " ++ @typeName(M));
 
-        const self = U8MatrixChunk{
-            .ptr = @ptrCast([*]u8, matrix.data.ptr),
-            .width = @intCast(UsizeHalf, matrix.width),
-            .height = @intCast(UsizeHalf, matrix.height),
-        };
-        return @bitCast(Abi, self);
-    }
+            const self = MatrixChunk(T){
+                .ptr = @ptrCast([*]align(1) T, matrix.data.ptr),
+                .width = @intCast(UsizeHalf, matrix.width),
+                .height = @intCast(UsizeHalf, matrix.height),
+            };
+            return @bitCast(Abi, self);
+        }
 
-    pub fn toMatrix(raw: Abi) MatrixSlice(u8) {
-        const self = @bitCast(U8MatrixChunk, raw);
-        return .{
-            .data = self.ptr[0 .. self.width * self.height],
-            .width = self.width,
-            .height = self.height,
-        };
-    }
-};
+        pub fn toMatrix(raw: Abi) MatrixSlice(T) {
+            const self = @bitCast(MatrixChunk(T), raw);
+            return .{
+                .data = self.ptr[0 .. self.width * self.height],
+                .width = self.width,
+                .height = self.height,
+            };
+        }
+    };
+}
 
 export fn fd_alloc() ?*main.Fundude {
     return allocator.create(main.Fundude) catch null;
@@ -175,24 +178,24 @@ export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
 }
 
 // Video
-export fn fd_screen(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.screen);
+export fn fd_screen(fd: *main.Fundude) MatrixChunk(u16).Abi {
+    return MatrixChunk(u16).fromMatrix(fd.video.screen);
 }
 
-export fn fd_background(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.cache.background.data.toSlice());
+export fn fd_background(fd: *main.Fundude) MatrixChunk(u16).Abi {
+    return MatrixChunk(u16).fromMatrix(fd.video.cache.background.data.toSlice());
 }
 
-export fn fd_window(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.cache.window.data.toSlice());
+export fn fd_window(fd: *main.Fundude) MatrixChunk(u16).Abi {
+    return MatrixChunk(u16).fromMatrix(fd.video.cache.window.data.toSlice());
 }
 
-export fn fd_sprites(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.cache.sprites.data.toSlice());
+export fn fd_sprites(fd: *main.Fundude) MatrixChunk(u16).Abi {
+    return MatrixChunk(u16).fromMatrix(fd.video.cache.sprites.data.toSlice());
 }
 
-export fn fd_patterns(fd: *main.Fundude) U8MatrixChunk.Abi {
-    return U8MatrixChunk.fromMatrix(fd.video.cache.patterns.toMatrixSlice());
+export fn fd_patterns(fd: *main.Fundude) MatrixChunk(u8).Abi {
+    return MatrixChunk(u8).fromMatrix(fd.video.cache.patterns.toMatrixSlice());
 }
 
 export fn fd_cpu_reg(fd: *main.Fundude) U8Chunk.Abi {

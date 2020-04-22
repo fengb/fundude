@@ -64,6 +64,34 @@ const Shade = enum(u8) {
     Light = 1,
     Dark = 2,
     Black = 3,
+
+    fn asOpaque(self: Shade) Pixel {
+        const value: u5 = switch (self) {
+            .White => 31,
+            .Light => 21,
+            .Dark => 11,
+            .Black => 0,
+        };
+        return .{
+            .r = value,
+            .g = value,
+            .b = value,
+            .opaque = true,
+        };
+    }
+
+    fn asPixel(self: Shade) Pixel {
+        var result = self.asOpaque();
+        result.opaque = self != .White;
+        return result;
+    }
+};
+
+const Pixel = packed struct {
+    r: u5,
+    g: u5,
+    b: u5,
+    opaque: bool,
 };
 
 const ColorPalette = packed struct {
@@ -132,18 +160,18 @@ pub const Vram = packed struct {
 };
 
 pub const Video = struct {
-    buffer0: Matrix(Shade, SCREEN_WIDTH, SCREEN_HEIGHT),
-    buffer1: Matrix(Shade, SCREEN_WIDTH, SCREEN_HEIGHT),
+    buffer0: Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
+    buffer1: Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
 
-    screen: MatrixSlice(Shade),
-    draw: MatrixSlice(Shade),
+    screen: MatrixSlice(Pixel),
+    draw: MatrixSlice(Pixel),
 
     clock: u32,
     cache: struct {
         const CachedPattern = Matrix(Color, 8, 8);
 
         const TilesCache = struct {
-            data: Matrix(Shade, 256, 256),
+            data: Matrix(Pixel, 256, 256),
             dirty: bool,
 
             fn run(self: *@This(), mmu: *main.Mmu, patternsData: []CachedPattern, tile_map_addr: TileMapAddressing) void {
@@ -169,8 +197,9 @@ pub const Video = struct {
                             var y: usize = 0;
                             while (y < pattern.height) : (y += 1) {
                                 const ybg = y + j * pattern.height;
-                                const pixel = pattern.get(x, y);
-                                self.data.set(xbg, ybg, palette.get(pixel));
+                                const color = pattern.get(x, y);
+                                const shade = palette.get(color);
+                                self.data.set(xbg, ybg, shade.asPixel());
                             }
                         }
                     }
@@ -215,11 +244,10 @@ pub const Video = struct {
         },
         sprites: struct {
             const SpriteMeta = extern struct {
-                opaque: bool = false,
                 in_front: bool = true,
             };
 
-            data: Matrix(Shade, 256 + 2 * 8, 256 + 2 * 16),
+            data: Matrix(Pixel, 256 + 2 * 8, 256 + 2 * 16),
             meta: Matrix(SpriteMeta, 256 + 2 * 8, 256 + 2 * 16),
             dirty: bool,
 
@@ -231,7 +259,7 @@ pub const Video = struct {
                 if (!self.dirty) return;
                 self.dirty = false;
 
-                self.data.reset(.White);
+                self.data.reset(Shade.White.asPixel());
                 self.meta.reset(.{});
 
                 var sorted = mmu.dyn.oam;
@@ -277,10 +305,11 @@ pub const Video = struct {
                                 pattern1.get(x, y - pattern0.height);
 
                             if (color != ._0) {
-                                const pixel = palette.get(color);
-                                self.data.set(xs, ys, pixel);
+                                const shade = palette.get(color);
+                                self.data.set(xs, ys, shade.asOpaque());
                                 self.meta.set(xs, ys, .{
-                                    .opaque = color != ._0,
+                                    // TODO: why was this redundant check here?
+                                    // .opaque = color != ._0,
                                     .in_front = !sprite_attr.flags.priority,
                                 });
                             }
@@ -294,7 +323,7 @@ pub const Video = struct {
     },
 
     pub fn reset(self: *Video) void {
-        self.buffer0.reset(.White);
+        self.buffer0.reset(Shade.White.asPixel());
         self.screen = self.buffer0.toSlice();
         self.draw = self.buffer1.toSlice();
         self.clock = 0;
@@ -341,7 +370,7 @@ pub const Video = struct {
 
         if (!mmu.dyn.io.video.LCDC.lcd_enable) {
             if (self.clock != 0) {
-                self.buffer0.reset(.White);
+                self.buffer0.reset(Shade.White.asPixel());
                 self.screen = self.buffer0.toSlice();
                 self.draw = self.buffer1.toSlice();
                 self.clock = 0;
@@ -396,7 +425,7 @@ pub const Video = struct {
                 }
             },
             .vblank => {
-                std.mem.swap(MatrixSlice(Shade), &self.screen, &self.draw);
+                std.mem.swap(MatrixSlice(Pixel), &self.screen, &self.draw);
 
                 mmu.dyn.io.IF.vblank = true;
                 if (mmu.dyn.io.video.STAT.irq_vblank) {
@@ -420,21 +449,21 @@ pub const Video = struct {
             const ybg = (mmu.dyn.io.video.SCY + y) % self.cache.background.data.height;
 
             const bg_start = self.cache.background.data.sliceLine(xbg, ybg);
-            std.mem.copy(Shade, line, bg_start[0..std.math.min(bg_start.len, line.len)]);
+            std.mem.copy(Pixel, line, bg_start[0..std.math.min(bg_start.len, line.len)]);
 
             if (line.len > bg_start.len) {
                 const bg_rest = self.cache.background.data.sliceLine(0, ybg);
-                std.mem.copy(Shade, line[bg_start.len..], bg_rest[0 .. line.len - bg_start.len]);
+                std.mem.copy(Pixel, line[bg_start.len..], bg_rest[0 .. line.len - bg_start.len]);
             }
         } else {
-            std.mem.set(Shade, line, .White);
+            std.mem.set(Pixel, line, Shade.White.asPixel());
         }
 
         const xw = mmu.dyn.io.video.WX -% 7;
         const yw = y -% mmu.dyn.io.video.WY;
         if (mmu.dyn.io.video.LCDC.window_enable and xw < self.cache.window.data.width and yw < self.cache.window.data.height) {
             const win = self.cache.window.data.sliceLine(0, yw);
-            std.mem.copy(Shade, line[xw..], win[0 .. line.len - xw]);
+            std.mem.copy(Pixel, line[xw..], win[0 .. line.len - xw]);
         }
 
         // TODO: vectorize
@@ -443,7 +472,7 @@ pub const Video = struct {
             const metas = self.cache.sprites.meta.sliceLine(8, y + 16);
 
             for (line) |*pixel, x| {
-                if (metas[x].opaque and (metas[x].in_front or pixel.* == .White)) {
+                if (sprites[x].opaque and (metas[x].in_front or !pixel.opaque)) {
                     pixel.* = sprites[x];
                 }
             }
