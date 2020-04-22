@@ -17,6 +17,8 @@ const CSS = {
     position: "relative",
     display: "block",
     margin: "-1px",
+    opacity: 0.8,
+    mixBlendMode: "multiply",
   }),
 
   grid: nano.rule({
@@ -44,7 +46,7 @@ const CSS = {
 
 const PADDING = 1;
 
-const WHITE = Uint8Array.of(15, 56, 15, 255);
+const WHITE = Uint8Array.of(255, 255, 255, 255);
 
 export default function Display(props: {
   className?: string;
@@ -94,9 +96,9 @@ export default function Display(props: {
       const b = (pixel >> 10) & 0b11111;
       const opaque = (pixel >> 15) & 0b1;
 
-      imageData.data[4 * i + 0] = r << (8 - 5);
-      imageData.data[4 * i + 1] = g << (8 - 5);
-      imageData.data[4 * i + 2] = b << (8 - 5);
+      imageData.data[4 * i + 0] = (r << (8 - 5)) | 0b111;
+      imageData.data[4 * i + 1] = (g << (8 - 5)) | 0b111;
+      imageData.data[4 * i + 2] = (b << (8 - 5)) | 0b111;
     }
     // }
     ctx.putImageData(imageData, PADDING, PADDING);

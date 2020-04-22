@@ -10,11 +10,11 @@ import { BOOTLOADER } from "./data";
 
 const LazyDebug = {
   Left: React.lazy(() =>
-    import("./Debug").then(mod => ({ default: mod.Left }))
+    import("./Debug").then((mod) => ({ default: mod.Left }))
   ),
   Right: React.lazy(() =>
-    import("./Debug").then(mod => ({ default: mod.Right }))
-  )
+    import("./Debug").then((mod) => ({ default: mod.Right }))
+  ),
 };
 
 //@ts-ignore
@@ -26,32 +26,32 @@ const CSS = {
     width: "100vw",
     height: "100vh",
     display: "flex",
-    justifyContent: "center"
+    justifyContent: "center",
   }),
 
   app: nano.rule({
     marginTop: "4px",
     display: "flex",
     flexDirection: "column",
-    alignItems: "center"
+    alignItems: "center",
   }),
 
   shell: nano.rule({
     padding: "20px 16px",
     background: "#f5f5dc",
     boxShadow: "inset 0 0 0 4px rgba(32, 32, 32, 0.5)",
-    borderRadius: "8px 8px 40px 40px"
+    borderRadius: "8px 8px 40px 40px",
   }),
 
   displayWrapper: nano.rule({
     backgroundColor: "#606060",
     padding: "20px 50px 0",
-    borderRadius: "8px"
+    borderRadius: "8px",
   }),
 
   display: nano.rule({
     maxWidth: "100vw",
-    background: "#b1c062"
+    background: "#b1c062",
   }),
 
   title: nano.rule({
@@ -61,12 +61,12 @@ const CSS = {
     fontWeight: "bold",
     fontStyle: "italic",
     letterSpacing: "-0.06em",
-    color: "transparent"
+    color: "transparent",
   }),
 
   titleSymbol: nano.rule({
     fontSize: "0.5em",
-    verticalAlign: "middle"
+    verticalAlign: "middle",
   }),
 
   logo: nano.rule({
@@ -75,14 +75,14 @@ const CSS = {
     top: "20%",
     width: "auto",
     height: "59%",
-    pointerEvents: "none"
+    pointerEvents: "none",
   }),
 
   controls: nano.rule({
     height: "300px",
     width: "324px",
-    margin: "0 auto"
-  })
+    margin: "0 auto",
+  }),
 };
 
 export function App(props: { debug?: boolean }) {
@@ -116,7 +116,7 @@ export function App(props: { debug?: boolean }) {
   );
 }
 
-export default function(props: { debug?: boolean }) {
+export default function (props: { debug?: boolean }) {
   return (
     <FD.Provider bootCart={BOOTLOADER} autoBoot={!props.debug}>
       <div className={CSS.root}>
