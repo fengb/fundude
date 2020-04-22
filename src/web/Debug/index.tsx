@@ -89,12 +89,12 @@ function Displays(props: { fd: FundudeWasm }) {
   return (
     <React.Fragment>
       {/* TODO: convert to tile display */}
-      <Display
+      {/* <Display
         className={CSS.displayPatterns}
         pixels={() => fd.patterns()}
         viewports={[]}
         gridColor="lightgray"
-      />
+      /> */}
       <Display
         pixels={() => fd.sprites()}
         viewports={[[8, 16]]}
