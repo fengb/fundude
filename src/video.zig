@@ -88,7 +88,7 @@ const Shade = enum(u8) {
 };
 
 const Pixel = packed struct {
-    r: u5,
+    r: u5 align(2),
     g: u5,
     b: u5,
     opaque: bool,

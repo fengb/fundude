@@ -47,8 +47,7 @@ pub fn MatrixChunk(comptime T: type) type {
         const UsizeHalf = std.meta.IntType(true, @bitSizeOf(usize) / 2);
         const Abi = if (builtin.arch.isWasm()) U8Chunk.Abi else MatrixChunk(T);
 
-        // TODO: apply a better alignment
-        ptr: [*]align(1) T,
+        ptr: [*]T,
         width: UsizeHalf,
         height: UsizeHalf,
 
@@ -57,7 +56,7 @@ pub fn MatrixChunk(comptime T: type) type {
             if (@sizeOf(M) != @sizeOf(T)) @compileError("Unsupported Matrix type: " ++ @typeName(M));
 
             const self = MatrixChunk(T){
-                .ptr = @ptrCast([*]align(1) T, matrix.data.ptr),
+                .ptr = @ptrCast([*]T, matrix.data.ptr),
                 .width = @intCast(UsizeHalf, matrix.width),
                 .height = @intCast(UsizeHalf, matrix.height),
             };

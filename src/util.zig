@@ -7,7 +7,7 @@ pub fn Matrix(comptime T: type, widt: usize, heigh: usize) type {
         pub const width = widt;
         pub const height = heigh;
 
-        data: [height * width]T,
+        data: [height * width]T align(@alignOf(T)),
         comptime width: usize = width,
         comptime height: usize = height,
 
