@@ -50,6 +50,43 @@ class U8Chunk extends Uint8Array {
   }
 }
 
+class U16Chunk extends Uint16Array {
+  constructor(private ptr: number, length: number) {
+    super(WASM.memory.buffer, ptr, length);
+  }
+
+  //toInt(): bigint {
+  //  return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
+  //}
+
+  // TODO: remove floats
+  // JS can't handle i64 yet so we're using f64 for now
+  toFloat(): number {
+    let buf = new ArrayBuffer(8);
+    let u32s = new Uint32Array(buf);
+    u32s[0] = this.ptr;
+    u32s[1] = this.length;
+    return new Float64Array(buf)[0];
+  }
+
+  static fromFloat(value: number): U16Chunk {
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = value;
+    let u32s = new Uint32Array(buf);
+    return new U16Chunk(u32s[0], u32s[1]);
+  }
+
+  static matrix(value: number): Matrix<U16Chunk> {
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = value;
+    let u16s = new Uint16Array(buf);
+    const ptr = u16s[0] | (u16s[1] << 16);
+    const width = u16s[2];
+    const height = u16s[3];
+    return Object.assign(new U16Chunk(ptr, width * height), { width, height });
+  }
+}
+
 export const MMU_OFFSETS = {
   shift: 0x8000,
   segments: [
@@ -88,19 +125,19 @@ export default class FundudeWasm {
   }
 
   screen() {
-    return U8Chunk.matrix(WASM.fd_screen(this.pointer));
+    return U16Chunk.matrix(WASM.fd_screen(this.pointer));
   }
 
   background() {
-    return U8Chunk.matrix(WASM.fd_background(this.pointer));
+    return U16Chunk.matrix(WASM.fd_background(this.pointer));
   }
 
   window() {
-    return U8Chunk.matrix(WASM.fd_window(this.pointer));
+    return U16Chunk.matrix(WASM.fd_window(this.pointer));
   }
 
   sprites() {
-    return U8Chunk.matrix(WASM.fd_sprites(this.pointer));
+    return U16Chunk.matrix(WASM.fd_sprites(this.pointer));
   }
 
   patterns() {
