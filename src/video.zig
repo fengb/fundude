@@ -8,6 +8,7 @@ const SCREEN_WIDTH = 160;
 const SCREEN_HEIGHT = 144;
 const DOTS_PER_LINE = 456;
 const BUFFER_LINES = 10;
+const RENDER_LINES = SCREEN_HEIGHT + BUFFER_LINES;
 const DOTS_PER_FRAME = (SCREEN_HEIGHT + BUFFER_LINES) * DOTS_PER_LINE;
 
 pub const Io = packed struct {
@@ -166,7 +167,10 @@ pub const Video = struct {
     screen: MatrixSlice(Pixel),
     draw: MatrixSlice(Pixel),
 
-    clock: u32,
+    clock: struct {
+        line: u32,
+        offset: u32,
+    },
     cache: struct {
         const CachedPattern = Matrix(Color, 8, 8);
 
@@ -326,7 +330,8 @@ pub const Video = struct {
         self.buffer0.reset(Shade.White.asPixel());
         self.screen = self.buffer0.toSlice();
         self.draw = self.buffer1.toSlice();
-        self.clock = 0;
+        self.clock.offset = 0;
+        self.clock.line = 0;
 
         self.cache.patterns.dirty = true;
         self.cache.sprites.dirty = true;
@@ -369,24 +374,29 @@ pub const Video = struct {
         }
 
         if (!mmu.dyn.io.video.LCDC.lcd_enable) {
-            if (self.clock != 0) {
-                self.buffer0.reset(Shade.White.asPixel());
-                self.screen = self.buffer0.toSlice();
-                self.draw = self.buffer1.toSlice();
-                self.clock = 0;
-
+            if (self.clock.line != 0 or self.clock.offset != 0) {
                 mmu.dyn.io.video.STAT.mode = .hblank;
+                self.reset();
             }
             return;
         }
 
-        self.clock += cycles;
+        self.clock.offset += cycles;
 
-        if (self.clock > DOTS_PER_FRAME) {
-            self.clock -= DOTS_PER_FRAME;
+        // Manually wrapping this reduces overhead by ~20%
+        // compared to using division + modulus
+        if (self.clock.offset >= DOTS_PER_LINE) {
+            self.clock.offset -= DOTS_PER_LINE;
+            self.clock.line += 1;
+
+            if (self.clock.line >= RENDER_LINES) {
+                self.clock.line -= RENDER_LINES;
+            }
         }
 
-        const line_num = self.clock / DOTS_PER_LINE;
+        const line_num = self.clock.line;
+        const line_offset = self.clock.offset;
+
         if (mmu.dyn.io.video.LY != line_num) {
             mmu.dyn.io.video.LY = @intCast(u8, line_num);
             mmu.dyn.io.video.STAT.coincidence = line_num == mmu.dyn.io.video.LYC;
@@ -399,7 +409,7 @@ pub const Video = struct {
         const new_mode: LcdcMode = if (line_num >= SCREEN_HEIGHT)
             .vblank
         else
-            @as(LcdcMode, switch (self.clock % DOTS_PER_LINE) {
+            @as(LcdcMode, switch (line_offset) {
                 0...79 => .searching,
                 80...291 => .transferring,
                 else => .hblank,
@@ -413,7 +423,7 @@ pub const Video = struct {
         switch (new_mode) {
             .searching => {
                 // TODO: ready the pixel gun here and draw the dots across .transferring
-                self.render(mmu, line_num);
+                @call(.{ .modifier = .never_inline }, self.render, .{ mmu, line_num });
                 if (mmu.dyn.io.video.STAT.irq_oam) {
                     mmu.dyn.io.IF.lcd_stat = true;
                 }
@@ -437,6 +447,7 @@ pub const Video = struct {
 
     // TODO: audit this function
     fn render(self: *Video, mmu: *main.Mmu, y: usize) void {
+        // Cache specific lines instead of trying to do it all
         self.cache.patterns.run(mmu);
         self.cache.sprites.run(mmu, &self.cache.patterns.data);
         self.cache.background.run(mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map);
