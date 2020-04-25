@@ -1,3 +1,4 @@
+const std = @import("std");
 const main = @import("main.zig");
 const op = @import("cpu_op.zig");
 const irq = @import("irq.zig");
@@ -80,33 +81,36 @@ pub const Cpu = struct {
     }
 
     fn irqStep(self: *Cpu, mmu: *main.Mmu) ?Result {
-        if (!self.interrupt_master) {
-            return null;
-        }
+        if (!self.interrupt_master) return null;
 
-        const OP_CALL = 0xCD;
         const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
-        const addr: u8 = switch (cmp.active() orelse return null) {
-            .vblank => blk: {
-                mmu.dyn.io.IF.vblank = false;
-                break :blk 0x40;
-            },
-            .lcd_stat => blk: {
-                mmu.dyn.io.IF.lcd_stat = false;
-                break :blk 0x48;
-            },
-            .timer => blk: {
-                mmu.dyn.io.IF.timer = false;
-                break :blk 0x50;
-            },
-            .serial => blk: {
-                mmu.dyn.io.IF.serial = false;
-                break :blk 0x58;
-            },
-            .joypad => blk: {
-                mmu.dyn.io.IF.joypad = false;
-                break :blk 0x60;
-            },
+        const addr: u16 = blk: {
+            // Naive implementation:
+            // if (cmp.vblank) {
+            //     mmu.dyn.io.IF.vblank = false;
+            //     break :blk 0x40;
+            // } else if (cmp.lcd_stat) {
+            //     mmu.dyn.io.IF.lcd_stat = false;
+            //     break :blk 0x48;
+            // } else if (cmp.timer) {
+            //     mmu.dyn.io.IF.timer = false;
+            //     break :blk 0x50;
+            // } else if (cmp.serial) {
+            //     mmu.dyn.io.IF.serial = false;
+            //     break :blk 0x58;
+            // } else if (cmp.joypad) {
+            //     mmu.dyn.io.IF.joypad = false;
+            //     break :blk 0x60;
+            // } else {
+            //     return null;
+            // }
+            if (cmp.active()) |active| {
+                std.debug.assert(cmp.get(active));
+                mmu.dyn.io.IF.disable(active);
+                break :blk 0x40 + @as(u16, 8) * @enumToInt(active);
+            } else {
+                return null;
+            }
         };
 
         self.mode = .norm;
@@ -115,8 +119,7 @@ pub const Cpu = struct {
         const dirty_pc = self.reg._16.get(.PC);
         self.reg._16.set(.PC, dirty_pc - 3);
 
-        const inst = [_]u8{ OP_CALL, addr, 0 };
-        return self.opStep(mmu, &inst);
+        return op.cal_AF___(self, mmu, addr);
     }
 
     fn opStep(cpu: *Cpu, mmu: *main.Mmu, inst: [*]const u8) Result {

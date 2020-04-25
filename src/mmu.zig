@@ -13,7 +13,7 @@ const mbc = @import("mbc.zig");
 const BEYOND_BOOTLOADER = 0x100;
 const BEYOND_CART = 0x8000;
 
-pub const Io = packed struct {
+pub const Io = extern struct {
     joypad: joypad.Io, // [$FF00]
     serial: serial.Io, // [$FF01 - $FF02]
     _pad_ff03: u8,
@@ -32,7 +32,7 @@ pub const Io = packed struct {
 };
 
 pub const Mmu = struct {
-    dyn: packed struct {
+    dyn: extern struct {
         vram: video.Vram, // [$8000 - $A000)
         switchable_ram: [0x2000]u8, // [$A000 - $C000)
         ram: [0x2000]u8, // [$C000 - $E000)
