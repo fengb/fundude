@@ -13,18 +13,21 @@ pub const Result = struct {
 };
 
 pub const Cond = enum(u32) {
-    nz,
-    z,
-    nc,
-    c,
+    nz = 0x0_80,
+    z = 0x80_80,
+    nc = 0x0_10,
+    c = 0x10_10,
 
     pub fn check(self: Cond, cpu: main.Cpu) bool {
-        return switch (self) {
-            .nz => !cpu.reg.flags.Z,
-            .z => cpu.reg.flags.Z,
-            .nc => !cpu.reg.flags.C,
-            .c => cpu.reg.flags.C,
-        };
+        // return switch (self) {
+        //     .nz => !cpu.reg.flags.Z,
+        //     .z => cpu.reg.flags.Z,
+        //     .nc => !cpu.reg.flags.C,
+        //     .c => cpu.reg.flags.C,
+        // };
+        const compare = @enumToInt(self) >> 8;
+        const mask = 0xff & @enumToInt(self);
+        return mask & @bitCast(u8, cpu.reg.flags) == compare;
     }
 };
 
