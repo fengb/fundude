@@ -731,9 +731,6 @@ fn doXorRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
 }
 
 fn signedAdd(a: u16, b: u8) u16 {
-    if (b < 128) {
-        return a +% b;
-    } else {
-        return a -% (@as(u16, 256) - b);
-    }
+    const signed = @bitCast(i16, a) +% @bitCast(i8, b);
+    return @bitCast(u16, signed);
 }
