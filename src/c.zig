@@ -126,13 +126,9 @@ export fn fd_step_cycles(fd: *main.Fundude, cycles: i32) i32 {
         @call(.{ .modifier = .never_inline }, fd.video.step, .{ &fd.mmu, res.duration });
         @call(.{ .modifier = .never_inline }, fd.timer.step, .{ &fd.mmu, res.duration });
 
-        const pc_val = res.jump orelse fd.cpu.reg._16.get(.PC) + res.length;
-
-        fd.cpu.reg._16.set(.PC, pc_val);
-
         track -= @intCast(i32, res.duration);
 
-        if (fd.breakpoint == pc_val) {
+        if (fd.breakpoint == fd.cpu.reg._16.get(.PC)) {
             fd.step_underflow = 0;
             return target_cycles - track;
         }
@@ -157,23 +153,23 @@ export fn fd_input_release(fd: *main.Fundude, input: u8) u8 {
 }
 
 export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
-    if (fd.cpu.mode == .fatal) {
+    // if (fd.cpu.mode == .fatal) {
         return U8Chunk.fromSlice(&[_]u8{});
-    }
+    // }
 
-    fd.mmu.dyn.io.boot_complete = 1;
-    const addr = fd.cpu.reg._16.get(.PC);
+    // fd.mmu.dyn.io.boot_complete = 1;
+    // const addr = fd.cpu.reg._16.get(.PC);
 
-    // TODO: explicitly decode
-    const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.cart.ptr + addr);
-    const new_addr = addr +% res.length;
-    fd.cpu.reg._16.set(.PC, new_addr);
+    // // TODO: explicitly decode
+    // const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.cart.ptr + addr);
+    // const new_addr = addr +% res.length;
+    // fd.cpu.reg._16.set(.PC, new_addr);
 
-    if (new_addr >= std.math.min(fd.mmu.mbc.cart.len, 0x7FFF) or new_addr < addr) {
-        fd.cpu.mode = .fatal;
-    }
-    std.mem.copy(u8, &fd.disassembly, res.name);
-    return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]);
+    // if (new_addr >= std.math.min(fd.mmu.mbc.cart.len, 0x7FFF) or new_addr < addr) {
+    //     fd.cpu.mode = .fatal;
+    // }
+    // std.mem.copy(u8, &fd.disassembly, res.name);
+    // return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]);
 }
 
 // Video

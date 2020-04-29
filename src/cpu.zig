@@ -5,6 +5,7 @@ const irq = @import("irq.zig");
 const util = @import("util.zig");
 
 pub const Result = op.Result;
+const Op = op.Op;
 
 pub const Mode = enum {
     norm,
@@ -69,11 +70,7 @@ pub const Cpu = struct {
         if (self.irqStep(mmu)) |res| {
             return res;
         } else if (self.mode == .halt) {
-            return main.cpu.Result{
-                .name = "SKIP",
-                .length = 0,
-                .duration = 4,
-            };
+            return .{ .duration = 4 };
         } else {
             // TODO: optimize
             return self.opStep(mmu, mmu.ptr(self.reg._16.get(.PC)));
@@ -119,7 +116,7 @@ pub const Cpu = struct {
         const dirty_pc = self.reg._16.get(.PC);
         self.reg._16.set(.PC, dirty_pc - 3);
 
-        return op.cal_IW___(self, mmu, addr);
+        return @bitCast(Result, op.cal_IW___(self, mmu, addr));
     }
 
     fn opStep(cpu: *Cpu, mmu: *main.Mmu, inst: [*]const u8) Result {
