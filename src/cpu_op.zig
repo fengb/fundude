@@ -6,113 +6,111 @@ const Reg16 = main.cpu.Reg16;
 const Flags = main.cpu.Flags;
 
 pub const Op = struct {
-    microp: Microp,
-    len: u8,
+    id: Id,
+    length: u8,
 
     arg0: Arg,
     arg1: Arg,
 
-    cycle0: u8,
-    cycle1: u8,
+    durations: [2]u8,
 
-    fn build(microp: Microp, arg0: Arg, arg1: Arg) Op {
+    fn build(id: Id, arg0: Arg, arg1: Arg) Op {
         return .{
-            .microp = microp,
+            .id = id,
             .arg0 = arg0,
             .arg1 = arg1,
 
-            .len = undefined,
-            .cycle0 = undefined,
-            .cycle1 = undefined,
+            .length = undefined,
+            .durations = undefined,
         };
     }
 
-    pub fn _____(microp: Microp) Op {
-        return build(microp, .{ .__ = {} }, .{ .__ = {} });
+    pub fn _____(id: Id) Op {
+        return build(id, .{ .__ = {} }, .{ .__ = {} });
     }
 
-    pub fn tf___(microp: Microp, arg0: bool) Op {
-        return build(microp, .{ .tf = arg0 }, .{ .__ = {} });
+    pub fn tf___(id: Id, arg0: bool) Op {
+        return build(id, .{ .tf = arg0 }, .{ .__ = {} });
     }
 
-    pub fn mo___(microp: Microp, arg0: main.cpu.Mode) Op {
-        return build(microp, .{ .mo = arg0 }, .{ .__ = {} });
+    pub fn mo___(id: Id, arg0: main.cpu.Mode) Op {
+        return build(id, .{ .mo = arg0 }, .{ .__ = {} });
     }
 
-    pub fn ib___(microp: Microp, arg0: u8) Op {
-        return build(microp, .{ .ib = arg0 }, .{ .__ = {} });
+    pub fn ib___(id: Id, arg0: u8) Op {
+        return build(id, .{ .ib = arg0 }, .{ .__ = {} });
     }
 
-    pub fn iw___(microp: Microp, arg0: u16) Op {
-        return build(microp, .{ .iw = arg0 }, .{ .__ = {} });
+    pub fn iw___(id: Id, arg0: u16) Op {
+        return build(id, .{ .iw = arg0 }, .{ .__ = {} });
     }
 
-    pub fn rb___(microp: Microp, arg0: Reg8) Op {
-        return build(microp, .{ .rb = arg0 }, .{ .__ = {} });
+    pub fn rb___(id: Id, arg0: Reg8) Op {
+        return build(id, .{ .rb = arg0 }, .{ .__ = {} });
     }
 
-    pub fn rw___(microp: Microp, arg0: Reg16) Op {
-        return build(microp, .{ .rw = arg0 }, .{ .__ = {} });
+    pub fn rw___(id: Id, arg0: Reg16) Op {
+        return build(id, .{ .rw = arg0 }, .{ .__ = {} });
     }
 
-    pub fn zc___(microp: Microp, arg0: ZC) Op {
-        return build(microp, .{ .zc = arg0 }, .{ .__ = {} });
+    pub fn zc___(id: Id, arg0: ZC) Op {
+        return build(id, .{ .zc = arg0 }, .{ .__ = {} });
     }
 
-    pub fn zc_ib(microp: Microp, arg0: ZC, arg1: u8) Op {
-        return build(microp, .{ .zc = arg0 }, .{ .ib = arg1 });
+    pub fn zc_ib(id: Id, arg0: ZC, arg1: u8) Op {
+        return build(id, .{ .zc = arg0 }, .{ .ib = arg1 });
     }
 
-    pub fn zc_iw(microp: Microp, arg0: ZC, arg1: u16) Op {
-        return build(microp, .{ .zc = arg0 }, .{ .iw = arg1 });
+    pub fn zc_iw(id: Id, arg0: ZC, arg1: u16) Op {
+        return build(id, .{ .zc = arg0 }, .{ .iw = arg1 });
     }
 
-    pub fn ib_rb(microp: Microp, arg0: u8, arg1: Reg8) Op {
-        return build(microp, .{ .ib = arg0 }, .{ .rb = arg1 });
+    pub fn ib_rb(id: Id, arg0: u8, arg1: Reg8) Op {
+        return build(id, .{ .ib = arg0 }, .{ .rb = arg1 });
     }
 
-    pub fn iw_ib(microp: Microp, arg0: u16, arg1: u8) Op {
-        return build(microp, .{ .iw = arg0 }, .{ .ib = arg1 });
+    pub fn iw_ib(id: Id, arg0: u16, arg1: u8) Op {
+        return build(id, .{ .iw = arg0 }, .{ .ib = arg1 });
     }
 
-    pub fn iw_rb(microp: Microp, arg0: u16, arg1: Reg8) Op {
-        return build(microp, .{ .iw = arg0 }, .{ .rb = arg1 });
+    pub fn iw_rb(id: Id, arg0: u16, arg1: Reg8) Op {
+        return build(id, .{ .iw = arg0 }, .{ .rb = arg1 });
     }
 
-    pub fn iw_rw(microp: Microp, arg0: u16, arg1: Reg16) Op {
-        return build(microp, .{ .iw = arg0 }, .{ .rw = arg1 });
+    pub fn iw_rw(id: Id, arg0: u16, arg1: Reg16) Op {
+        return build(id, .{ .iw = arg0 }, .{ .rw = arg1 });
     }
 
-    pub fn rb_ib(microp: Microp, arg0: Reg8, arg1: u8) Op {
-        return build(microp, .{ .rb = arg0 }, .{ .ib = arg1 });
+    pub fn rb_ib(id: Id, arg0: Reg8, arg1: u8) Op {
+        return build(id, .{ .rb = arg0 }, .{ .ib = arg1 });
     }
 
-    pub fn rb_iw(microp: Microp, arg0: Reg8, arg1: u16) Op {
-        return build(microp, .{ .rb = arg0 }, .{ .iw = arg1 });
+    pub fn rb_iw(id: Id, arg0: Reg8, arg1: u16) Op {
+        return build(id, .{ .rb = arg0 }, .{ .iw = arg1 });
     }
 
-    pub fn rb_rb(microp: Microp, arg0: Reg8, arg1: Reg8) Op {
-        return build(microp, .{ .rb = arg0 }, .{ .rb = arg1 });
+    pub fn rb_rb(id: Id, arg0: Reg8, arg1: Reg8) Op {
+        return build(id, .{ .rb = arg0 }, .{ .rb = arg1 });
     }
 
-    pub fn rb_rw(microp: Microp, arg0: Reg8, arg1: Reg16) Op {
-        return build(microp, .{ .rb = arg0 }, .{ .rw = arg1 });
+    pub fn rb_rw(id: Id, arg0: Reg8, arg1: Reg16) Op {
+        return build(id, .{ .rb = arg0 }, .{ .rw = arg1 });
     }
 
-    pub fn rw_ib(microp: Microp, arg0: Reg16, arg1: u8) Op {
-        return build(microp, .{ .rw = arg0 }, .{ .ib = arg1 });
+    pub fn rw_ib(id: Id, arg0: Reg16, arg1: u8) Op {
+        return build(id, .{ .rw = arg0 }, .{ .ib = arg1 });
     }
 
-    pub fn rw_iw(microp: Microp, arg0: Reg16, arg1: u16) Op {
-        return build(microp, .{ .rw = arg0 }, .{ .iw = arg1 });
+    pub fn rw_iw(id: Id, arg0: Reg16, arg1: u16) Op {
+        return build(id, .{ .rw = arg0 }, .{ .iw = arg1 });
     }
 
-    pub fn rw_rb(microp: Microp, arg0: Reg16, arg1: Reg8) Op {
-        return build(microp, .{ .rw = arg0 }, .{ .rb = arg1 });
+    pub fn rw_rb(id: Id, arg0: Reg16, arg1: Reg8) Op {
+        return build(id, .{ .rw = arg0 }, .{ .rb = arg1 });
     }
 
-    pub fn rw_rw(microp: Microp, arg0: Reg16, arg1: Reg16) Op {
-        return build(microp, .{ .rw = arg0 }, .{ .rw = arg1 });
+    pub fn rw_rw(id: Id, arg0: Reg16, arg1: Reg16) Op {
+        return build(id, .{ .rw = arg0 }, .{ .rw = arg1 });
     }
 };
 
@@ -141,8 +139,8 @@ const Arg = packed union {
 /// * tf — true/false
 /// * zc — Z/C flag condition
 /// * mo — CPU mode
-pub const Microp = enum(u8) {
-    ILLEGAL,
+pub const Id = enum(u8) {
+    ILLEGAL__,
     nop______,
     int_tf___,
     sys_mo___,
@@ -227,29 +225,27 @@ pub const Microp = enum(u8) {
     rra_rb___,
     rrc_rb___,
 
-    cb,
+    cb, // FIXME
 };
 
 pub const Result = extern struct {
     duration: u8 = duration,
 
-    fn Fixed(length: u2, duration: u8) type {
+    pub fn Fixed(lengt: u2, duration: u8) type {
         return extern struct {
-            const length = length;
-            const next_duration = duration;
-            const jump_duration = duration;
+            pub const length = lengt;
+            pub const durations = [_]u8{duration} ** 2;
 
             duration: u8 = duration,
         };
     }
 
-    fn Cond(length: u2, durations: [2]u8) type {
+    pub fn Cond(lengt: u2, duration: [2]u8) type {
         return extern struct {
-            const length = length;
-            const next_duration = durations[0];
-            const jump_duration = durations[1];
+            pub const length = lengt;
+            pub const durations = duration;
 
-            duration: u8 = duration,
+            duration: u8,
         };
     }
 };
@@ -273,20 +269,20 @@ pub const ZC = enum(u32) {
     }
 };
 
-pub fn ILLEGAL(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
+pub fn ILLEGAL__(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
     cpu.mode = .illegal;
     return .{};
 }
 
-pub fn nop(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
+pub fn nop______(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
     return .{};
 }
 
-pub fn sys(cpu: *main.Cpu, mmu: *main.Mmu, mode: main.cpu.Mode) Result.Fixed(1, 4) {
+pub fn sys_mo___(cpu: *main.Cpu, mmu: *main.Mmu, mode: main.cpu.Mode) Result.Fixed(1, 4) {
     return .{};
 }
 
-pub fn scf(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
+pub fn scf______(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
     cpu.reg.flags = Flags{
         .Z = cpu.reg.flags.Z,
         .N = false,
@@ -296,7 +292,7 @@ pub fn scf(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
     return .{};
 }
 
-pub fn ccf(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
+pub fn ccf______(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
     cpu.reg.flags = Flags{
         .Z = cpu.reg.flags.Z,
         .N = false,
@@ -306,7 +302,7 @@ pub fn ccf(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 4) {
     return .{};
 }
 
-pub fn int______(cpu: *main.Cpu, mmu: *main.Mmu, set: bool) Result.Fixed(1, 4) {
+pub fn int_tf___(cpu: *main.Cpu, mmu: *main.Mmu, set: bool) Result.Fixed(1, 4) {
     cpu.interrupt_master = set;
     return .{};
 }
@@ -436,9 +432,9 @@ pub fn cal_zc_IW(cpu: *main.Cpu, mmu: *main.Mmu, cond: ZC, target: u16) Result.C
     if (cond.check(cpu.*)) {
         push16(cpu, mmu, cpu.reg._16.get(.PC));
         cpu.reg._16.set(.PC, target);
-        return .{};
+        return .{ .duration = 24 };
     }
-    return .{};
+    return .{ .duration = 12 };
 }
 
 pub fn rlc_rb___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8) Result.Fixed(1, 4) {

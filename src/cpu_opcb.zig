@@ -132,17 +132,19 @@ fn cb_run(cpu: *main.Cpu, op: u8, val: u8) Result {
     };
 }
 
-pub fn cb(cpu: *main.Cpu, mmu: *main.Mmu, op: u8) cpu_op.Result {
+pub fn cb(cpu: *main.Cpu, mmu: *main.Mmu, op: u8) cpu_op.Result.Cond(2, .{ 8, 16 }) {
     var tgt = cb_tgt(cpu, op);
     if (tgt) |reg| {
         const val = cpu.reg._8.get(reg);
         const res = cb_run(cpu, op, val);
         cpu.reg._8.set(reg, res.val);
-        return cpu_op.Result{ .name = res.name, .length = 2, .duration = 8 };
+        //return cpu_op.Result{ .name = res.name, .length = 2, .duration = 8 };
+        return .{ .duration = 8 };
     } else {
         const addr = cpu.reg._16.get(.HL);
         const res = cb_run(cpu, op, mmu.get(addr));
         mmu.set(addr, res.val);
-        return cpu_op.Result{ .name = res.name, .length = 2, .duration = 16 };
+        //return cpu_op.Result{ .name = res.name, .length = 2, .duration = 16 };
+        return .{ .duration = 16 };
     }
 }
