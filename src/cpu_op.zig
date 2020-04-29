@@ -5,7 +5,7 @@ const Reg8 = main.cpu.Reg8;
 const Reg16 = main.cpu.Reg16;
 const Flags = main.cpu.Flags;
 
-const Op = struct {
+pub const Op = struct {
     microp: Microp,
     len: u8,
 
@@ -15,7 +15,7 @@ const Op = struct {
     cycle0: u8,
     cycle1: u8,
 
-    pub fn build(microp: Microp, arg0: Arg, arg1: Arg) Op {
+    fn build(microp: Microp, arg0: Arg, arg1: Arg) Op {
         return .{
             .microp = microp,
             .arg0 = arg0,
@@ -27,13 +27,105 @@ const Op = struct {
         };
     }
 
-    const Arg = packed union {
-        vo: void,
-        ib: u8,
-        iw: u16,
-        rb: Reg8,
-        rw: Reg16,
-    };
+    pub fn _____(microp: Microp) Op {
+        return build(microp, .{ .__ = {} }, .{ .__ = {} });
+    }
+
+    pub fn tf___(microp: Microp, arg0: bool) Op {
+        return build(microp, .{ .tf = arg0 }, .{ .__ = {} });
+    }
+
+    pub fn mo___(microp: Microp, arg0: main.cpu.Mode) Op {
+        return build(microp, .{ .mo = arg0 }, .{ .__ = {} });
+    }
+
+    pub fn ib___(microp: Microp, arg0: u8) Op {
+        return build(microp, .{ .ib = arg0 }, .{ .__ = {} });
+    }
+
+    pub fn iw___(microp: Microp, arg0: u16) Op {
+        return build(microp, .{ .iw = arg0 }, .{ .__ = {} });
+    }
+
+    pub fn rb___(microp: Microp, arg0: Reg8) Op {
+        return build(microp, .{ .rb = arg0 }, .{ .__ = {} });
+    }
+
+    pub fn rw___(microp: Microp, arg0: Reg16) Op {
+        return build(microp, .{ .rw = arg0 }, .{ .__ = {} });
+    }
+
+    pub fn zc___(microp: Microp, arg0: ZC) Op {
+        return build(microp, .{ .zc = arg0 }, .{ .__ = {} });
+    }
+
+    pub fn zc_ib(microp: Microp, arg0: ZC, arg1: u8) Op {
+        return build(microp, .{ .zc = arg0 }, .{ .ib = arg1 });
+    }
+
+    pub fn zc_iw(microp: Microp, arg0: ZC, arg1: u16) Op {
+        return build(microp, .{ .zc = arg0 }, .{ .iw = arg1 });
+    }
+
+    pub fn ib_rb(microp: Microp, arg0: u8, arg1: Reg8) Op {
+        return build(microp, .{ .ib = arg0 }, .{ .rb = arg1 });
+    }
+
+    pub fn iw_ib(microp: Microp, arg0: u16, arg1: u8) Op {
+        return build(microp, .{ .iw = arg0 }, .{ .ib = arg1 });
+    }
+
+    pub fn iw_rb(microp: Microp, arg0: u16, arg1: Reg8) Op {
+        return build(microp, .{ .iw = arg0 }, .{ .rb = arg1 });
+    }
+
+    pub fn iw_rw(microp: Microp, arg0: u16, arg1: Reg16) Op {
+        return build(microp, .{ .iw = arg0 }, .{ .rw = arg1 });
+    }
+
+    pub fn rb_ib(microp: Microp, arg0: Reg8, arg1: u8) Op {
+        return build(microp, .{ .rb = arg0 }, .{ .ib = arg1 });
+    }
+
+    pub fn rb_iw(microp: Microp, arg0: Reg8, arg1: u16) Op {
+        return build(microp, .{ .rb = arg0 }, .{ .iw = arg1 });
+    }
+
+    pub fn rb_rb(microp: Microp, arg0: Reg8, arg1: Reg8) Op {
+        return build(microp, .{ .rb = arg0 }, .{ .rb = arg1 });
+    }
+
+    pub fn rb_rw(microp: Microp, arg0: Reg8, arg1: Reg16) Op {
+        return build(microp, .{ .rb = arg0 }, .{ .rw = arg1 });
+    }
+
+    pub fn rw_ib(microp: Microp, arg0: Reg16, arg1: u8) Op {
+        return build(microp, .{ .rw = arg0 }, .{ .ib = arg1 });
+    }
+
+    pub fn rw_iw(microp: Microp, arg0: Reg16, arg1: u16) Op {
+        return build(microp, .{ .rw = arg0 }, .{ .iw = arg1 });
+    }
+
+    pub fn rw_rb(microp: Microp, arg0: Reg16, arg1: Reg8) Op {
+        return build(microp, .{ .rw = arg0 }, .{ .rb = arg1 });
+    }
+
+    pub fn rw_rw(microp: Microp, arg0: Reg16, arg1: Reg16) Op {
+        return build(microp, .{ .rw = arg0 }, .{ .rw = arg1 });
+    }
+};
+
+const Arg = packed union {
+    __: void,
+    ib: u8,
+    iw: u16,
+    rb: Reg8,
+    rw: Reg16,
+
+    tf: bool,
+    zc: ZC,
+    mo: main.cpu.Mode,
 };
 
 /// Positional argument types:
@@ -48,11 +140,12 @@ const Op = struct {
 ///
 /// * tf — true/false
 /// * zc — Z/C flag condition
+/// * mo — CPU mode
 pub const Microp = enum(u8) {
-    ILLEGAL__,
+    ILLEGAL,
     nop______,
-    sys______,
-    int______,
+    int_tf___,
+    sys_mo___,
 
     ccf______,
     scf______,
@@ -161,13 +254,13 @@ pub const Result = extern struct {
     }
 };
 
-pub const Cond = enum(u32) {
+pub const ZC = enum(u32) {
     nz = 0x0_80,
     z = 0x80_80,
     nc = 0x0_10,
     c = 0x10_10,
 
-    pub fn check(self: Cond, cpu: main.Cpu) bool {
+    pub fn check(self: ZC, cpu: main.Cpu) bool {
         // return switch (self) {
         //     .nz => !cpu.reg.flags.Z,
         //     .z => cpu.reg.flags.Z,
@@ -277,7 +370,7 @@ pub fn jr__IB___(cpu: *main.Cpu, mmu: *main.Mmu, offset: u8) Result.Fixed(2, 12)
     return .{};
 }
 
-pub fn jr__zc_IB(cpu: *main.Cpu, mmu: *main.Mmu, cond: Cond, offset: u8) Result.Cond(2, .{ 8, 12 }) {
+pub fn jr__zc_IB(cpu: *main.Cpu, mmu: *main.Mmu, cond: ZC, offset: u8) Result.Cond(2, .{ 8, 12 }) {
     if (cond.check(cpu.*)) {
         const jump = signedAdd(cpu.reg._16.get(.PC), offset);
         cpu.reg._16.set(.PC, jump);
@@ -291,7 +384,7 @@ pub fn jp__IW___(cpu: *main.Cpu, mmu: *main.Mmu, target: u16) Result.Fixed(3, 16
     return .{};
 }
 
-pub fn jp__zc_IW(cpu: *main.Cpu, mmu: *main.Mmu, cond: Cond, target: u16) Result.Cond(3, .{ 16, 12 }) {
+pub fn jp__zc_IW(cpu: *main.Cpu, mmu: *main.Mmu, cond: ZC, target: u16) Result.Cond(3, .{ 16, 12 }) {
     if (cond.check(cpu.*)) {
         cpu.reg._16.set(.PC, target);
         return .{ .duration = 16 };
@@ -318,7 +411,7 @@ pub fn rti______(cpu: *main.Cpu, mmu: *main.Mmu) Result.Fixed(1, 16) {
     return .{};
 }
 
-pub fn ret_zc___(cpu: *main.Cpu, mmu: *main.Mmu, cond: Cond) Result.Cond(1, .{ 8, 20 }) {
+pub fn ret_zc___(cpu: *main.Cpu, mmu: *main.Mmu, cond: ZC) Result.Cond(1, .{ 8, 20 }) {
     if (cond.check(cpu.*)) {
         const jump = pop16(cpu, mmu);
         cpu.reg._16.set(.PC, jump);
@@ -339,7 +432,7 @@ pub fn cal_IW___(cpu: *main.Cpu, mmu: *main.Mmu, target: u16) Result.Fixed(3, 24
     return .{};
 }
 
-pub fn cal_zc_IW(cpu: *main.Cpu, mmu: *main.Mmu, cond: Cond, target: u16) Result.Cond(3, .{ 12, 24 }) {
+pub fn cal_zc_IW(cpu: *main.Cpu, mmu: *main.Mmu, cond: ZC, target: u16) Result.Cond(3, .{ 12, 24 }) {
     if (cond.check(cpu.*)) {
         push16(cpu, mmu, cpu.reg._16.get(.PC));
         cpu.reg._16.set(.PC, target);
