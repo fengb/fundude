@@ -121,7 +121,7 @@ pub const Cpu = struct {
 
     fn opDecode(inst: u8, arg1: u8, arg2: u8) Op {
         const argw = @intCast(u16, arg2) << 8 | arg1;
-        var result: Op = switch (inst) {
+        return switch (inst) {
             0x00 => Op._____(.nop______),
             0x01 => Op.rw_iw(.ld__rw_iw, .BC, argw),
             0x02 => Op.rw_rb(.ld__RW_rb, .BC, .A),
@@ -394,16 +394,6 @@ pub const Cpu = struct {
             0xFE => Op.rb_ib(.cp__rb_ib, .A, arg1),
             0xFF => Op.ib___(.rst_ib___, 0x38),
         };
-        inline for (std.meta.fields(op.Id)) |field| {
-            if (field.value == @enumToInt(result.id)) {
-                const func = @field(op, field.name);
-                const ResultMeta = @typeInfo(@TypeOf(func)).Fn.return_type.?;
-                result.length = ResultMeta.length;
-                result.durations = ResultMeta.durations;
-                return result;
-            }
-        }
-        unreachable;
     }
 
     fn opStep(cpu: *Cpu, mmu: *main.Mmu, inst: [*]const u8) Result {

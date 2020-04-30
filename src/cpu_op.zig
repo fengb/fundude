@@ -1,5 +1,8 @@
+const std = @import("std");
 const main = @import("main.zig");
 pub const cb = @import("cpu_opcb.zig").cb;
+
+const File = @This();
 
 const Reg8 = main.cpu.Reg8;
 const Reg16 = main.cpu.Reg16;
@@ -14,103 +17,113 @@ pub const Op = struct {
 
     durations: [2]u8,
 
-    fn build(id: Id, arg0: Arg, arg1: Arg) Op {
+    fn init(comptime id: Id, arg0: Arg, arg1: Arg) Op {
+        const ResultMeta: type = blk: {
+            inline for (std.meta.fields(Id)) |field| {
+                if (field.value == @enumToInt(id)) {
+                    const func = @field(File, field.name);
+                    break :blk @typeInfo(@TypeOf(func)).Fn.return_type.?;
+                }
+            }
+            unreachable;
+        };
+
         return .{
             .id = id,
             .arg0 = arg0,
             .arg1 = arg1,
 
-            .length = undefined,
-            .durations = undefined,
+            .length = ResultMeta.length,
+            .durations = ResultMeta.durations,
         };
     }
 
-    pub fn _____(id: Id) Op {
-        return build(id, .{ .__ = {} }, .{ .__ = {} });
+    pub fn _____(comptime id: Id) Op {
+        return init(id, .{ .__ = {} }, .{ .__ = {} });
     }
 
-    pub fn tf___(id: Id, arg0: bool) Op {
-        return build(id, .{ .tf = arg0 }, .{ .__ = {} });
+    pub fn tf___(comptime id: Id, arg0: bool) Op {
+        return init(id, .{ .tf = arg0 }, .{ .__ = {} });
     }
 
-    pub fn mo___(id: Id, arg0: main.cpu.Mode) Op {
-        return build(id, .{ .mo = arg0 }, .{ .__ = {} });
+    pub fn mo___(comptime id: Id, arg0: main.cpu.Mode) Op {
+        return init(id, .{ .mo = arg0 }, .{ .__ = {} });
     }
 
-    pub fn ib___(id: Id, arg0: u8) Op {
-        return build(id, .{ .ib = arg0 }, .{ .__ = {} });
+    pub fn ib___(comptime id: Id, arg0: u8) Op {
+        return init(id, .{ .ib = arg0 }, .{ .__ = {} });
     }
 
-    pub fn iw___(id: Id, arg0: u16) Op {
-        return build(id, .{ .iw = arg0 }, .{ .__ = {} });
+    pub fn iw___(comptime id: Id, arg0: u16) Op {
+        return init(id, .{ .iw = arg0 }, .{ .__ = {} });
     }
 
-    pub fn rb___(id: Id, arg0: Reg8) Op {
-        return build(id, .{ .rb = arg0 }, .{ .__ = {} });
+    pub fn rb___(comptime id: Id, arg0: Reg8) Op {
+        return init(id, .{ .rb = arg0 }, .{ .__ = {} });
     }
 
-    pub fn rw___(id: Id, arg0: Reg16) Op {
-        return build(id, .{ .rw = arg0 }, .{ .__ = {} });
+    pub fn rw___(comptime id: Id, arg0: Reg16) Op {
+        return init(id, .{ .rw = arg0 }, .{ .__ = {} });
     }
 
-    pub fn zc___(id: Id, arg0: ZC) Op {
-        return build(id, .{ .zc = arg0 }, .{ .__ = {} });
+    pub fn zc___(comptime id: Id, arg0: ZC) Op {
+        return init(id, .{ .zc = arg0 }, .{ .__ = {} });
     }
 
-    pub fn zc_ib(id: Id, arg0: ZC, arg1: u8) Op {
-        return build(id, .{ .zc = arg0 }, .{ .ib = arg1 });
+    pub fn zc_ib(comptime id: Id, arg0: ZC, arg1: u8) Op {
+        return init(id, .{ .zc = arg0 }, .{ .ib = arg1 });
     }
 
-    pub fn zc_iw(id: Id, arg0: ZC, arg1: u16) Op {
-        return build(id, .{ .zc = arg0 }, .{ .iw = arg1 });
+    pub fn zc_iw(comptime id: Id, arg0: ZC, arg1: u16) Op {
+        return init(id, .{ .zc = arg0 }, .{ .iw = arg1 });
     }
 
-    pub fn ib_rb(id: Id, arg0: u8, arg1: Reg8) Op {
-        return build(id, .{ .ib = arg0 }, .{ .rb = arg1 });
+    pub fn ib_rb(comptime id: Id, arg0: u8, arg1: Reg8) Op {
+        return init(id, .{ .ib = arg0 }, .{ .rb = arg1 });
     }
 
-    pub fn iw_ib(id: Id, arg0: u16, arg1: u8) Op {
-        return build(id, .{ .iw = arg0 }, .{ .ib = arg1 });
+    pub fn iw_ib(comptime id: Id, arg0: u16, arg1: u8) Op {
+        return init(id, .{ .iw = arg0 }, .{ .ib = arg1 });
     }
 
-    pub fn iw_rb(id: Id, arg0: u16, arg1: Reg8) Op {
-        return build(id, .{ .iw = arg0 }, .{ .rb = arg1 });
+    pub fn iw_rb(comptime id: Id, arg0: u16, arg1: Reg8) Op {
+        return init(id, .{ .iw = arg0 }, .{ .rb = arg1 });
     }
 
-    pub fn iw_rw(id: Id, arg0: u16, arg1: Reg16) Op {
-        return build(id, .{ .iw = arg0 }, .{ .rw = arg1 });
+    pub fn iw_rw(comptime id: Id, arg0: u16, arg1: Reg16) Op {
+        return init(id, .{ .iw = arg0 }, .{ .rw = arg1 });
     }
 
-    pub fn rb_ib(id: Id, arg0: Reg8, arg1: u8) Op {
-        return build(id, .{ .rb = arg0 }, .{ .ib = arg1 });
+    pub fn rb_ib(comptime id: Id, arg0: Reg8, arg1: u8) Op {
+        return init(id, .{ .rb = arg0 }, .{ .ib = arg1 });
     }
 
-    pub fn rb_iw(id: Id, arg0: Reg8, arg1: u16) Op {
-        return build(id, .{ .rb = arg0 }, .{ .iw = arg1 });
+    pub fn rb_iw(comptime id: Id, arg0: Reg8, arg1: u16) Op {
+        return init(id, .{ .rb = arg0 }, .{ .iw = arg1 });
     }
 
-    pub fn rb_rb(id: Id, arg0: Reg8, arg1: Reg8) Op {
-        return build(id, .{ .rb = arg0 }, .{ .rb = arg1 });
+    pub fn rb_rb(comptime id: Id, arg0: Reg8, arg1: Reg8) Op {
+        return init(id, .{ .rb = arg0 }, .{ .rb = arg1 });
     }
 
-    pub fn rb_rw(id: Id, arg0: Reg8, arg1: Reg16) Op {
-        return build(id, .{ .rb = arg0 }, .{ .rw = arg1 });
+    pub fn rb_rw(comptime id: Id, arg0: Reg8, arg1: Reg16) Op {
+        return init(id, .{ .rb = arg0 }, .{ .rw = arg1 });
     }
 
-    pub fn rw_ib(id: Id, arg0: Reg16, arg1: u8) Op {
-        return build(id, .{ .rw = arg0 }, .{ .ib = arg1 });
+    pub fn rw_ib(comptime id: Id, arg0: Reg16, arg1: u8) Op {
+        return init(id, .{ .rw = arg0 }, .{ .ib = arg1 });
     }
 
-    pub fn rw_iw(id: Id, arg0: Reg16, arg1: u16) Op {
-        return build(id, .{ .rw = arg0 }, .{ .iw = arg1 });
+    pub fn rw_iw(comptime id: Id, arg0: Reg16, arg1: u16) Op {
+        return init(id, .{ .rw = arg0 }, .{ .iw = arg1 });
     }
 
-    pub fn rw_rb(id: Id, arg0: Reg16, arg1: Reg8) Op {
-        return build(id, .{ .rw = arg0 }, .{ .rb = arg1 });
+    pub fn rw_rb(comptime id: Id, arg0: Reg16, arg1: Reg8) Op {
+        return init(id, .{ .rw = arg0 }, .{ .rb = arg1 });
     }
 
-    pub fn rw_rw(id: Id, arg0: Reg16, arg1: Reg16) Op {
-        return build(id, .{ .rw = arg0 }, .{ .rw = arg1 });
+    pub fn rw_rw(comptime id: Id, arg0: Reg16, arg1: Reg16) Op {
+        return init(id, .{ .rw = arg0 }, .{ .rw = arg1 });
     }
 };
 
