@@ -403,6 +403,10 @@ pub const Cpu = struct {
             if (field.value == @enumToInt(thing.id)) {
                 const func = @field(op, field.name);
                 const result = func(cpu, mmu, thing);
+
+                const ResultMeta = @typeInfo(@TypeOf(func)).Fn.return_type.?;
+                std.debug.assert(result.duration == ResultMeta.durations[0] or result.duration == ResultMeta.durations[1]);
+
                 return @bitCast(Result, result);
             }
         }
