@@ -112,11 +112,11 @@ pub const Cpu = struct {
 
         self.mode = .norm;
         self.interrupt_master = false;
-        // TODO: this is silly -- we reverse the hacked offset in OP CALL
-        const dirty_pc = self.reg._16.get(.PC);
-        self.reg._16.set(.PC, dirty_pc - 3);
 
-        return @bitCast(Result, op.cal_IW___(self, mmu, addr));
+        return @bitCast(Result, op.cal_IW___(self, mmu, Op.iw___(
+            .cal_IW___,
+            addr,
+        )));
     }
 
     fn opDecode(inst: u8, arg1: u8, arg2: u8) Op {
@@ -337,7 +337,7 @@ pub const Cpu = struct {
             0xC8 => Op.zc___(.ret_zc___, .z),
             0xC9 => Op._____(.ret______),
             0xCA => Op.zc_iw(.jp__zc_IW, .z, argw),
-            0xCB => Op._____(.cb), // TODO
+            0xCB => Op.ib___(.cb__ib___, arg1), // FIXME
             0xCC => Op.zc_iw(.cal_zc_IW, .z, argw),
             0xCD => Op.iw___(.cal_IW___, argw),
             0xCE => Op.rb_ib(.adc_rb_ib, .A, arg1),
@@ -398,10 +398,12 @@ pub const Cpu = struct {
 
     fn opStep(cpu: *Cpu, mmu: *main.Mmu, inst: [*]const u8) Result {
         const thing = opDecode(inst[0], inst[1], inst[2]);
+        cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% thing.length);
         inline for (std.meta.fields(op.Id)) |field| {
             if (field.value == @enumToInt(thing.id)) {
                 const func = @field(op, field.name);
-                return .{ .duration = 4 }; // FIXME
+                const result = func(cpu, mmu, thing);
+                return @bitCast(Result, result);
             }
         }
         unreachable;
