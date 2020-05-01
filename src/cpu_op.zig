@@ -1,24 +1,142 @@
+const std = @import("std");
 const main = @import("main.zig");
-pub const cb = @import("cpu_opcb.zig").cb;
+pub const cb___ib___ = @import("cpu_opcb.zig").cb___ib___;
 
 const Reg8 = main.cpu.Reg8;
 const Reg16 = main.cpu.Reg16;
 const Flags = main.cpu.Flags;
 
-pub const Result = struct {
-    length: u16,
-    duration: u8,
-    name: []const u8,
-    jump: ?u16 = null,
+const Op = @This();
+
+id: Id,
+length: u8,
+
+arg0: Arg,
+arg1: Arg,
+
+durations: [2]u8,
+
+/// Positional argument types:
+/// * rb — register byte
+/// * rw — register word
+/// * ib — immediate byte
+/// * iw — immediate word
+/// * RB — register byte address
+/// * RW — register word address
+/// * IB — immediate byte address
+/// * IW — immediate word address
+///
+/// * tf — true/false
+/// * zc — Z/C flag condition
+/// * mo — CPU mode
+pub const Id = enum(u8) {
+    ILLEGAL___,
+    nop_______,
+    int__tf___,
+    sys__mo___,
+
+    ccf_______,
+    scf_______,
+
+    jp___IW___,
+    jp___RW___,
+    jp___zc_IW,
+    jr___IB___,
+    jr___zc_IB,
+    ret_______,
+    reti______,
+    ret__zc___,
+    call_IW___,
+    call_zc_IW,
+    rst__ib___,
+
+    ld___IW_rb,
+    ld___IW_rw,
+    ld___RB_rb,
+    ld___RW_ib,
+    ld___RW_rb,
+    ld___rb_IW,
+    ld___rb_RB,
+    ld___rb_RW,
+    ld___rb_ib,
+    ld___rb_rb,
+    ld___rw_iw,
+    ld___rw_rw,
+    ldd__RW_rb,
+    ldd__rb_RW,
+    ldh__IB_rb,
+    ldh__rb_IB,
+    ldi__RW_rb,
+    ldi__rb_RW,
+    ldhl_rw_IB,
+
+    add__rb_RW,
+    add__rb_ib,
+    add__rb_rb,
+    add__rw_IB,
+    add__rw_rw,
+    sub__rb_RW,
+    sub__rb_ib,
+    sub__rb_rb,
+    adc__rb_RW,
+    adc__rb_ib,
+    adc__rb_rb,
+    sbc__rb_RW,
+    sbc__rb_ib,
+    sbc__rb_rb,
+
+    and__rb_RW,
+    and__rb_ib,
+    and__rb_rb,
+    or___rb_RW,
+    or___rb_ib,
+    or___rb_rb,
+    xor__rb_RW,
+    xor__rb_ib,
+    xor__rb_rb,
+    cp___rb_RW,
+    cp___rb_ib,
+    cp___rb_rb,
+
+    cpl__rb___,
+    daa__rb___,
+
+    dec__RW___,
+    dec__rb___,
+    dec__rw___,
+    inc__RW___,
+    inc__rb___,
+    inc__rw___,
+
+    pop__rw___,
+    push_rw___,
+    rla__rb___,
+    rlca_rb___,
+    rra__rb___,
+    rrca_rb___,
+
+    cb___ib___, // FIXME
 };
 
-pub const Cond = enum(u32) {
+const Arg = union {
+    __: void,
+    ib: u8,
+    iw: u16,
+    rb: Reg8,
+    rw: Reg16,
+
+    tf: bool,
+    zc: ZC,
+    mo: main.cpu.Mode,
+};
+
+pub const ZC = enum(u32) {
     nz = 0x0_80,
     z = 0x80_80,
     nc = 0x0_10,
     c = 0x10_10,
 
-    pub fn check(self: Cond, cpu: main.Cpu) bool {
+    pub fn check(self: ZC, cpu: main.Cpu) bool {
         // return switch (self) {
         //     .nz => !cpu.reg.flags.Z,
         //     .z => cpu.reg.flags.Z,
@@ -31,46 +149,177 @@ pub const Cond = enum(u32) {
     }
 };
 
-pub fn ILLEGAL(cpu: *main.Cpu, mmu: *main.Mmu) Result {
+pub fn Result(lengt: u2, duration: var) type {
+    if (duration.len == 1) {
+        return extern struct {
+            pub const length = lengt;
+            pub const durations = [_]u8{duration[0]} ** 2;
+
+            duration: u8 = duration[0],
+        };
+    } else {
+        return extern struct {
+            pub const length = lengt;
+            // Switch to this once "type coercion of anon list literal to array"
+            // pub const durations: [2]u8 = duration;
+            pub const durations = [_]u8{ duration[0], duration[1] };
+
+            duration: u8,
+        };
+    }
+}
+
+// -- init helpers
+
+fn init(comptime id: Id, arg0: Arg, arg1: Arg) Op {
+    const ResultMeta: type = blk: {
+        inline for (std.meta.fields(Id)) |field| {
+            if (field.value == @enumToInt(id)) {
+                const func = @field(Op, field.name);
+                break :blk @typeInfo(@TypeOf(func)).Fn.return_type.?;
+            }
+        }
+        unreachable;
+    };
+
+    return .{
+        .id = id,
+        .arg0 = arg0,
+        .arg1 = arg1,
+
+        .length = ResultMeta.length,
+        .durations = ResultMeta.durations,
+    };
+}
+
+pub fn _____(comptime id: Id) Op {
+    return init(id, .{ .__ = {} }, .{ .__ = {} });
+}
+
+pub fn tf___(comptime id: Id, arg0: bool) Op {
+    return init(id, .{ .tf = arg0 }, .{ .__ = {} });
+}
+
+pub fn mo___(comptime id: Id, arg0: main.cpu.Mode) Op {
+    return init(id, .{ .mo = arg0 }, .{ .__ = {} });
+}
+
+pub fn ib___(comptime id: Id, arg0: u8) Op {
+    return init(id, .{ .ib = arg0 }, .{ .__ = {} });
+}
+
+pub fn iw___(comptime id: Id, arg0: u16) Op {
+    return init(id, .{ .iw = arg0 }, .{ .__ = {} });
+}
+
+pub fn rb___(comptime id: Id, arg0: Reg8) Op {
+    return init(id, .{ .rb = arg0 }, .{ .__ = {} });
+}
+
+pub fn rw___(comptime id: Id, arg0: Reg16) Op {
+    return init(id, .{ .rw = arg0 }, .{ .__ = {} });
+}
+
+pub fn zc___(comptime id: Id, arg0: ZC) Op {
+    return init(id, .{ .zc = arg0 }, .{ .__ = {} });
+}
+
+pub fn zc_ib(comptime id: Id, arg0: ZC, arg1: u8) Op {
+    return init(id, .{ .zc = arg0 }, .{ .ib = arg1 });
+}
+
+pub fn zc_iw(comptime id: Id, arg0: ZC, arg1: u16) Op {
+    return init(id, .{ .zc = arg0 }, .{ .iw = arg1 });
+}
+
+pub fn ib_rb(comptime id: Id, arg0: u8, arg1: Reg8) Op {
+    return init(id, .{ .ib = arg0 }, .{ .rb = arg1 });
+}
+
+pub fn iw_ib(comptime id: Id, arg0: u16, arg1: u8) Op {
+    return init(id, .{ .iw = arg0 }, .{ .ib = arg1 });
+}
+
+pub fn iw_rb(comptime id: Id, arg0: u16, arg1: Reg8) Op {
+    return init(id, .{ .iw = arg0 }, .{ .rb = arg1 });
+}
+
+pub fn iw_rw(comptime id: Id, arg0: u16, arg1: Reg16) Op {
+    return init(id, .{ .iw = arg0 }, .{ .rw = arg1 });
+}
+
+pub fn rb_ib(comptime id: Id, arg0: Reg8, arg1: u8) Op {
+    return init(id, .{ .rb = arg0 }, .{ .ib = arg1 });
+}
+
+pub fn rb_iw(comptime id: Id, arg0: Reg8, arg1: u16) Op {
+    return init(id, .{ .rb = arg0 }, .{ .iw = arg1 });
+}
+
+pub fn rb_rb(comptime id: Id, arg0: Reg8, arg1: Reg8) Op {
+    return init(id, .{ .rb = arg0 }, .{ .rb = arg1 });
+}
+
+pub fn rb_rw(comptime id: Id, arg0: Reg8, arg1: Reg16) Op {
+    return init(id, .{ .rb = arg0 }, .{ .rw = arg1 });
+}
+
+pub fn rw_ib(comptime id: Id, arg0: Reg16, arg1: u8) Op {
+    return init(id, .{ .rw = arg0 }, .{ .ib = arg1 });
+}
+
+pub fn rw_iw(comptime id: Id, arg0: Reg16, arg1: u16) Op {
+    return init(id, .{ .rw = arg0 }, .{ .iw = arg1 });
+}
+
+pub fn rw_rb(comptime id: Id, arg0: Reg16, arg1: Reg8) Op {
+    return init(id, .{ .rw = arg0 }, .{ .rb = arg1 });
+}
+
+pub fn rw_rw(comptime id: Id, arg0: Reg16, arg1: Reg16) Op {
+    return init(id, .{ .rw = arg0 }, .{ .rw = arg1 });
+}
+
+pub fn ILLEGAL___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     cpu.mode = .illegal;
-    return Result{ .length = 1, .duration = 4, .name = "ILLEGAL" };
+    return .{};
 }
 
-pub fn nop(cpu: *main.Cpu, mmu: *main.Mmu) Result {
-    return Result{ .length = 1, .duration = 4, .name = "NOP" };
+pub fn nop_______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    return .{};
 }
 
-pub fn sys(cpu: *main.Cpu, mmu: *main.Mmu, mode: main.cpu.Mode) Result {
-    cpu.mode = mode;
-    return Result{ .length = 1, .duration = 4, .name = "MODE" };
+pub fn sys__mo___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    cpu.mode = op.arg0.mo;
+    return .{};
 }
 
-pub fn scf(cpu: *main.Cpu, mmu: *main.Mmu) Result {
+pub fn scf_______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     cpu.reg.flags = Flags{
         .Z = cpu.reg.flags.Z,
         .N = false,
         .H = false,
         .C = true,
     };
-    return Result{ .length = 1, .duration = 4, .name = "SCF" };
+    return .{};
 }
 
-pub fn ccf(cpu: *main.Cpu, mmu: *main.Mmu) Result {
+pub fn ccf_______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     cpu.reg.flags = Flags{
         .Z = cpu.reg.flags.Z,
         .N = false,
         .H = false,
         .C = !cpu.reg.flags.C,
     };
-    return Result{ .length = 1, .duration = 4, .name = "CCF" };
+    return .{};
 }
 
-pub fn int______(cpu: *main.Cpu, mmu: *main.Mmu, set: bool) Result {
-    cpu.interrupt_master = set;
-    return Result{ .length = 1, .duration = 4, .name = if (set) "EI" else "DI" };
+pub fn int__tf___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    cpu.interrupt_master = op.arg0.tf;
+    return .{};
 }
 
-pub fn daa_rr___(cpu: *main.Cpu, mmu: *main.Mmu, dst: Reg8) Result {
+pub fn daa__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     // https://www.reddit.com/r/EmuDev/comments/4ycoix/a_guide_to_the_gameboys_halfcarry_flag/d6p3rtl?utm_source=share&utm_medium=web2x
     // On the Z80:
     // If C is set OR a > 0x99, add or subtract 0x60 depending on N, and set C
@@ -81,6 +330,8 @@ pub fn daa_rr___(cpu: *main.Cpu, mmu: *main.Mmu, dst: Reg8) Result {
     // DAA after a subtract (N flag set) only tests the C and H flags, and not the previous value of a
     // H is always cleared (for both add and subtract)
     // N is preserved, Z is set the usual way, and the rest of the Z80 flags don't exist
+    const dst = op.arg0.rb;
+
     const start = cpu.reg._8.get(dst);
     var val = start;
     var carry = cpu.reg.flags.C;
@@ -120,239 +371,236 @@ pub fn daa_rr___(cpu: *main.Cpu, mmu: *main.Mmu, dst: Reg8) Result {
         .H = false,
         .C = carry,
     };
-    return Result{ .length = 1, .duration = 4, .name = "DAA" };
+    return .{};
 }
 
-pub fn jr__R8___(cpu: *main.Cpu, mmu: *main.Mmu, offset: u8) Result {
-    const INST_LENGTH: u8 = 2;
-    return Result{
-        .name = "JR",
-        .length = INST_LENGTH,
-        .duration = 12,
-        .jump = signedAdd(cpu.reg._16.get(.PC) + INST_LENGTH, offset),
-    };
+pub fn jr___IB___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{12}) {
+    const jump = signedAdd(cpu.reg._16.get(.PC), op.arg0.ib);
+    cpu.reg._16.set(.PC, jump);
+    return .{};
 }
 
-pub fn jr__if_R8(cpu: *main.Cpu, mmu: *main.Mmu, cond: Cond, offset: u8) Result {
-    const INST_LENGTH: u8 = 2;
-    return Result{
-        .name = "JR",
-        .length = INST_LENGTH,
-        .duration = 12,
-        .jump = if (cond.check(cpu.*)) signedAdd(cpu.reg._16.get(.PC) + INST_LENGTH, offset) else null,
-    };
+pub fn jr___zc_IB(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{ 8, 12 }) {
+    if (op.arg0.zc.check(cpu.*)) {
+        const jump = signedAdd(cpu.reg._16.get(.PC), op.arg1.ib);
+        cpu.reg._16.set(.PC, jump);
+        return .{ .duration = 12 };
+    }
+    return .{ .duration = 8 };
 }
 
-pub fn jp__AF___(cpu: *main.Cpu, mmu: *main.Mmu, target: u16) Result {
-    return Result{ .name = "JP", .jump = target, .length = 3, .duration = 16 };
+pub fn jp___IW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{16}) {
+    cpu.reg._16.set(.PC, op.arg0.iw);
+    return .{};
 }
 
-pub fn jp__if_AF(cpu: *main.Cpu, mmu: *main.Mmu, cond: Cond, target: u16) Result {
-    return Result{
-        .name = "JP",
-        .length = 3,
-        .duration = 16,
-        .jump = if (cond.check(cpu.*)) target else null,
-    };
+pub fn jp___zc_IW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{ 16, 12 }) {
+    if (op.arg0.zc.check(cpu.*)) {
+        cpu.reg._16.set(.PC, op.arg1.iw);
+        return .{ .duration = 16 };
+    }
+    return .{ .duration = 12 };
 }
 
-pub fn jp__WW___(cpu: *main.Cpu, mmu: *main.Mmu, target: Reg16) Result {
-    return Result{ .name = "JP", .length = 1, .duration = 4, .jump = cpu.reg._16.get(target) };
+pub fn jp___RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    const jump = cpu.reg._16.get(op.arg0.rw);
+    cpu.reg._16.set(.PC, jump);
+    return .{};
 }
 
-pub fn ret______(cpu: *main.Cpu, mmu: *main.Mmu) Result {
-    const target = pop16(cpu, mmu);
-    return Result{ .name = "RET", .length = 1, .duration = 16, .jump = target };
+pub fn ret_______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{16}) {
+    const jump = pop16(cpu, mmu);
+    cpu.reg._16.set(.PC, jump);
+    return .{};
 }
 
-pub fn rti______(cpu: *main.Cpu, mmu: *main.Mmu) Result {
-    const target = pop16(cpu, mmu);
+pub fn reti______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{16}) {
+    const jump = pop16(cpu, mmu);
+    cpu.reg._16.set(.PC, jump);
     cpu.interrupt_master = true;
-    return Result{ .name = "RETI", .length = 1, .duration = 16, .jump = target };
+    return .{};
 }
 
-pub fn ret_if___(cpu: *main.Cpu, mmu: *main.Mmu, cond: Cond) Result {
-    return Result{
-        .name = "RET",
-        .length = 1,
-        .duration = 8,
-        .jump = if (cond.check(cpu.*)) pop16(cpu, mmu) else null,
-    };
+pub fn ret__zc___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{ 8, 20 }) {
+    if (op.arg0.zc.check(cpu.*)) {
+        const jump = pop16(cpu, mmu);
+        cpu.reg._16.set(.PC, jump);
+        return .{ .duration = 20 };
+    }
+    return .{ .duration = 8 };
 }
 
-pub fn rst_d8___(cpu: *main.Cpu, mmu: *main.Mmu, target: u8) Result {
-    push16(cpu, mmu, cpu.reg._16.get(.PC) + 1);
-    return Result{
-        .name = "RST",
-        .length = 1,
-        .duration = 16,
-        .jump = target,
-    };
+pub fn rst__ib___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{16}) {
+    push16(cpu, mmu, cpu.reg._16.get(.PC));
+    cpu.reg._16.set(.PC, op.arg0.ib);
+    return .{};
 }
 
-pub fn cal_AF___(cpu: *main.Cpu, mmu: *main.Mmu, target: u16) Result {
-    push16(cpu, mmu, cpu.reg._16.get(.PC) + 3);
-    return Result{
-        .name = "CALL",
-        .length = 3,
-        .duration = 24,
-        .jump = target,
-    };
+pub fn call_IW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{24}) {
+    push16(cpu, mmu, cpu.reg._16.get(.PC));
+    cpu.reg._16.set(.PC, op.arg0.iw);
+    return .{};
 }
 
-pub fn cal_if_AF(cpu: *main.Cpu, mmu: *main.Mmu, cond: Cond, target: u16) Result {
-    return Result{
-        .name = "CALL",
-        .length = 3,
-        .duration = 24,
-        .jump = if (!cond.check(cpu.*)) null else blk: {
-            push16(cpu, mmu, cpu.reg._16.get(.PC) + 3);
-            break :blk target;
-        },
-    };
+pub fn call_zc_IW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{ 12, 24 }) {
+    if (op.arg0.zc.check(cpu.*)) {
+        push16(cpu, mmu, cpu.reg._16.get(.PC));
+        cpu.reg._16.set(.PC, op.arg1.iw);
+        return .{ .duration = 24 };
+    }
+    return .{ .duration = 12 };
 }
 
-pub fn rlc_rr___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8) Result {
+pub fn rlca_rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    const tgt = op.arg0.rb;
     cpu.reg._8.set(tgt, doRlc(cpu, cpu.reg._8.get(tgt)));
     cpu.reg.flags.Z = false;
-    return Result{ .name = "RLCA", .length = 1, .duration = 4 };
+    return .{};
 }
 
-pub fn rla_rr___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8) Result {
+pub fn rla__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    const tgt = op.arg0.rb;
     cpu.reg._8.set(tgt, doRl(cpu, cpu.reg._8.get(tgt)));
     cpu.reg.flags.Z = false;
-    return Result{ .name = "RLA", .length = 1, .duration = 4 };
+    return .{};
 }
 
-pub fn rrc_rr___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8) Result {
+pub fn rrca_rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    const tgt = op.arg0.rb;
     cpu.reg._8.set(tgt, doRrc(cpu, cpu.reg._8.get(tgt)));
     cpu.reg.flags.Z = false;
-    return Result{ .name = "RRC", .length = 1, .duration = 4 };
+    return .{};
 }
 
-pub fn rra_rr___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8) Result {
+pub fn rra__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    const tgt = op.arg0.rb;
     cpu.reg._8.set(tgt, doRr(cpu, cpu.reg._8.get(tgt)));
     cpu.reg.flags.Z = false;
-    return Result{ .name = "RRA", .length = 1, .duration = 4 };
+    return .{};
 }
 
-pub fn ld__rr_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, d8: u8) Result {
-    cpu.reg._8.set(tgt, d8);
-    return Result{ .name = "LD", .length = 2, .duration = 8 };
+pub fn ld___rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    cpu.reg._8.set(op.arg0.rb, op.arg1.ib);
+    return .{};
 }
 
-pub fn ld__rr_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    cpu.reg._8.copy(tgt, src);
-    return Result{ .name = "LD", .length = 1, .duration = 4 };
+pub fn ld___rb_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    cpu.reg._8.copy(op.arg0.rb, op.arg1.rb);
+    return .{};
 }
 
-pub fn ld__rr_RR(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    const addr = @as(u16, 0xFF00) + cpu.reg._8.get(src);
-    cpu.reg._8.set(tgt, mmu.get(addr));
-    return Result{ .name = "LD", .length = 1, .duration = 8 };
+pub fn ld___rb_RB(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = @as(u16, 0xFF00) + cpu.reg._8.get(op.arg1.rb);
+    cpu.reg._8.set(op.arg0.rb, mmu.get(addr));
+    return .{};
 }
 
-pub fn ld__RR_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    const addr = @as(u16, 0xFF00) + cpu.reg._8.get(tgt);
-    mmu.set(addr, cpu.reg._8.get(src));
-    return Result{ .name = "LD", .length = 1, .duration = 8 };
+pub fn ld___RB_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = @as(u16, 0xFF00) + cpu.reg._8.get(op.arg0.rb);
+    mmu.set(addr, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn ld__rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
-    cpu.reg._8.set(tgt, mmu.get(cpu.reg._16.get(src)));
-    return Result{ .name = "LD", .length = 1, .duration = 8 };
+pub fn ld___rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    cpu.reg._8.set(op.arg0.rb, mmu.get(cpu.reg._16.get(op.arg1.rw)));
+    return .{};
 }
 
-pub fn ld__ww_df(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, val: u16) Result {
-    cpu.reg._16.set(tgt, val);
-    return Result{ .name = "LD", .length = 3, .duration = 12 };
+pub fn ld___rw_iw(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{12}) {
+    cpu.reg._16.set(op.arg0.rw, op.arg1.iw);
+    return .{};
 }
 
-pub fn ld__WW_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, src: Reg8) Result {
-    const addr = cpu.reg._16.get(tgt);
-    mmu.set(addr, cpu.reg._8.get(src));
-    return Result{ .name = "LD", .length = 1, .duration = 8 };
+pub fn ld___RW_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    mmu.set(addr, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn ld__AF_ww(cpu: *main.Cpu, mmu: *main.Mmu, a16: u16, src: Reg16) Result {
+pub fn ld___IW_rw(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{20}) {
     // TODO: verify this is correct
-    mmu.set(a16, mmu.get(cpu.reg._16.get(src)));
-    return Result{ .name = "LD", .length = 3, .duration = 20 };
+    mmu.set(op.arg0.iw, mmu.get(cpu.reg._16.get(op.arg1.rw)));
+    return .{};
 }
 
-pub fn ld__WW_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, val: u8) Result {
+pub fn ld___RW_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{12}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    mmu.set(addr, op.arg1.ib);
+    return .{};
+}
+
+pub fn ld___IW_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{16}) {
+    mmu.set(op.arg0.iw, cpu.reg._8.get(op.arg1.rb));
+    return .{};
+}
+
+pub fn ld___rb_IW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{16}) {
+    cpu.reg._8.set(op.arg0.rb, mmu.get(op.arg1.iw));
+    return .{};
+}
+
+pub fn ld___rw_rw(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    cpu.reg._16.copy(op.arg0.rw, op.arg1.rw);
+    return .{};
+}
+
+pub fn ldhl_rw_IB(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    // TODO: audit LDHL SP,n
+    const val = cpu.reg._16.get(op.arg0.rw);
+    cpu.reg._16.set(.HL, signedAdd(val, op.arg1.ib));
+    return .{};
+}
+
+pub fn ldi__RW_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const tgt = op.arg0.rw;
     const addr = cpu.reg._16.get(tgt);
-    mmu.set(addr, val);
-    return Result{ .name = "LD", .length = 2, .duration = 12 };
-}
-
-pub fn ld__AF_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: u16, src: Reg8) Result {
-    mmu.set(tgt, cpu.reg._8.get(src));
-    return Result{ .name = "LD", .length = 3, .duration = 16 };
-}
-
-pub fn ld__rr_AF(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, val: u16) Result {
-    cpu.reg._8.set(tgt, mmu.get(val));
-    return Result{ .name = "LD", .length = 3, .duration = 16 };
-}
-
-pub fn ld__ww_ww(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, src: Reg16) Result {
-    cpu.reg._16.copy(tgt, src);
-    return Result{ .name = "LD", .length = 1, .duration = 8 };
-}
-
-pub fn ldh_ww_R8(cpu: *main.Cpu, mmu: *main.Mmu, src: Reg16, offset: u8) Result {
-    const val = cpu.reg._16.get(src);
-    cpu.reg._16.set(.HL, signedAdd(val, offset));
-    return Result{ .name = "LDHL", .length = 2, .duration = 16 };
-}
-
-pub fn ldi_WW_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, src: Reg8) Result {
-    const addr = cpu.reg._16.get(tgt);
-    mmu.set(addr, cpu.reg._8.get(src));
+    mmu.set(addr, cpu.reg._8.get(op.arg1.rb));
     cpu.reg._16.set(tgt, addr +% 1);
-    return Result{ .name = "LDI", .length = 1, .duration = 8 };
+    return .{};
 }
 
-pub fn ldi_rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
+pub fn ldi__rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const src = op.arg1.rw;
     const addr = cpu.reg._16.get(src);
-    cpu.reg._8.set(tgt, mmu.get(addr));
+    cpu.reg._8.set(op.arg0.rb, mmu.get(addr));
     cpu.reg._16.set(src, addr +% 1);
-    return Result{ .name = "LDI", .length = 1, .duration = 8 };
+    return .{};
 }
 
-pub fn ldd_WW_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, src: Reg8) Result {
+pub fn ldd__RW_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const tgt = op.arg0.rw;
     const addr = cpu.reg._16.get(tgt);
-    mmu.set(addr, cpu.reg._8.get(src));
+    mmu.set(addr, cpu.reg._8.get(op.arg1.rb));
     cpu.reg._16.set(tgt, addr -% 1);
-    return Result{ .name = "LDD", .length = 1, .duration = 8 };
+    return .{};
 }
 
-pub fn ldd_rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
+pub fn ldd__rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const src = op.arg1.rw;
     const addr = cpu.reg._16.get(src);
-    cpu.reg._8.set(tgt, mmu.get(addr));
+    cpu.reg._8.set(op.arg0.rb, mmu.get(addr));
     cpu.reg._16.set(src, addr -% 1);
-    return Result{ .name = "LDD", .length = 1, .duration = 8 };
+    return .{};
 }
 
-pub fn ldh_A8_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: u8, src: Reg8) Result {
-    mmu.set(@as(u16, 0xFF00) + tgt, cpu.reg._8.get(src));
-    return Result{ .name = "LDH", .length = 2, .duration = 12 };
+pub fn ldh__IB_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{12}) {
+    mmu.set(@as(u16, 0xFF00) + op.arg0.ib, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn ldh_rr_A8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: u8) Result {
-    cpu.reg._8.set(tgt, mmu.get(@as(u16, 0xFF00) + src));
-    return Result{ .name = "LDH", .length = 2, .duration = 12 };
+pub fn ldh__rb_IB(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{12}) {
+    cpu.reg._8.set(op.arg0.rb, mmu.get(@as(u16, 0xFF00) + op.arg1.ib));
+    return .{};
 }
 
-pub fn inc_ww___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16) Result {
-    const val = cpu.reg._16.get(tgt);
-    cpu.reg._16.set(tgt, val +% 1);
-    return Result{ .name = "INC", .length = 1, .duration = 8 };
+pub fn inc__rw___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const val = cpu.reg._16.get(op.arg0.rw);
+    cpu.reg._16.set(op.arg0.rw, val +% 1);
+    return .{};
 }
 
-pub fn inc_WW___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16) Result {
-    const addr = cpu.reg._16.get(tgt);
+pub fn inc__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{12}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
     const val = mmu.get(addr);
     cpu.reg.flags = Flags{
         .Z = (val +% 1) == 0,
@@ -362,29 +610,29 @@ pub fn inc_WW___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16) Result {
     };
 
     mmu.set(addr, val +% 1);
-    return Result{ .name = "INC", .length = 1, .duration = 12 };
+    return .{};
 }
 
-pub fn inc_rr___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8) Result {
-    const val = cpu.reg._8.get(tgt);
+pub fn inc__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    const val = cpu.reg._8.get(op.arg0.rb);
     cpu.reg.flags = Flags{
         .Z = (val +% 1) == 0,
         .N = false,
         .H = willCarryInto(4, val, 1),
         .C = cpu.reg.flags.C,
     };
-    cpu.reg._8.set(tgt, val +% 1);
-    return Result{ .name = "INC", .length = 1, .duration = 4 };
+    cpu.reg._8.set(op.arg0.rb, val +% 1);
+    return .{};
 }
 
-pub fn dec_ww___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16) Result {
-    const val = cpu.reg._16.get(tgt);
-    cpu.reg._16.set(tgt, val -% 1);
-    return Result{ .name = "DEC", .length = 1, .duration = 8 };
+pub fn dec__rw___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const val = cpu.reg._16.get(op.arg0.rw);
+    cpu.reg._16.set(op.arg0.rw, val -% 1);
+    return .{};
 }
 
-pub fn dec_WW___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16) Result {
-    const addr = cpu.reg._16.get(tgt);
+pub fn dec__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{12}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
     const val = mmu.get(addr);
 
     cpu.reg.flags = Flags{
@@ -394,39 +642,40 @@ pub fn dec_WW___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16) Result {
         .C = cpu.reg.flags.C,
     };
     mmu.set(addr, val -% 1);
-    return Result{ .name = "DEC", .length = 1, .duration = 12 };
+    return .{};
 }
 
-pub fn dec_rr___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8) Result {
-    const val = cpu.reg._8.get(tgt);
+pub fn dec__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    const val = cpu.reg._8.get(op.arg0.rb);
     cpu.reg.flags = Flags{
         .Z = (val -% 1) == 0,
         .N = true,
         .H = willBorrowFrom(4, val, 1),
         .C = cpu.reg.flags.C,
     };
-    cpu.reg._8.set(tgt, val -% 1);
-    return Result{ .name = "DEC", .length = 1, .duration = 4 };
+    cpu.reg._8.set(op.arg0.rb, val -% 1);
+    return .{};
 }
 
-pub fn add_rr_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    doAddRr(cpu, tgt, cpu.reg._8.get(src));
-    return Result{ .name = "ADD", .length = 1, .duration = 4 };
+pub fn add__rb_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    doAddRr(cpu, op.arg0.rb, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn add_rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
-    const addr = cpu.reg._16.get(src);
-    doAddRr(cpu, tgt, mmu.get(addr));
-    return Result{ .name = "ADD", .length = 1, .duration = 8 };
+pub fn add__rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    doAddRr(cpu, op.arg0.rb, mmu.get(addr));
+    return .{};
 }
 
-pub fn add_rr_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, val: u8) Result {
-    doAddRr(cpu, tgt, val);
-    return Result{ .name = "ADD", .length = 2, .duration = 8 };
+pub fn add__rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    doAddRr(cpu, op.arg0.rb, op.arg1.ib);
+    return .{};
 }
 
-pub fn add_ww_ww(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, src: Reg16) Result {
-    const src_val = cpu.reg._16.get(src);
+pub fn add__rw_rw(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const tgt = op.arg0.rw;
+    const src_val = cpu.reg._16.get(op.arg1.rw);
     const tgt_val = cpu.reg._16.get(tgt);
     cpu.reg.flags = Flags{
         .Z = cpu.reg.flags.Z,
@@ -435,10 +684,12 @@ pub fn add_ww_ww(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, src: Reg16) Result 
         .C = willCarryInto(16, tgt_val, src_val),
     };
     cpu.reg._16.set(tgt, tgt_val +% src_val);
-    return Result{ .name = "ADD", .length = 1, .duration = 8 };
+    return .{};
 }
 
-pub fn add_ww_R8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, offset: u8) Result {
+pub fn add__rw_IB(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const tgt = op.arg0.rw;
+    const offset = op.arg1.ib;
     const val = cpu.reg._16.get(tgt);
     cpu.reg.flags = Flags{
         .Z = false,
@@ -447,122 +698,123 @@ pub fn add_ww_R8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16, offset: u8) Result 
         .C = willCarryInto(16, val, offset),
     };
     cpu.reg._16.set(tgt, signedAdd(val, offset));
-    return Result{ .name = "ADD", .length = 2, .duration = 16 };
+    return .{};
 }
 
-pub fn adc_rr_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    doAdcRr(cpu, tgt, cpu.reg._8.get(src));
-    return Result{ .name = "ADC", .length = 1, .duration = 4 };
+pub fn adc__rb_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    doAdcRr(cpu, op.arg0.rb, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn adc_rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
-    const addr = cpu.reg._16.get(src);
-    doAdcRr(cpu, tgt, mmu.get(addr));
-    return Result{ .name = "ADC", .length = 1, .duration = 8 };
+pub fn adc__rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    doAdcRr(cpu, op.arg0.rb, mmu.get(addr));
+    return .{};
 }
 
-pub fn adc_rr_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, val: u8) Result {
-    doAdcRr(cpu, tgt, val);
-    return Result{ .name = "ADC", .length = 2, .duration = 8 };
+pub fn adc__rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    doAdcRr(cpu, op.arg0.rb, op.arg1.ib);
+    return .{};
 }
 
-pub fn sub_rr_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    doSubRr(cpu, tgt, cpu.reg._8.get(src));
-    return Result{ .name = "SUB", .length = 1, .duration = 4 };
+pub fn sub__rb_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    doSubRr(cpu, op.arg0.rb, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn sub_rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
-    const addr = cpu.reg._16.get(src);
-    doSubRr(cpu, tgt, mmu.get(addr));
-    return Result{ .name = "SUB", .length = 1, .duration = 8 };
+pub fn sub__rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    doSubRr(cpu, op.arg0.rb, mmu.get(addr));
+    return .{};
 }
 
-pub fn sub_rr_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, val: u8) Result {
-    doSubRr(cpu, tgt, val);
-    return Result{ .name = "SUB", .length = 2, .duration = 8 };
+pub fn sub__rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    doSubRr(cpu, op.arg0.rb, op.arg1.ib);
+    return .{};
 }
 
-pub fn sbc_rr_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    doSbcRr(cpu, tgt, cpu.reg._8.get(src));
-    return Result{ .name = "SBC", .length = 1, .duration = 4 };
+pub fn sbc__rb_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    doSbcRr(cpu, op.arg0.rb, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn sbc_rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
-    const addr = cpu.reg._16.get(src);
-    doSbcRr(cpu, tgt, mmu.get(addr));
-    return Result{ .name = "SBC", .length = 1, .duration = 8 };
+pub fn sbc__rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    doSbcRr(cpu, op.arg0.rb, mmu.get(addr));
+    return .{};
 }
 
-pub fn sbc_rr_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, val: u8) Result {
-    doSbcRr(cpu, tgt, val);
-    return Result{ .name = "SBC", .length = 2, .duration = 8 };
+pub fn sbc__rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    doSbcRr(cpu, op.arg0.rb, op.arg1.ib);
+    return .{};
 }
 
-pub fn and_rr_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    doAndRr(cpu, tgt, cpu.reg._8.get(src));
-    return Result{ .name = "AND", .length = 1, .duration = 4 };
+pub fn and__rb_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    doAndRr(cpu, op.arg0.rb, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn and_rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
-    const addr = cpu.reg._16.get(src);
-    doAndRr(cpu, tgt, mmu.get(addr));
-    return Result{ .name = "AND", .length = 1, .duration = 8 };
+pub fn and__rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    doAndRr(cpu, op.arg0.rb, mmu.get(addr));
+    return .{};
 }
 
-pub fn and_rr_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, val: u8) Result {
-    doAndRr(cpu, tgt, val);
-    return Result{ .name = "AND", .length = 2, .duration = 8 };
+pub fn and__rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    doAndRr(cpu, op.arg0.rb, op.arg1.ib);
+    return .{};
 }
 
-pub fn or__rr_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    doOrRr(cpu, tgt, cpu.reg._8.get(src));
-    return Result{ .name = "OR", .length = 1, .duration = 4 };
+pub fn or___rb_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    doOrRr(cpu, op.arg0.rb, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn or__rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
-    const addr = cpu.reg._16.get(src);
-    doOrRr(cpu, tgt, mmu.get(addr));
-    return Result{ .name = "OR", .length = 1, .duration = 8 };
+pub fn or___rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    doOrRr(cpu, op.arg0.rb, mmu.get(addr));
+    return .{};
 }
 
-pub fn or__rr_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, val: u8) Result {
-    doOrRr(cpu, tgt, val);
-    return Result{ .name = "OR", .length = 2, .duration = 8 };
+pub fn or___rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    doOrRr(cpu, op.arg0.rb, op.arg1.ib);
+    return .{};
 }
 
-pub fn xor_rr_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    doXorRr(cpu, tgt, cpu.reg._8.get(src));
-    return Result{ .name = "XOR", .length = 1, .duration = 4 };
+pub fn xor__rb_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    doXorRr(cpu, op.arg0.rb, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn xor_rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
-    const addr = cpu.reg._16.get(src);
-    doXorRr(cpu, tgt, mmu.get(addr));
-    return Result{ .name = "XOR", .length = 1, .duration = 8 };
+pub fn xor__rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    doXorRr(cpu, op.arg0.rb, mmu.get(addr));
+    return .{};
 }
 
-pub fn xor_rr_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, val: u8) Result {
-    doXorRr(cpu, tgt, val);
-    return Result{ .name = "XOR", .length = 2, .duration = 8 };
+pub fn xor__rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    doXorRr(cpu, op.arg0.rb, op.arg1.ib);
+    return .{};
 }
 
-pub fn cp__rr_rr(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg8) Result {
-    doCpRr(cpu, tgt, cpu.reg._8.get(src));
-    return Result{ .name = "CP", .length = 1, .duration = 4 };
+pub fn cp___rb_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    doCpRr(cpu, op.arg0.rb, cpu.reg._8.get(op.arg1.rb));
+    return .{};
 }
 
-pub fn cp__rr_WW(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, src: Reg16) Result {
-    const addr = cpu.reg._16.get(src);
-    doCpRr(cpu, tgt, mmu.get(addr));
-    return Result{ .name = "CP", .length = 1, .duration = 8 };
+pub fn cp___rb_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    doCpRr(cpu, op.arg0.rb, mmu.get(addr));
+    return .{};
 }
 
-pub fn cp__rr_d8(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8, val: u8) Result {
-    doCpRr(cpu, tgt, val);
-    return Result{ .name = "CP", .length = 2, .duration = 8 };
+pub fn cp___rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    doCpRr(cpu, op.arg0.rb, op.arg1.ib);
+    return .{};
 }
 
-pub fn cpl_rr___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8) Result {
+pub fn cpl__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
+    const tgt = op.arg0.rb;
     const val = cpu.reg._8.get(tgt);
     cpu.reg.flags = Flags{
         .Z = cpu.reg.flags.Z,
@@ -571,19 +823,19 @@ pub fn cpl_rr___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg8) Result {
         .C = cpu.reg.flags.C,
     };
     cpu.reg._8.set(tgt, ~val);
-    return Result{ .name = "CPL", .length = 1, .duration = 4 };
+    return .{};
 }
 
-pub fn psh_ww___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16) Result {
-    push16(cpu, mmu, cpu.reg._16.get(tgt));
-    return Result{ .name = "PUSH", .length = 1, .duration = 16 };
+pub fn push_rw___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{16}) {
+    push16(cpu, mmu, cpu.reg._16.get(op.arg0.rw));
+    return .{};
 }
 
-pub fn pop_ww___(cpu: *main.Cpu, mmu: *main.Mmu, tgt: Reg16) Result {
-    cpu.reg._16.set(tgt, pop16(cpu, mmu));
+pub fn pop__rw___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{12}) {
+    cpu.reg._16.set(op.arg0.rw, pop16(cpu, mmu));
     // Always setting is faster than if check
     cpu.reg.flags._pad = 0;
-    return Result{ .name = "POP", .length = 1, .duration = 12 };
+    return .{};
 }
 
 // -- internal

@@ -14,7 +14,7 @@ const CSS = {
   root: nano.rule({
     position: "relative",
     zIndex: 1,
-    width: "350px"
+    width: "350px",
   }),
 
   toggler: nano.rule({
@@ -29,7 +29,7 @@ const CSS = {
     borderRadius: "3px 3px 0 0",
     overflow: "hidden",
     whiteSpace: "nowrap",
-    textOverflow: "ellipsis"
+    textOverflow: "ellipsis",
   }),
 
   selector: nano.rule({
@@ -47,8 +47,8 @@ const CSS = {
     alignItems: "center",
 
     "&.active": {
-      height: "350px"
-    }
+      height: "350px",
+    },
   }),
 
   selectorList: nano.rule({
@@ -56,7 +56,7 @@ const CSS = {
     flex: 1,
     overflow: "hidden",
     display: "flex",
-    flexDirection: "column"
+    flexDirection: "column",
   }),
 
   backdrop: nano.rule({
@@ -72,8 +72,8 @@ const CSS = {
 
     "&.active": {
       pointerEvents: "initial",
-      opacity: 0.8
-    }
+      opacity: 0.8,
+    },
   }),
 
   prompt: nano.rule({
@@ -81,8 +81,8 @@ const CSS = {
 
     "&:before, &:after": {
       padding: "0 4px",
-      content: "'—'"
-    }
+      content: "'—'",
+    },
   }),
 
   upload: nano.rule({
@@ -92,12 +92,12 @@ const CSS = {
     border: "1px solid black",
     borderRadius: "4px",
     padding: "4px 20px",
-    marginBottom: "10px"
+    marginBottom: "10px",
   }),
 
   hidden: nano.rule({
-    display: "none"
-  })
+    display: "none",
+  }),
 };
 
 export default function CartSelect(props: {
@@ -111,14 +111,14 @@ export default function CartSelect(props: {
   const selectCart = React.useCallback(
     (name: string, data: Uint8Array) => {
       setChoosing(false);
-      fd.init(data);
+      fd.load(data);
       setName(name);
     },
     [fd]
   );
 
   type LinkClicked = React.MouseEventHandler<HTMLAnchorElement>;
-  const downloadCart = React.useCallback<LinkClicked>(async event => {
+  const downloadCart = React.useCallback<LinkClicked>(async (event) => {
     event.preventDefault();
     const link = event.currentTarget;
     const resp = await fetch(link.href);
@@ -131,7 +131,7 @@ export default function CartSelect(props: {
   }, []);
 
   type FileChanged = React.ChangeEventHandler<HTMLInputElement>;
-  const onFile = React.useCallback<FileChanged>(async event => {
+  const onFile = React.useCallback<FileChanged>(async (event) => {
     const file = event.currentTarget.files[0] as File;
     const data = new Uint8Array(await readAsArray(file));
     selectCart(file.name, data);
@@ -167,7 +167,7 @@ export default function CartSelect(props: {
             className={CSS.hidden}
             type="file"
             onChange={onFile}
-            onClick={event => (event.currentTarget.value = "")}
+            onClick={(event) => (event.currentTarget.value = "")}
           />
         </label>
       </div>

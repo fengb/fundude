@@ -50,39 +50,19 @@ const RamSize = enum(u8) {
     _64k = 5,
 };
 
-const Nope = struct {
-    pub fn set(mbc: *Mbc, addr: u15, val: u8) void {}
-};
-
-const Mbc1 = struct {
-    pub fn set(mbc: *Mbc, addr: u15, val: u8) void {
-        if (addr < 0x2000) {
-            // RAM enable
-        } else if (addr < BANK_SIZE) {
-            var bank = val & 0x1F;
-            if (bank % 0x20 == 0) {
-                bank += 1;
-            }
-            const total_banks = mbc.cart.len / BANK_SIZE;
-            mbc.bank_offset = @as(u32, BANK_SIZE) * std.math.min(bank, total_banks);
-        } else if (addr < 0x6000) {
-            // RAM bank
-        } else {
-            // ROM/RAM Mode Select
-        }
-    }
-};
-
 pub const Mbc = struct {
-    cart: []u8,
+    cart: []const u8,
     bank_offset: u32,
+    id: Id,
 
-    // TODO: convert to getFn
-    setFn: fn (mbc: *Mbc, addr: u15, val: u8) void,
+    const Id = enum {
+        None = 0x0,
+        Mbc1 = 0x1,
+    };
 
     // TODO: RAM banking
 
-    pub fn init(cart: []u8) CartHeaderError!Mbc {
+    pub fn init(cart: []const u8) CartHeaderError!Mbc {
         const size = try RomSize.init(cart[0x148]);
         if (cart.len != size.bytes()) {
             return error.RomSizeError;
@@ -91,29 +71,42 @@ pub const Mbc = struct {
         return Mbc{
             .cart = cart,
             .bank_offset = BANK_SIZE,
-            .setFn = switch (cart[0x147]) {
-                0x0 => Nope.set,
-                0x1 => Mbc1.set,
-                else => return error.CartTypeError,
-            },
+            .id = std.meta.intToEnum(Id, cart[0x147]) catch return error.CartTypeError,
         };
     }
 
-    // TODO: remove me
-    pub fn ptr(self: Mbc, addr: u15) [*]const u8 {
-        if (addr < BANK_SIZE) {
-            return self.cart.ptr + addr;
-        } else {
-            return self.cart.ptr + self.bank_offset + (addr - BANK_SIZE);
-        }
+    pub fn bankIdx(self: Mbc, addr: u16) usize {
+        std.debug.assert(addr >= 0x4000);
+        std.debug.assert(addr < 0x8000);
+        return self.bank_offset + (addr - BANK_SIZE);
     }
 
     pub fn get(self: Mbc, addr: u15) u8 {
-        const p = self.ptr(addr);
-        return p[0];
+        if (addr < BANK_SIZE) {
+            return self.cart[addr];
+        } else {
+            return self.cart[self.bankIdx(addr)];
+        }
     }
 
     pub fn set(self: *Mbc, addr: u15, val: u8) void {
-        return self.setFn(self, addr, val);
+        switch (self.id) {
+            .None => {},
+            .Mbc1 => {
+                switch (addr) {
+                    0x0000...0x2000 - 1 => {}, // RAM enable
+                    0x2000...BANK_SIZE - 1 => {
+                        var bank = val & 0x1F;
+                        if (bank % 0x20 == 0) {
+                            bank += 1;
+                        }
+                        const total_banks = self.cart.len / BANK_SIZE;
+                        self.bank_offset = @as(u32, BANK_SIZE) * std.math.min(bank, total_banks);
+                    },
+                    BANK_SIZE...0x6000 - 1 => {}, // RAM bank
+                    0x6000...0x8000 - 1 => {}, // ROM/RAM Mode Select
+                }
+            },
+        }
     }
 };

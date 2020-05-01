@@ -94,8 +94,8 @@ export const MMU_OFFSETS = {
     { start: 0xc000, end: 0xe000 - 1, name: "ram" },
     { start: 0xfe00, end: 0xfea0 - 1, name: "oam" },
     { start: 0xff00, end: 0xff4c - 1, name: "io" },
-    { start: 0xff80, end: 0xffff - 1, name: "himem" }
-  ]
+    { start: 0xff80, end: 0xffff - 1, name: "himem" },
+  ],
 };
 
 enum InputBitMapping {
@@ -107,7 +107,7 @@ enum InputBitMapping {
   a = 16,
   b = 32,
   select = 64,
-  start = 128
+  start = 128,
 }
 
 export type Input = keyof typeof InputBitMapping;
@@ -120,8 +120,8 @@ export default class FundudeWasm {
   private cartCopyPtr: number;
 
   constructor(cart: Uint8Array) {
-    this.pointer = WASM.fd_alloc();
-    this.init(cart);
+    this.pointer = WASM.fd_init();
+    this.load(cart);
   }
 
   screen() {
@@ -152,7 +152,7 @@ export default class FundudeWasm {
       DE: () => raw[4] + (raw[5] << 8),
       HL: () => raw[6] + (raw[7] << 8),
       SP: () => raw[8] + (raw[9] << 8),
-      PC: () => raw[10] + (raw[11] << 8)
+      PC: () => raw[10] + (raw[11] << 8),
     });
   }
 
@@ -160,7 +160,7 @@ export default class FundudeWasm {
     return U8Chunk.fromFloat(WASM.fd_mmu(this.pointer));
   }
 
-  init(cart: Uint8Array) {
+  load(cart: Uint8Array) {
     if (this.cartCopyPtr) {
       WASM.free(this.cartCopyPtr);
     }
@@ -170,7 +170,7 @@ export default class FundudeWasm {
     const copy = new U8Chunk(this.cartCopyPtr, cart.length);
     copy.set(cart);
 
-    const status = WASM.fd_init(this.pointer, copy.toFloat());
+    const status = WASM.fd_load(this.pointer, copy.toFloat());
     switch (status) {
       case 0:
         break;
@@ -189,7 +189,7 @@ export default class FundudeWasm {
 
   dealloc() {
     WASM.free(this.cartCopyPtr);
-    WASM.free(this.pointer);
+    WASM.fd_deinit(this.pointer);
   }
 
   breakpoint: number = -1;

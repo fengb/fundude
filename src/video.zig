@@ -359,7 +359,9 @@ pub const Video = struct {
                 self.cache.window.dirty = true;
                 self.cache.background.dirty = true;
             },
-            0xFF46, 0xFF48, 0xFF49 => self.cache.sprites.dirty = true,
+            0xFF46, 0xFF48, 0xFF49 => {
+                self.cache.sprites.dirty = true;
+            },
             else => {},
         }
     }
@@ -369,7 +371,9 @@ pub const Video = struct {
         if (mmu.dyn.io.video.DMA != 0) {
             const addr = @intCast(u16, mmu.dyn.io.video.DMA) << 8;
             const oam = @ptrCast([*]u8, &mmu.dyn.oam);
-            std.mem.copy(u8, oam[0..160], mmu.ptr(addr)[0..160]);
+            for (oam[0..160]) |*tgt, i| {
+                tgt.* = mmu.get(addr +% @intCast(u16, i));
+            }
             mmu.dyn.io.video.DMA = 0;
         }
 

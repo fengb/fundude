@@ -74,27 +74,25 @@ pub fn MatrixChunk(comptime T: type) type {
     };
 }
 
-export fn fd_alloc() ?*main.Fundude {
-    return allocator.create(main.Fundude) catch null;
+export fn fd_init() ?*main.Fundude {
+    return main.Fundude.init(allocator) catch return null;
 }
 
-export fn fd_init(fd: *main.Fundude, cart: U8Chunk.Abi) u8 {
-    fd.mmu.load(U8Chunk.toSlice(cart)) catch |err| return switch (err) {
+export fn fd_deinit(fd: *main.Fundude) void {
+    fd.deinit();
+}
+
+export fn fd_load(fd: *main.Fundude, cart: U8Chunk.Abi) i8 {
+    fd.load(U8Chunk.toSlice(cart)) catch |err| return switch (err) {
         error.CartTypeError => 1,
         error.RomSizeError => 2,
         error.RamSizeError => 3,
     };
-    fd_reset(fd);
     return 0;
 }
 
 export fn fd_reset(fd: *main.Fundude) void {
-    fd.mmu.reset();
-    fd.video.reset();
-    fd.cpu.reset();
-    fd.inputs.reset();
-    fd.timer.reset();
-    fd.step_underflow = 0;
+    fd.reset();
 }
 
 export fn fd_step(fd: *main.Fundude) i32 {
@@ -120,19 +118,15 @@ export fn fd_step_cycles(fd: *main.Fundude, cycles: i32) i32 {
     var track = target_cycles;
 
     while (track >= 0) {
-        const res = @call(.{ .modifier = .never_inline }, fd.cpu.step, .{&fd.mmu});
-        std.debug.assert(res.duration > 0);
+        const duration = @call(.{ .modifier = .never_inline }, fd.cpu.step, .{&fd.mmu});
+        std.debug.assert(duration > 0);
 
-        @call(.{ .modifier = .never_inline }, fd.video.step, .{ &fd.mmu, res.duration });
-        @call(.{ .modifier = .never_inline }, fd.timer.step, .{ &fd.mmu, res.duration });
+        @call(.{ .modifier = .never_inline }, fd.video.step, .{ &fd.mmu, duration });
+        @call(.{ .modifier = .never_inline }, fd.timer.step, .{ &fd.mmu, duration });
 
-        const pc_val = res.jump orelse fd.cpu.reg._16.get(.PC) + res.length;
+        track -= @intCast(i32, duration);
 
-        fd.cpu.reg._16.set(.PC, pc_val);
-
-        track -= @intCast(i32, res.duration);
-
-        if (fd.breakpoint == pc_val) {
+        if (fd.breakpoint == fd.cpu.reg._16.get(.PC)) {
             fd.step_underflow = 0;
             return target_cycles - track;
         }
@@ -157,23 +151,23 @@ export fn fd_input_release(fd: *main.Fundude, input: u8) u8 {
 }
 
 export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
-    if (fd.cpu.mode == .fatal) {
-        return U8Chunk.fromSlice(&[_]u8{});
-    }
+    // if (fd.cpu.mode == .fatal) {
+    return U8Chunk.fromSlice(&[_]u8{});
+    // }
 
-    fd.mmu.dyn.io.boot_complete = 1;
-    const addr = fd.cpu.reg._16.get(.PC);
+    // fd.mmu.dyn.io.boot_complete = 1;
+    // const addr = fd.cpu.reg._16.get(.PC);
 
-    // TODO: explicitly decode
-    const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.cart.ptr + addr);
-    const new_addr = addr +% res.length;
-    fd.cpu.reg._16.set(.PC, new_addr);
+    // // TODO: explicitly decode
+    // const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.cart.ptr + addr);
+    // const new_addr = addr +% res.length;
+    // fd.cpu.reg._16.set(.PC, new_addr);
 
-    if (new_addr >= std.math.min(fd.mmu.mbc.cart.len, 0x7FFF) or new_addr < addr) {
-        fd.cpu.mode = .fatal;
-    }
-    std.mem.copy(u8, &fd.disassembly, res.name);
-    return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]);
+    // if (new_addr >= std.math.min(fd.mmu.mbc.cart.len, 0x7FFF) or new_addr < addr) {
+    //     fd.cpu.mode = .fatal;
+    // }
+    // std.mem.copy(u8, &fd.disassembly, res.name);
+    // return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]);
 }
 
 // Video

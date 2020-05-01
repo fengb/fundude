@@ -1,3 +1,4 @@
+const std = @import("std");
 pub const cpu = @import("cpu.zig");
 const video = @import("video.zig");
 const joypad = @import("joypad.zig");
@@ -13,6 +14,8 @@ pub const HEIGHT = 144;
 pub const MHz = 4194304;
 
 pub const Fundude = struct {
+    allocator: *std.mem.Allocator,
+
     video: video.Video,
     cpu: cpu.Cpu,
     mmu: mmu.Mmu,
@@ -23,4 +26,29 @@ pub const Fundude = struct {
     step_underflow: i32,
     breakpoint: u16,
     disassembly: [24]u8,
+
+    pub fn init(allocator: *std.mem.Allocator) !*Fundude {
+        var fd = try allocator.create(Fundude);
+        fd.allocator = allocator;
+        return fd;
+    }
+
+    pub fn deinit(self: *Fundude) void {
+        self.allocator.destroy(self);
+        self.* = undefined;
+    }
+
+    pub fn load(self: *Fundude, cart: []const u8) !void {
+        try self.mmu.load(cart);
+        self.reset();
+    }
+
+    pub fn reset(self: *Fundude) void {
+        self.mmu.reset();
+        self.video.reset();
+        self.cpu.reset();
+        self.inputs.reset();
+        self.timer.reset();
+        self.step_underflow = 0;
+    }
 };
