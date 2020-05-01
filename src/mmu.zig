@@ -80,12 +80,12 @@ pub const Mmu = struct {
         const fd = @fieldParentPtr(main.Fundude, "mmu", self);
 
         switch (addr) {
-            0x8000...0x9FFF => fd.video.updatedVram(self, addr, val),
-            0xC000...0xDDFF => self.dyn.ram[addr - 0xC000] = val, // Echo of 8kB Internal RAM
-            0xE000...0xFDFF => self.dyn.ram[addr - 0xE000] = val, // Echo of 8kB Internal RAM
-            0xFE00...0xFE9F => fd.video.updatedOam(self, addr, val),
+            0x8000...0xA000 - 1 => fd.video.updatedVram(self, addr, val),
+            0xC000...0xDE00 - 1 => self.dyn.ram[addr - 0xC000] = val, // Echo of 8kB Internal RAM
+            0xE000...0xFE00 - 1 => self.dyn.ram[addr - 0xE000] = val, // Echo of 8kB Internal RAM
+            0xFE00...0xFEA0 - 1 => fd.video.updatedOam(self, addr, val),
             0xFF00 => fd.inputs.sync(self),
-            0xFF40...0xFF4B => fd.video.updatedIo(self, addr, val),
+            0xFF40...0xFF4C - 1 => fd.video.updatedIo(self, addr, val),
             else => {},
         }
     }

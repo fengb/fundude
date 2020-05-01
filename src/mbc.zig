@@ -88,8 +88,8 @@ pub const Mbc = struct {
             .None => {},
             .Mbc1 => {
                 switch (addr) {
-                    0x0...0x1FFF => {}, // RAM enable
-                    0x2000...(BANK_SIZE - 1) => {
+                    0x0000...0x2000 - 1 => {}, // RAM enable
+                    0x2000...BANK_SIZE - 1 => {
                         var bank = val & 0x1F;
                         if (bank % 0x20 == 0) {
                             bank += 1;
@@ -97,8 +97,8 @@ pub const Mbc = struct {
                         const total_banks = self.cart.len / BANK_SIZE;
                         self.bank_offset = @as(u32, BANK_SIZE) * std.math.min(bank, total_banks);
                     },
-                    BANK_SIZE...0x5FFF => {}, // RAM bank
-                    0x6000...0x7FFF => {}, // ROM/RAM Mode Select
+                    BANK_SIZE...0x6000 - 1 => {}, // RAM bank
+                    0x6000...0x8000 - 1 => {}, // ROM/RAM Mode Select
                 }
             },
         }
