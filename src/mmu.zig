@@ -55,25 +55,17 @@ pub const Mmu = struct {
         self.mbc = try mbc.Mbc.init(cart);
     }
 
-    // TODO: delete me
-    fn ptr(self: *Mmu, addr: u16) [*]const u8 {
+    fn get(self: *Mmu, addr: u16) u8 {
         if (self.dyn.io.boot_complete == 0 and addr < BEYOND_BOOTLOADER) {
-            return @ptrCast([*]const u8, &BOOTLOADER) + addr;
+            return BOOTLOADER[addr];
         }
 
         if (addr < BEYOND_CART) {
-            return self.mbc.ptr(@intCast(u15, addr));
-        } else if (0xE000 <= addr and addr < 0xFE00) {
-            // Echo of 8kB Internal RAM
-            return @ptrCast([*]const u8, &self.dyn.ram) + (addr - 0xE000);
+            return self.mbc.get(@intCast(u15, addr));
         }
 
-        return @ptrCast([*]const u8, &self.dyn) + (addr - BEYOND_CART);
-    }
-
-    fn get(self: *Mmu, addr: u16) u8 {
-        const p = self.ptr(addr);
-        return p[0];
+        const raw = @ptrCast([*]u8, &self.dyn);
+        return raw[addr - BEYOND_CART];
     }
 
     fn set(self: *Mmu, addr: u16, val: u8) void {
@@ -87,16 +79,14 @@ pub const Mmu = struct {
         // TODO: replace magic with sibling references
         const fd = @fieldParentPtr(main.Fundude, "mmu", self);
 
-        if (addr >= 0x8000 and addr < 0xA000) {
-            fd.video.updatedVram(self, addr, val);
-        } else if (addr >= 0xFE00 and addr < 0xFEA0) {
-            fd.video.updatedOam(self, addr, val);
-        } else if (addr >= 0xFF00) {
-            if (addr == 0xFF00) {
-                fd.inputs.sync(self);
-            } else if (addr >= 0xFF40 and addr < 0xFF4C) {
-                fd.video.updatedIo(self, addr, val);
-            }
+        switch (addr) {
+            0x8000...0x9FFF => fd.video.updatedVram(self, addr, val),
+            0xC000...0xDDFF => self.dyn.ram[addr - 0xC000] = val, // Echo of 8kB Internal RAM
+            0xE000...0xFDFF => self.dyn.ram[addr - 0xE000] = val, // Echo of 8kB Internal RAM
+            0xFE00...0xFE9F => fd.video.updatedOam(self, addr, val),
+            0xFF00 => fd.inputs.sync(self),
+            0xFF40...0xFF4B => fd.video.updatedIo(self, addr, val),
+            else => {},
         }
     }
 };

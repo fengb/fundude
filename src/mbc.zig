@@ -77,7 +77,6 @@ pub const Mbc = struct {
     cart: []u8,
     bank_offset: u32,
 
-    // TODO: convert to getFn
     setFn: fn (mbc: *Mbc, addr: u15, val: u8) void,
 
     // TODO: RAM banking
@@ -99,18 +98,12 @@ pub const Mbc = struct {
         };
     }
 
-    // TODO: remove me
-    pub fn ptr(self: Mbc, addr: u15) [*]const u8 {
-        if (addr < BANK_SIZE) {
-            return self.cart.ptr + addr;
-        } else {
-            return self.cart.ptr + self.bank_offset + (addr - BANK_SIZE);
-        }
-    }
-
     pub fn get(self: Mbc, addr: u15) u8 {
-        const p = self.ptr(addr);
-        return p[0];
+        if (addr < BANK_SIZE) {
+            return self.cart[addr];
+        } else {
+            return self.cart[self.bank_offset + (addr - BANK_SIZE)];
+        }
     }
 
     pub fn set(self: *Mbc, addr: u15, val: u8) void {
