@@ -51,7 +51,7 @@ pub const Mmu = struct {
         @memset(@ptrCast([*]u8, &self.dyn), 0, 0x8000);
     }
 
-    pub fn load(self: *Mmu, cart: []u8) !void {
+    pub fn load(self: *Mmu, cart: []const u8) !void {
         self.mbc = try mbc.Mbc.init(cart);
     }
 

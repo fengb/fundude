@@ -74,14 +74,14 @@ const Mbc1 = struct {
 };
 
 pub const Mbc = struct {
-    cart: []u8,
+    cart: []const u8,
     bank_offset: u32,
 
     setFn: fn (mbc: *Mbc, addr: u15, val: u8) void,
 
     // TODO: RAM banking
 
-    pub fn init(cart: []u8) CartHeaderError!Mbc {
+    pub fn init(cart: []const u8) CartHeaderError!Mbc {
         const size = try RomSize.init(cart[0x148]);
         if (cart.len != size.bytes()) {
             return error.RomSizeError;

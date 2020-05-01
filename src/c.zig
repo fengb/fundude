@@ -74,27 +74,25 @@ pub fn MatrixChunk(comptime T: type) type {
     };
 }
 
-export fn fd_alloc() ?*main.Fundude {
-    return allocator.create(main.Fundude) catch null;
+export fn fd_init() ?*main.Fundude {
+    return main.Fundude.init(allocator) catch return null;
 }
 
-export fn fd_init(fd: *main.Fundude, cart: U8Chunk.Abi) u8 {
-    fd.mmu.load(U8Chunk.toSlice(cart)) catch |err| return switch (err) {
+export fn fd_deinit(fd: *main.Fundude) void {
+    fd.deinit();
+}
+
+export fn fd_load(fd: *main.Fundude, cart: U8Chunk.Abi) i8 {
+    fd.load(U8Chunk.toSlice(cart)) catch |err| return switch (err) {
         error.CartTypeError => 1,
         error.RomSizeError => 2,
         error.RamSizeError => 3,
     };
-    fd_reset(fd);
     return 0;
 }
 
 export fn fd_reset(fd: *main.Fundude) void {
-    fd.mmu.reset();
-    fd.video.reset();
-    fd.cpu.reset();
-    fd.inputs.reset();
-    fd.timer.reset();
-    fd.step_underflow = 0;
+    fd.reset();
 }
 
 export fn fd_step(fd: *main.Fundude) i32 {
