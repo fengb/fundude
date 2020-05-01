@@ -69,8 +69,7 @@ pub const Cpu = struct {
         } else if (self.mode == .halt) {
             return 4;
         } else {
-            // TODO: optimize
-            return self.opStep(mmu, mmu.ptr(self.reg._16.get(.PC)));
+            return self.opStep(mmu);
         }
     }
 
@@ -114,75 +113,88 @@ pub const Cpu = struct {
         return @bitCast(u8, Op.call_IW___(self, mmu, op));
     }
 
-    fn opDecode(inst: u8, arg1: u8, arg2: u8) Op {
-        const argw = @intCast(u16, arg2) << 8 | arg1;
-        return switch (inst) {
+    fn opDecode(mmu: *main.Mmu, addr: u16) Op {
+        const FakeClosure = struct {
+            mmu: *main.Mmu,
+            addr: u16,
+
+            inline fn n8(self: @This()) u8 {
+                return self.mmu.get(self.addr +% 1);
+            }
+
+            inline fn n16(self: @This()) u16 {
+                return @as(u16, self.mmu.get(self.addr +% 2)) << 8 | self.mmu.get(self.addr +% 1);
+            }
+        };
+
+        const n = FakeClosure{ .mmu = mmu, .addr = addr };
+        return switch (mmu.get(addr)) {
             0x00 => Op._____(.nop_______),
-            0x01 => Op.rw_iw(.ld___rw_iw, .BC, argw),
+            0x01 => Op.rw_iw(.ld___rw_iw, .BC, n.n16()),
             0x02 => Op.rw_rb(.ld___RW_rb, .BC, .A),
             0x03 => Op.rw___(.inc__rw___, .BC),
             0x04 => Op.rb___(.inc__rb___, .B),
             0x05 => Op.rb___(.dec__rb___, .B),
-            0x06 => Op.rb_ib(.ld___rb_ib, .B, arg1),
+            0x06 => Op.rb_ib(.ld___rb_ib, .B, n.n8()),
             0x07 => Op.rb___(.rlca_rb___, .A),
-            0x08 => Op.iw_rw(.ld___IW_rw, argw, .SP),
+            0x08 => Op.iw_rw(.ld___IW_rw, n.n16(), .SP),
             0x09 => Op.rw_rw(.add__rw_rw, .HL, .BC),
             0x0A => Op.rb_rw(.ld___rb_RW, .A, .BC),
             0x0B => Op.rw___(.dec__rw___, .BC),
             0x0C => Op.rb___(.inc__rb___, .C),
             0x0D => Op.rb___(.dec__rb___, .C),
-            0x0E => Op.rb_ib(.ld___rb_ib, .C, arg1),
+            0x0E => Op.rb_ib(.ld___rb_ib, .C, n.n8()),
             0x0F => Op.rb___(.rrca_rb___, .A),
 
             0x10 => Op.mo___(.sys__mo___, .stop),
-            0x11 => Op.rw_iw(.ld___rw_iw, .DE, argw),
+            0x11 => Op.rw_iw(.ld___rw_iw, .DE, n.n16()),
             0x12 => Op.rw_rb(.ld___RW_rb, .DE, .A),
             0x13 => Op.rw___(.inc__rw___, .DE),
             0x14 => Op.rb___(.inc__rb___, .D),
             0x15 => Op.rb___(.dec__rb___, .D),
-            0x16 => Op.rb_ib(.ld___rb_ib, .D, arg1),
+            0x16 => Op.rb_ib(.ld___rb_ib, .D, n.n8()),
             0x17 => Op.rb___(.rla__rb___, .A),
-            0x18 => Op.ib___(.jr___IB___, arg1),
+            0x18 => Op.ib___(.jr___IB___, n.n8()),
             0x19 => Op.rw_rw(.add__rw_rw, .HL, .DE),
             0x1A => Op.rb_rw(.ld___rb_RW, .A, .DE),
             0x1B => Op.rw___(.dec__rw___, .DE),
             0x1C => Op.rb___(.inc__rb___, .E),
             0x1D => Op.rb___(.dec__rb___, .E),
-            0x1E => Op.rb_ib(.ld___rb_ib, .E, arg1),
+            0x1E => Op.rb_ib(.ld___rb_ib, .E, n.n8()),
             0x1F => Op.rb___(.rra__rb___, .A),
 
-            0x20 => Op.zc_ib(.jr___zc_IB, .nz, arg1),
-            0x21 => Op.rw_iw(.ld___rw_iw, .HL, argw),
+            0x20 => Op.zc_ib(.jr___zc_IB, .nz, n.n8()),
+            0x21 => Op.rw_iw(.ld___rw_iw, .HL, n.n16()),
             0x22 => Op.rw_rb(.ldi__RW_rb, .HL, .A),
             0x23 => Op.rw___(.inc__rw___, .HL),
             0x24 => Op.rb___(.inc__rb___, .H),
             0x25 => Op.rb___(.dec__rb___, .H),
-            0x26 => Op.rb_ib(.ld___rb_ib, .H, arg1),
+            0x26 => Op.rb_ib(.ld___rb_ib, .H, n.n8()),
             0x27 => Op.rb___(.daa__rb___, .A),
-            0x28 => Op.zc_ib(.jr___zc_IB, .z, arg1),
+            0x28 => Op.zc_ib(.jr___zc_IB, .z, n.n8()),
             0x29 => Op.rw_rw(.add__rw_rw, .HL, .HL),
             0x2A => Op.rb_rw(.ldi__rb_RW, .A, .HL),
             0x2B => Op.rw___(.dec__rw___, .HL),
             0x2C => Op.rb___(.inc__rb___, .L),
             0x2D => Op.rb___(.dec__rb___, .L),
-            0x2E => Op.rb_ib(.ld___rb_ib, .L, arg1),
+            0x2E => Op.rb_ib(.ld___rb_ib, .L, n.n8()),
             0x2F => Op.rb___(.cpl__rb___, .A),
 
-            0x30 => Op.zc_ib(.jr___zc_IB, .nc, arg1),
-            0x31 => Op.rw_iw(.ld___rw_iw, .SP, argw),
+            0x30 => Op.zc_ib(.jr___zc_IB, .nc, n.n8()),
+            0x31 => Op.rw_iw(.ld___rw_iw, .SP, n.n16()),
             0x32 => Op.rw_rb(.ldd__RW_rb, .HL, .A),
             0x33 => Op.rw___(.inc__rw___, .SP),
             0x34 => Op.rw___(.inc__RW___, .HL),
             0x35 => Op.rw___(.dec__RW___, .HL),
-            0x36 => Op.rw_ib(.ld___RW_ib, .HL, arg1),
+            0x36 => Op.rw_ib(.ld___RW_ib, .HL, n.n8()),
             0x37 => Op._____(.scf_______),
-            0x38 => Op.zc_ib(.jr___zc_IB, .c, arg1),
+            0x38 => Op.zc_ib(.jr___zc_IB, .c, n.n8()),
             0x39 => Op.rw_rw(.add__rw_rw, .HL, .SP),
             0x3A => Op.rb_rw(.ldd__rb_RW, .A, .HL),
             0x3B => Op.rw___(.dec__rw___, .SP),
             0x3C => Op.rb___(.inc__rb___, .A),
             0x3D => Op.rb___(.dec__rb___, .A),
-            0x3E => Op.rb_ib(.ld___rb_ib, .A, arg1),
+            0x3E => Op.rb_ib(.ld___rb_ib, .A, n.n8()),
             0x3F => Op._____(.ccf_______),
 
             0x40 => Op.rb_rb(.ld___rb_rb, .B, .B),
@@ -323,77 +335,78 @@ pub const Cpu = struct {
 
             0xC0 => Op.zc___(.ret__zc___, .nz),
             0xC1 => Op.rw___(.pop__rw___, .BC),
-            0xC2 => Op.zc_iw(.jp___zc_IW, .nz, argw),
-            0xC3 => Op.iw___(.jp___IW___, argw),
-            0xC4 => Op.zc_iw(.call_zc_IW, .nz, argw),
+            0xC2 => Op.zc_iw(.jp___zc_IW, .nz, n.n16()),
+            0xC3 => Op.iw___(.jp___IW___, n.n16()),
+            0xC4 => Op.zc_iw(.call_zc_IW, .nz, n.n16()),
             0xC5 => Op.rw___(.push_rw___, .BC),
-            0xC6 => Op.rb_ib(.add__rb_ib, .A, arg1),
+            0xC6 => Op.rb_ib(.add__rb_ib, .A, n.n8()),
             0xC7 => Op.ib___(.rst__ib___, 0x00),
             0xC8 => Op.zc___(.ret__zc___, .z),
             0xC9 => Op._____(.ret_______),
-            0xCA => Op.zc_iw(.jp___zc_IW, .z, argw),
-            0xCB => Op.ib___(.cb___ib___, arg1), // FIXME
-            0xCC => Op.zc_iw(.call_zc_IW, .z, argw),
-            0xCD => Op.iw___(.call_IW___, argw),
-            0xCE => Op.rb_ib(.adc__rb_ib, .A, arg1),
+            0xCA => Op.zc_iw(.jp___zc_IW, .z, n.n16()),
+            0xCB => Op.ib___(.cb___ib___, n.n8()), // FIXME
+            0xCC => Op.zc_iw(.call_zc_IW, .z, n.n16()),
+            0xCD => Op.iw___(.call_IW___, n.n16()),
+            0xCE => Op.rb_ib(.adc__rb_ib, .A, n.n8()),
             0xCF => Op.ib___(.rst__ib___, 0x08),
 
             0xD0 => Op.zc___(.ret__zc___, .nc),
             0xD1 => Op.rw___(.pop__rw___, .DE),
-            0xD2 => Op.zc_iw(.jp___zc_IW, .nc, argw),
+            0xD2 => Op.zc_iw(.jp___zc_IW, .nc, n.n16()),
             0xD3 => Op._____(.ILLEGAL___),
-            0xD4 => Op.zc_iw(.call_zc_IW, .nc, argw),
+            0xD4 => Op.zc_iw(.call_zc_IW, .nc, n.n16()),
             0xD5 => Op.rw___(.push_rw___, .DE),
-            0xD6 => Op.rb_ib(.sub__rb_ib, .A, arg1),
+            0xD6 => Op.rb_ib(.sub__rb_ib, .A, n.n8()),
             0xD7 => Op.ib___(.rst__ib___, 0x10),
             0xD8 => Op.zc___(.ret__zc___, .c),
             0xD9 => Op._____(.reti______),
-            0xDA => Op.zc_iw(.jp___zc_IW, .c, argw),
+            0xDA => Op.zc_iw(.jp___zc_IW, .c, n.n16()),
             0xDB => Op._____(.ILLEGAL___),
-            0xDC => Op.zc_iw(.call_zc_IW, .c, argw),
+            0xDC => Op.zc_iw(.call_zc_IW, .c, n.n16()),
             0xDD => Op._____(.ILLEGAL___),
-            0xDE => Op.rb_ib(.sbc__rb_ib, .A, arg1),
+            0xDE => Op.rb_ib(.sbc__rb_ib, .A, n.n8()),
             0xDF => Op.ib___(.rst__ib___, 0x18),
 
-            0xE0 => Op.ib_rb(.ldh__IB_rb, arg1, .A),
+            0xE0 => Op.ib_rb(.ldh__IB_rb, n.n8(), .A),
             0xE1 => Op.rw___(.pop__rw___, .HL),
             0xE2 => Op.rb_rb(.ld___RB_rb, .C, .A),
             0xE3 => Op._____(.ILLEGAL___),
             0xE4 => Op._____(.ILLEGAL___),
             0xE5 => Op.rw___(.push_rw___, .HL),
-            0xE6 => Op.rb_ib(.and__rb_ib, .A, arg1),
+            0xE6 => Op.rb_ib(.and__rb_ib, .A, n.n8()),
             0xE7 => Op.ib___(.rst__ib___, 0x20),
-            0xE8 => Op.rw_ib(.add__rw_IB, .SP, arg1),
+            0xE8 => Op.rw_ib(.add__rw_IB, .SP, n.n8()),
             0xE9 => Op.rw___(.jp___RW___, .HL),
-            0xEA => Op.iw_rb(.ld___IW_rb, argw, .A),
+            0xEA => Op.iw_rb(.ld___IW_rb, n.n16(), .A),
             0xEB => Op._____(.ILLEGAL___),
             0xEC => Op._____(.ILLEGAL___),
             0xED => Op._____(.ILLEGAL___),
-            0xEE => Op.rb_ib(.xor__rb_ib, .A, arg1),
+            0xEE => Op.rb_ib(.xor__rb_ib, .A, n.n8()),
             0xEF => Op.ib___(.rst__ib___, 0x28),
 
-            0xF0 => Op.rb_ib(.ldh__rb_IB, .A, arg1),
+            0xF0 => Op.rb_ib(.ldh__rb_IB, .A, n.n8()),
             0xF1 => Op.rw___(.pop__rw___, .AF),
             0xF2 => Op.rb_rb(.ld___rb_RB, .A, .C),
             0xF3 => Op.tf___(.int__tf___, false),
             0xF4 => Op._____(.ILLEGAL___),
             0xF5 => Op.rw___(.push_rw___, .AF),
-            0xF6 => Op.rb_ib(.or___rb_ib, .A, arg1),
+            0xF6 => Op.rb_ib(.or___rb_ib, .A, n.n8()),
             0xF7 => Op.ib___(.rst__ib___, 0x30),
-            0xF8 => Op.rw_ib(.ldhl_rw_IB, .SP, arg1),
+            0xF8 => Op.rw_ib(.ldhl_rw_IB, .SP, n.n8()),
             0xF9 => Op.rw_rw(.ld___rw_rw, .SP, .HL),
-            0xFA => Op.rb_iw(.ld___rb_IW, .A, argw),
+            0xFA => Op.rb_iw(.ld___rb_IW, .A, n.n16()),
             0xFB => Op.tf___(.int__tf___, true),
             0xFC => Op._____(.ILLEGAL___),
             0xFD => Op._____(.ILLEGAL___),
-            0xFE => Op.rb_ib(.cp___rb_ib, .A, arg1),
+            0xFE => Op.rb_ib(.cp___rb_ib, .A, n.n8()),
             0xFF => Op.ib___(.rst__ib___, 0x38),
         };
     }
 
-    fn opStep(cpu: *Cpu, mmu: *main.Mmu, inst: [*]const u8) u8 {
-        const op = opDecode(inst[0], inst[1], inst[2]);
+    fn opStep(cpu: *Cpu, mmu: *main.Mmu) u8 {
+        const op = opDecode(mmu, cpu.reg._16.get(.PC));
         cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% op.length);
+
         inline for (std.meta.fields(Op.Id)) |field| {
             if (field.value == @enumToInt(op.id)) {
                 const func = @field(Op, field.name);
