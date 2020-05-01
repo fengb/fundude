@@ -132,7 +132,7 @@ fn cb_run(cpu: *main.Cpu, op: u8, val: u8) Result {
     };
 }
 
-pub fn cb___ib___(cpu: *main.Cpu, mmu: *main.Mmu, op: cpu_op.Op) cpu_op.Result.Cond(2, .{ 8, 16 }) {
+pub fn cb___ib___(cpu: *main.Cpu, mmu: *main.Mmu, op: cpu_op.Op) cpu_op.Result(2, .{ 8, 16 }) {
     const arg = op.arg0.ib;
     const tgt = cb_tgt(cpu, arg);
     if (tgt) |reg| {

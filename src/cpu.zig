@@ -4,7 +4,6 @@ const op = @import("cpu_op.zig");
 const irq = @import("irq.zig");
 const util = @import("util.zig");
 
-pub const Result = op.Result;
 const Op = op.Op;
 
 pub const Mode = enum(u16) {
@@ -66,18 +65,18 @@ pub const Cpu = struct {
         self.reg._16.set(.PC, 0);
     }
 
-    pub fn step(self: *Cpu, mmu: *main.Mmu) Result {
+    pub fn step(self: *Cpu, mmu: *main.Mmu) u8 {
         if (self.irqStep(mmu)) |res| {
             return res;
         } else if (self.mode == .halt) {
-            return .{ .duration = 4 };
+            return 4;
         } else {
             // TODO: optimize
             return self.opStep(mmu, mmu.ptr(self.reg._16.get(.PC)));
         }
     }
 
-    fn irqStep(self: *Cpu, mmu: *main.Mmu) ?Result {
+    fn irqStep(self: *Cpu, mmu: *main.Mmu) ?u8 {
         if (!self.interrupt_master) return null;
 
         const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
@@ -113,7 +112,7 @@ pub const Cpu = struct {
         self.mode = .norm;
         self.interrupt_master = false;
 
-        return @bitCast(Result, op.call_IW___(self, mmu, Op.iw___(
+        return @bitCast(u8, op.call_IW___(self, mmu, Op.iw___(
             .call_IW___,
             addr,
         )));
@@ -396,7 +395,7 @@ pub const Cpu = struct {
         };
     }
 
-    fn opStep(cpu: *Cpu, mmu: *main.Mmu, inst: [*]const u8) Result {
+    fn opStep(cpu: *Cpu, mmu: *main.Mmu, inst: [*]const u8) u8 {
         const thing = opDecode(inst[0], inst[1], inst[2]);
         cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% thing.length);
         inline for (std.meta.fields(op.Id)) |field| {
@@ -404,10 +403,10 @@ pub const Cpu = struct {
                 const func = @field(op, field.name);
                 const result = func(cpu, mmu, thing);
 
-                const ResultMeta = @typeInfo(@TypeOf(func)).Fn.return_type.?;
-                std.debug.assert(result.duration == ResultMeta.durations[0] or result.duration == ResultMeta.durations[1]);
+                const Result = @typeInfo(@TypeOf(func)).Fn.return_type.?;
+                std.debug.assert(result.duration == Result.durations[0] or result.duration == Result.durations[1]);
 
-                return @bitCast(Result, result);
+                return @bitCast(u8, result);
             }
         }
         unreachable;

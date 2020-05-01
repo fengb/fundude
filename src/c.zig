@@ -120,13 +120,13 @@ export fn fd_step_cycles(fd: *main.Fundude, cycles: i32) i32 {
     var track = target_cycles;
 
     while (track >= 0) {
-        const res = @call(.{ .modifier = .never_inline }, fd.cpu.step, .{&fd.mmu});
-        std.debug.assert(res.duration > 0);
+        const duration = @call(.{ .modifier = .never_inline }, fd.cpu.step, .{&fd.mmu});
+        std.debug.assert(duration > 0);
 
-        @call(.{ .modifier = .never_inline }, fd.video.step, .{ &fd.mmu, res.duration });
-        @call(.{ .modifier = .never_inline }, fd.timer.step, .{ &fd.mmu, res.duration });
+        @call(.{ .modifier = .never_inline }, fd.video.step, .{ &fd.mmu, duration });
+        @call(.{ .modifier = .never_inline }, fd.timer.step, .{ &fd.mmu, duration });
 
-        track -= @intCast(i32, res.duration);
+        track -= @intCast(i32, duration);
 
         if (fd.breakpoint == fd.cpu.reg._16.get(.PC)) {
             fd.step_underflow = 0;
@@ -154,7 +154,7 @@ export fn fd_input_release(fd: *main.Fundude, input: u8) u8 {
 
 export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
     // if (fd.cpu.mode == .fatal) {
-        return U8Chunk.fromSlice(&[_]u8{});
+    return U8Chunk.fromSlice(&[_]u8{});
     // }
 
     // fd.mmu.dyn.io.boot_complete = 1;
