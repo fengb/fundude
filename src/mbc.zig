@@ -50,34 +50,15 @@ const RamSize = enum(u8) {
     _64k = 5,
 };
 
-const Nope = struct {
-    pub fn set(mbc: *Mbc, addr: u15, val: u8) void {}
-};
-
-const Mbc1 = struct {
-    pub fn set(mbc: *Mbc, addr: u15, val: u8) void {
-        if (addr < 0x2000) {
-            // RAM enable
-        } else if (addr < BANK_SIZE) {
-            var bank = val & 0x1F;
-            if (bank % 0x20 == 0) {
-                bank += 1;
-            }
-            const total_banks = mbc.cart.len / BANK_SIZE;
-            mbc.bank_offset = @as(u32, BANK_SIZE) * std.math.min(bank, total_banks);
-        } else if (addr < 0x6000) {
-            // RAM bank
-        } else {
-            // ROM/RAM Mode Select
-        }
-    }
-};
-
 pub const Mbc = struct {
     cart: []const u8,
     bank_offset: u32,
+    id: Id,
 
-    setFn: fn (mbc: *Mbc, addr: u15, val: u8) void,
+    const Id = enum {
+        None = 0x0,
+        Mbc1 = 0x1,
+    };
 
     // TODO: RAM banking
 
@@ -90,11 +71,7 @@ pub const Mbc = struct {
         return Mbc{
             .cart = cart,
             .bank_offset = BANK_SIZE,
-            .setFn = switch (cart[0x147]) {
-                0x0 => Nope.set,
-                0x1 => Mbc1.set,
-                else => return error.CartTypeError,
-            },
+            .id = std.meta.intToEnum(Id, cart[0x147]) catch return error.CartTypeError,
         };
     }
 
@@ -107,6 +84,23 @@ pub const Mbc = struct {
     }
 
     pub fn set(self: *Mbc, addr: u15, val: u8) void {
-        return self.setFn(self, addr, val);
+        switch (self.id) {
+            .None => {},
+            .Mbc1 => {
+                switch (addr) {
+                    0x0...0x1FFF => {}, // RAM enable
+                    0x2000...(BANK_SIZE - 1) => {
+                        var bank = val & 0x1F;
+                        if (bank % 0x20 == 0) {
+                            bank += 1;
+                        }
+                        const total_banks = self.cart.len / BANK_SIZE;
+                        self.bank_offset = @as(u32, BANK_SIZE) * std.math.min(bank, total_banks);
+                    },
+                    BANK_SIZE...0x5FFF => {}, // RAM bank
+                    0x6000...0x7FFF => {}, // ROM/RAM Mode Select
+                }
+            },
+        }
     }
 };
