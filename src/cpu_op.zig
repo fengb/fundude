@@ -2,142 +2,19 @@ const std = @import("std");
 const main = @import("main.zig");
 pub const cb___ib___ = @import("cpu_opcb.zig").cb___ib___;
 
-const File = @This();
-
 const Reg8 = main.cpu.Reg8;
 const Reg16 = main.cpu.Reg16;
 const Flags = main.cpu.Flags;
 
-pub const Op = struct {
-    id: Id,
-    length: u8,
+const Op = @This();
 
-    arg0: Arg,
-    arg1: Arg,
+id: Id,
+length: u8,
 
-    durations: [2]u8,
+arg0: Arg,
+arg1: Arg,
 
-    fn init(comptime id: Id, arg0: Arg, arg1: Arg) Op {
-        const ResultMeta: type = blk: {
-            inline for (std.meta.fields(Id)) |field| {
-                if (field.value == @enumToInt(id)) {
-                    const func = @field(File, field.name);
-                    break :blk @typeInfo(@TypeOf(func)).Fn.return_type.?;
-                }
-            }
-            unreachable;
-        };
-
-        return .{
-            .id = id,
-            .arg0 = arg0,
-            .arg1 = arg1,
-
-            .length = ResultMeta.length,
-            .durations = ResultMeta.durations,
-        };
-    }
-
-    pub fn _____(comptime id: Id) Op {
-        return init(id, .{ .__ = {} }, .{ .__ = {} });
-    }
-
-    pub fn tf___(comptime id: Id, arg0: bool) Op {
-        return init(id, .{ .tf = arg0 }, .{ .__ = {} });
-    }
-
-    pub fn mo___(comptime id: Id, arg0: main.cpu.Mode) Op {
-        return init(id, .{ .mo = arg0 }, .{ .__ = {} });
-    }
-
-    pub fn ib___(comptime id: Id, arg0: u8) Op {
-        return init(id, .{ .ib = arg0 }, .{ .__ = {} });
-    }
-
-    pub fn iw___(comptime id: Id, arg0: u16) Op {
-        return init(id, .{ .iw = arg0 }, .{ .__ = {} });
-    }
-
-    pub fn rb___(comptime id: Id, arg0: Reg8) Op {
-        return init(id, .{ .rb = arg0 }, .{ .__ = {} });
-    }
-
-    pub fn rw___(comptime id: Id, arg0: Reg16) Op {
-        return init(id, .{ .rw = arg0 }, .{ .__ = {} });
-    }
-
-    pub fn zc___(comptime id: Id, arg0: ZC) Op {
-        return init(id, .{ .zc = arg0 }, .{ .__ = {} });
-    }
-
-    pub fn zc_ib(comptime id: Id, arg0: ZC, arg1: u8) Op {
-        return init(id, .{ .zc = arg0 }, .{ .ib = arg1 });
-    }
-
-    pub fn zc_iw(comptime id: Id, arg0: ZC, arg1: u16) Op {
-        return init(id, .{ .zc = arg0 }, .{ .iw = arg1 });
-    }
-
-    pub fn ib_rb(comptime id: Id, arg0: u8, arg1: Reg8) Op {
-        return init(id, .{ .ib = arg0 }, .{ .rb = arg1 });
-    }
-
-    pub fn iw_ib(comptime id: Id, arg0: u16, arg1: u8) Op {
-        return init(id, .{ .iw = arg0 }, .{ .ib = arg1 });
-    }
-
-    pub fn iw_rb(comptime id: Id, arg0: u16, arg1: Reg8) Op {
-        return init(id, .{ .iw = arg0 }, .{ .rb = arg1 });
-    }
-
-    pub fn iw_rw(comptime id: Id, arg0: u16, arg1: Reg16) Op {
-        return init(id, .{ .iw = arg0 }, .{ .rw = arg1 });
-    }
-
-    pub fn rb_ib(comptime id: Id, arg0: Reg8, arg1: u8) Op {
-        return init(id, .{ .rb = arg0 }, .{ .ib = arg1 });
-    }
-
-    pub fn rb_iw(comptime id: Id, arg0: Reg8, arg1: u16) Op {
-        return init(id, .{ .rb = arg0 }, .{ .iw = arg1 });
-    }
-
-    pub fn rb_rb(comptime id: Id, arg0: Reg8, arg1: Reg8) Op {
-        return init(id, .{ .rb = arg0 }, .{ .rb = arg1 });
-    }
-
-    pub fn rb_rw(comptime id: Id, arg0: Reg8, arg1: Reg16) Op {
-        return init(id, .{ .rb = arg0 }, .{ .rw = arg1 });
-    }
-
-    pub fn rw_ib(comptime id: Id, arg0: Reg16, arg1: u8) Op {
-        return init(id, .{ .rw = arg0 }, .{ .ib = arg1 });
-    }
-
-    pub fn rw_iw(comptime id: Id, arg0: Reg16, arg1: u16) Op {
-        return init(id, .{ .rw = arg0 }, .{ .iw = arg1 });
-    }
-
-    pub fn rw_rb(comptime id: Id, arg0: Reg16, arg1: Reg8) Op {
-        return init(id, .{ .rw = arg0 }, .{ .rb = arg1 });
-    }
-
-    pub fn rw_rw(comptime id: Id, arg0: Reg16, arg1: Reg16) Op {
-        return init(id, .{ .rw = arg0 }, .{ .rw = arg1 });
-    }
-};
-
-const Arg = union {
-    __: void,
-    ib: u8,
-    iw: u16,
-    rb: Reg8,
-    rw: Reg16,
-
-    tf: bool,
-    zc: ZC,
-    mo: main.cpu.Mode,
-};
+durations: [2]u8,
 
 /// Positional argument types:
 /// * rb — register byte
@@ -241,6 +118,37 @@ pub const Id = enum(u8) {
     cb___ib___, // FIXME
 };
 
+const Arg = union {
+    __: void,
+    ib: u8,
+    iw: u16,
+    rb: Reg8,
+    rw: Reg16,
+
+    tf: bool,
+    zc: ZC,
+    mo: main.cpu.Mode,
+};
+
+pub const ZC = enum(u32) {
+    nz = 0x0_80,
+    z = 0x80_80,
+    nc = 0x0_10,
+    c = 0x10_10,
+
+    pub fn check(self: ZC, cpu: main.Cpu) bool {
+        // return switch (self) {
+        //     .nz => !cpu.reg.flags.Z,
+        //     .z => cpu.reg.flags.Z,
+        //     .nc => !cpu.reg.flags.C,
+        //     .c => cpu.reg.flags.C,
+        // };
+        const compare = @enumToInt(self) >> 8;
+        const mask = 0xff & @enumToInt(self);
+        return mask & @bitCast(u8, cpu.reg.flags) == compare;
+    }
+};
+
 pub fn Result(lengt: u2, duration: var) type {
     if (duration.len == 1) {
         return extern struct {
@@ -261,24 +169,116 @@ pub fn Result(lengt: u2, duration: var) type {
     }
 }
 
-pub const ZC = enum(u32) {
-    nz = 0x0_80,
-    z = 0x80_80,
-    nc = 0x0_10,
-    c = 0x10_10,
+// -- init helpers
 
-    pub fn check(self: ZC, cpu: main.Cpu) bool {
-        // return switch (self) {
-        //     .nz => !cpu.reg.flags.Z,
-        //     .z => cpu.reg.flags.Z,
-        //     .nc => !cpu.reg.flags.C,
-        //     .c => cpu.reg.flags.C,
-        // };
-        const compare = @enumToInt(self) >> 8;
-        const mask = 0xff & @enumToInt(self);
-        return mask & @bitCast(u8, cpu.reg.flags) == compare;
-    }
-};
+fn init(comptime id: Id, arg0: Arg, arg1: Arg) Op {
+    const ResultMeta: type = blk: {
+        inline for (std.meta.fields(Id)) |field| {
+            if (field.value == @enumToInt(id)) {
+                const func = @field(Op, field.name);
+                break :blk @typeInfo(@TypeOf(func)).Fn.return_type.?;
+            }
+        }
+        unreachable;
+    };
+
+    return .{
+        .id = id,
+        .arg0 = arg0,
+        .arg1 = arg1,
+
+        .length = ResultMeta.length,
+        .durations = ResultMeta.durations,
+    };
+}
+
+pub fn _____(comptime id: Id) Op {
+    return init(id, .{ .__ = {} }, .{ .__ = {} });
+}
+
+pub fn tf___(comptime id: Id, arg0: bool) Op {
+    return init(id, .{ .tf = arg0 }, .{ .__ = {} });
+}
+
+pub fn mo___(comptime id: Id, arg0: main.cpu.Mode) Op {
+    return init(id, .{ .mo = arg0 }, .{ .__ = {} });
+}
+
+pub fn ib___(comptime id: Id, arg0: u8) Op {
+    return init(id, .{ .ib = arg0 }, .{ .__ = {} });
+}
+
+pub fn iw___(comptime id: Id, arg0: u16) Op {
+    return init(id, .{ .iw = arg0 }, .{ .__ = {} });
+}
+
+pub fn rb___(comptime id: Id, arg0: Reg8) Op {
+    return init(id, .{ .rb = arg0 }, .{ .__ = {} });
+}
+
+pub fn rw___(comptime id: Id, arg0: Reg16) Op {
+    return init(id, .{ .rw = arg0 }, .{ .__ = {} });
+}
+
+pub fn zc___(comptime id: Id, arg0: ZC) Op {
+    return init(id, .{ .zc = arg0 }, .{ .__ = {} });
+}
+
+pub fn zc_ib(comptime id: Id, arg0: ZC, arg1: u8) Op {
+    return init(id, .{ .zc = arg0 }, .{ .ib = arg1 });
+}
+
+pub fn zc_iw(comptime id: Id, arg0: ZC, arg1: u16) Op {
+    return init(id, .{ .zc = arg0 }, .{ .iw = arg1 });
+}
+
+pub fn ib_rb(comptime id: Id, arg0: u8, arg1: Reg8) Op {
+    return init(id, .{ .ib = arg0 }, .{ .rb = arg1 });
+}
+
+pub fn iw_ib(comptime id: Id, arg0: u16, arg1: u8) Op {
+    return init(id, .{ .iw = arg0 }, .{ .ib = arg1 });
+}
+
+pub fn iw_rb(comptime id: Id, arg0: u16, arg1: Reg8) Op {
+    return init(id, .{ .iw = arg0 }, .{ .rb = arg1 });
+}
+
+pub fn iw_rw(comptime id: Id, arg0: u16, arg1: Reg16) Op {
+    return init(id, .{ .iw = arg0 }, .{ .rw = arg1 });
+}
+
+pub fn rb_ib(comptime id: Id, arg0: Reg8, arg1: u8) Op {
+    return init(id, .{ .rb = arg0 }, .{ .ib = arg1 });
+}
+
+pub fn rb_iw(comptime id: Id, arg0: Reg8, arg1: u16) Op {
+    return init(id, .{ .rb = arg0 }, .{ .iw = arg1 });
+}
+
+pub fn rb_rb(comptime id: Id, arg0: Reg8, arg1: Reg8) Op {
+    return init(id, .{ .rb = arg0 }, .{ .rb = arg1 });
+}
+
+pub fn rb_rw(comptime id: Id, arg0: Reg8, arg1: Reg16) Op {
+    return init(id, .{ .rb = arg0 }, .{ .rw = arg1 });
+}
+
+pub fn rw_ib(comptime id: Id, arg0: Reg16, arg1: u8) Op {
+    return init(id, .{ .rw = arg0 }, .{ .ib = arg1 });
+}
+
+pub fn rw_iw(comptime id: Id, arg0: Reg16, arg1: u16) Op {
+    return init(id, .{ .rw = arg0 }, .{ .iw = arg1 });
+}
+
+pub fn rw_rb(comptime id: Id, arg0: Reg16, arg1: Reg8) Op {
+    return init(id, .{ .rw = arg0 }, .{ .rb = arg1 });
+}
+
+pub fn rw_rw(comptime id: Id, arg0: Reg16, arg1: Reg16) Op {
+    return init(id, .{ .rw = arg0 }, .{ .rw = arg1 });
+}
 
 pub fn ILLEGAL___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     cpu.mode = .illegal;

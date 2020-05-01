@@ -1,10 +1,8 @@
 const std = @import("std");
 const main = @import("main.zig");
-const op = @import("cpu_op.zig");
+const Op = @import("cpu_op.zig");
 const irq = @import("irq.zig");
 const util = @import("util.zig");
-
-const Op = op.Op;
 
 pub const Mode = enum(u16) {
     norm,
@@ -112,10 +110,8 @@ pub const Cpu = struct {
         self.mode = .norm;
         self.interrupt_master = false;
 
-        return @bitCast(u8, op.call_IW___(self, mmu, Op.iw___(
-            .call_IW___,
-            addr,
-        )));
+        const op = Op.iw___(.call_IW___, addr);
+        return @bitCast(u8, Op.call_IW___(self, mmu, op));
     }
 
     fn opDecode(inst: u8, arg1: u8, arg2: u8) Op {
@@ -396,12 +392,12 @@ pub const Cpu = struct {
     }
 
     fn opStep(cpu: *Cpu, mmu: *main.Mmu, inst: [*]const u8) u8 {
-        const thing = opDecode(inst[0], inst[1], inst[2]);
-        cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% thing.length);
-        inline for (std.meta.fields(op.Id)) |field| {
-            if (field.value == @enumToInt(thing.id)) {
-                const func = @field(op, field.name);
-                const result = func(cpu, mmu, thing);
+        const op = opDecode(inst[0], inst[1], inst[2]);
+        cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% op.length);
+        inline for (std.meta.fields(Op.Id)) |field| {
+            if (field.value == @enumToInt(op.id)) {
+                const func = @field(Op, field.name);
+                const result = func(cpu, mmu, op);
 
                 const Result = @typeInfo(@TypeOf(func)).Fn.return_type.?;
                 std.debug.assert(result.duration == Result.durations[0] or result.duration == Result.durations[1]);

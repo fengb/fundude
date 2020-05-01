@@ -1,5 +1,5 @@
 const main = @import("main.zig");
-const cpu_op = @import("cpu_op.zig");
+const Op = @import("cpu_op.zig");
 
 const Reg8 = main.cpu.Reg8;
 const Flags = main.cpu.Flags;
@@ -10,38 +10,38 @@ const Result = struct {
 };
 
 fn cb_rlc(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "RLC", .val = cpu_op.doRlc(cpu, val) };
+    return Result{ .name = "RLC", .val = Op.doRlc(cpu, val) };
 }
 
 fn cb_rrc(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "RRC", .val = cpu_op.doRrc(cpu, val) };
+    return Result{ .name = "RRC", .val = Op.doRrc(cpu, val) };
 }
 
 fn cb_rl(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "RL", .val = cpu_op.doRl(cpu, val) };
+    return Result{ .name = "RL", .val = Op.doRl(cpu, val) };
 }
 
 fn cb_rr(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "RR", .val = cpu_op.doRr(cpu, val) };
+    return Result{ .name = "RR", .val = Op.doRr(cpu, val) };
 }
 
 fn cb_sla(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "SLA", .val = cpu_op.flagShift(cpu, val << 1, val >> 7 != 0) };
+    return Result{ .name = "SLA", .val = Op.flagShift(cpu, val << 1, val >> 7 != 0) };
 }
 
 fn cb_sra(cpu: *main.Cpu, val: u8) Result {
     const msb = val & 0b10000000;
-    return Result{ .name = "SLA", .val = cpu_op.flagShift(cpu, msb | val >> 1, val & 1 != 0) };
+    return Result{ .name = "SLA", .val = Op.flagShift(cpu, msb | val >> 1, val & 1 != 0) };
 }
 
 fn cb_swap(cpu: *main.Cpu, val: u8) Result {
     const hi = val >> 4;
     const lo = val & 0xF;
-    return Result{ .name = "SLA", .val = cpu_op.flagShift(cpu, lo << 4 | hi, false) };
+    return Result{ .name = "SLA", .val = Op.flagShift(cpu, lo << 4 | hi, false) };
 }
 
 fn cb_srl(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "SLA", .val = cpu_op.flagShift(cpu, val >> 1, val & 1 != 0) };
+    return Result{ .name = "SLA", .val = Op.flagShift(cpu, val >> 1, val & 1 != 0) };
 }
 
 fn nameGlue(comptime prefix: []const u8, val: u3) []const u8 {
@@ -59,7 +59,7 @@ fn nameGlue(comptime prefix: []const u8, val: u3) []const u8 {
 
 fn cb_bit(cpu: *main.Cpu, val: u8, bit: u3) Result {
     cpu.reg.flags = Flags{
-        .Z = cpu_op.Bit.get(val, bit) == 0,
+        .Z = Op.Bit.get(val, bit) == 0,
         .N = false,
         .H = true,
         .C = cpu.reg.flags.C,
@@ -132,20 +132,20 @@ fn cb_run(cpu: *main.Cpu, op: u8, val: u8) Result {
     };
 }
 
-pub fn cb___ib___(cpu: *main.Cpu, mmu: *main.Mmu, op: cpu_op.Op) cpu_op.Result(2, .{ 8, 16 }) {
+pub fn cb___ib___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Op.Result(2, .{ 8, 16 }) {
     const arg = op.arg0.ib;
     const tgt = cb_tgt(cpu, arg);
     if (tgt) |reg| {
         const val = cpu.reg._8.get(reg);
         const res = cb_run(cpu, arg, val);
         cpu.reg._8.set(reg, res.val);
-        //return cpu_op.Result{ .name = res.name, .length = 2, .duration = 8 };
+        //return Op.Result{ .name = res.name, .length = 2, .duration = 8 };
         return .{ .duration = 8 };
     } else {
         const addr = cpu.reg._16.get(.HL);
         const res = cb_run(cpu, arg, mmu.get(addr));
         mmu.set(addr, res.val);
-        //return cpu_op.Result{ .name = res.name, .length = 2, .duration = 16 };
+        //return Op.Result{ .name = res.name, .length = 2, .duration = 16 };
         return .{ .duration = 16 };
     }
 }
