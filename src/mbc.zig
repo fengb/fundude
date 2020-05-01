@@ -75,11 +75,17 @@ pub const Mbc = struct {
         };
     }
 
+    pub fn bankIdx(self: Mbc, addr: u16) usize {
+        std.debug.assert(addr >= 0x4000);
+        std.debug.assert(addr < 0x8000);
+        return self.bank_offset + (addr - BANK_SIZE);
+    }
+
     pub fn get(self: Mbc, addr: u15) u8 {
         if (addr < BANK_SIZE) {
             return self.cart[addr];
         } else {
-            return self.cart[self.bank_offset + (addr - BANK_SIZE)];
+            return self.cart[self.bankIdx(addr)];
         }
     }
 

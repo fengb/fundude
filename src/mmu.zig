@@ -55,7 +55,24 @@ pub const Mmu = struct {
         self.mbc = try mbc.Mbc.init(cart);
     }
 
-    fn get(self: *Mmu, addr: u16) u8 {
+    pub fn instrBytes(self: Mmu, addr: u16) [3]u8 {
+        if (self.dyn.io.boot_complete == 0 and addr < BEYOND_BOOTLOADER) {
+            return [3]u8{ self.get(addr), self.get(addr +% 1), self.get(addr +% 2) };
+        }
+
+        return switch (addr) {
+            0x0000...0x4000 - 3 => self.mbc.cart[addr..][0..3].*,
+            0x4000...0x8000 - 3 => self.mbc.cart[self.mbc.bankIdx(addr)..][0..3].*,
+            0x8000...0x10000 - 3 => {
+                const raw = @ptrCast([*]const u8, &self.dyn);
+                return (raw + addr - BEYOND_CART)[0..3].*;
+            },
+            // Crosses boundaries
+            else => [3]u8{ self.get(addr), self.get(addr +% 1), self.get(addr +% 2) },
+        };
+    }
+
+    fn get(self: Mmu, addr: u16) u8 {
         if (self.dyn.io.boot_complete == 0 and addr < BEYOND_BOOTLOADER) {
             return BOOTLOADER[addr];
         }
@@ -64,7 +81,7 @@ pub const Mmu = struct {
             return self.mbc.get(@intCast(u15, addr));
         }
 
-        const raw = @ptrCast([*]u8, &self.dyn);
+        const raw = @ptrCast([*]const u8, &self.dyn);
         return raw[addr - BEYOND_CART];
     }
 
