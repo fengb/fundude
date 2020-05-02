@@ -29,8 +29,9 @@ pub const Timer = struct {
         }
 
         self.timer += cycles;
-        if (self.timer >= mmu.dyn.io.timer.TAC.speed.frequency()) {
-            self.timer -= mmu.dyn.io.timer.TAC.speed.frequency();
+        const freq = mmu.dyn.io.timer.TAC.speed.frequency();
+        if (self.timer >= freq) {
+            self.timer -= freq;
 
             if (mmu.dyn.io.timer.TIMA != 0xFF) {
                 mmu.dyn.io.timer.TIMA +%= 1;
