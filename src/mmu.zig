@@ -105,6 +105,7 @@ pub const Mmu = struct {
 
     cart: []const u8,
     mbc: Mbc,
+    bank: u8,
 
     pub fn reset(self: *Mmu) void {
         // @memset(@ptrCast([*]u8, &self.io), 0, @sizeOf(@typeOf(self.io)));
@@ -114,6 +115,7 @@ pub const Mmu = struct {
     pub fn load(self: *Mmu, cart: []const u8) !void {
         self.mbc = try Mbc.init(cart);
         self.cart = cart;
+        self.bank = 1;
         std.mem.copy(u8, &self.dyn.rom, &BOOTLOADER);
         std.mem.copy(u8, self.dyn.rom[BOOTLOADER.len..], cart[BOOTLOADER.len..0x8000]);
     }
@@ -161,20 +163,27 @@ pub const Mmu = struct {
                             bank += 1;
                         }
                         const total_banks = self.cart.len / BANK_SIZE;
-                        const bank_offset = @as(usize, BANK_SIZE) * std.math.min(bank, total_banks);
-                        // std.mem.copy(u8, self.dyn.rom[BANK_SIZE..], self.cart[bank_offset..][0..BANK_SIZE]);
-                        // Not sure why Zig isn't rolling these up -- manually convert to 8 byte copies instead
-                        std.mem.copy(
-                            u64,
-                            @alignCast(8, std.mem.bytesAsSlice(u64, self.dyn.rom[BANK_SIZE..])),
-                            @alignCast(8, std.mem.bytesAsSlice(u64, self.cart[bank_offset..][0..BANK_SIZE])),
-                        );
+                        self.selectBank(std.math.min(bank, total_banks));
                     },
                     BANK_SIZE...0x6000 - 1 => {}, // RAM bank
                     0x6000...0x8000 - 1 => {}, // ROM/RAM Mode Select
                 }
             },
         }
+    }
+
+    fn selectBank(self: *Mmu, bank: u8) void {
+        if (self.bank == bank) return;
+
+        self.bank = bank;
+        const offset = @as(usize, BANK_SIZE) * bank;
+        // std.mem.copy(u8, self.dyn.rom[BANK_SIZE..], self.cart[offset..][0..BANK_SIZE]);
+        // Not sure why Zig isn't rolling these up -- manually convert to 8 byte copies instead
+        std.mem.copy(
+            u64,
+            @alignCast(8, std.mem.bytesAsSlice(u64, self.dyn.rom[BANK_SIZE..])),
+            @alignCast(8, std.mem.bytesAsSlice(u64, self.cart[offset..][0..BANK_SIZE])),
+        );
     }
 };
 
