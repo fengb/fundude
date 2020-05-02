@@ -8,10 +8,9 @@ const timer = @import("timer.zig");
 const irq = @import("irq.zig");
 const audio = @import("audio.zig");
 const video = @import("video.zig");
-const mbc = @import("mbc.zig");
 
-const BEYOND_BOOTLOADER = 0x100;
 const BEYOND_CART = 0x8000;
+const BANK_SIZE = 0x4000;
 
 pub const Io = extern struct {
     joypad: joypad.Io, // [$FF00]
@@ -22,7 +21,7 @@ pub const Io = extern struct {
     IF: irq.Flags, // [$FF0F]
     audio: audio.Io, // [$FF10 - $FF3F]
     video: video.Io, // [$FF40 - $FF4C]
-    _pad_ff4d_4f: [0x0004]u8, // [$FF4D - $FF4F]
+    _pad_ff4d_4f: [4]u8, // [$FF4D - $FF4F]
     boot_complete: u8, // [$FF50] Bootloader sets this on 0x00FE
     _pad_ff51: u8,
     _pad_ff52_53: [2]u8,
@@ -31,8 +30,68 @@ pub const Io = extern struct {
     _pad_ff60_7f: [0x0020]u8, // [$FF60 - $FF7F]
 };
 
+const CartHeaderError = error{
+    CartTypeError,
+    RomSizeError,
+    RamSizeError,
+};
+
+const RomSize = enum(u8) {
+    _32k = 0,
+    _64k = 1,
+    _128k = 2,
+    _256k = 3,
+    _512k = 4,
+    _1m = 5,
+    _2m = 6,
+    _4m = 7,
+    _8m = 8,
+
+    pub fn init(raw: u8) !RomSize {
+        return std.meta.intToEnum(RomSize, raw) catch error.RomSizeError;
+    }
+
+    pub fn bytes(self: RomSize) usize {
+        return switch (self) {
+            ._32k => 32 * 1024,
+            ._64k => 64 * 1024,
+            ._128k => 128 * 1024,
+            ._256k => 256 * 1024,
+            ._512k => 512 * 1024,
+            ._1m => 1024 * 1024,
+            ._2m => 2 * 1024 * 1024,
+            ._4m => 4 * 1024 * 1024,
+            ._8m => 8 * 1024 * 1024,
+        };
+    }
+};
+
+const RamSize = enum(u8) {
+    _0 = 0,
+    _2k = 1,
+    _8k = 2,
+    _32k = 3,
+    _128k = 4,
+    _64k = 5,
+};
+
+pub const Mbc = enum {
+    None = 0x0,
+    Mbc1 = 0x1,
+
+    pub fn init(cart: []const u8) CartHeaderError!Mbc {
+        const size = try RomSize.init(cart[0x148]);
+        if (cart.len != size.bytes()) {
+            return error.RomSizeError;
+        }
+
+        return std.meta.intToEnum(Mbc, cart[0x147]) catch error.CartTypeError;
+    }
+};
+
 pub const Mmu = struct {
     dyn: extern struct {
+        rom: [0x8000]u8 align(8),
         vram: video.Vram, // [$8000 - $A000)
         switchable_ram: [0x2000]u8, // [$A000 - $C000)
         ram: [0x2000]u8, // [$C000 - $E000)
@@ -44,54 +103,35 @@ pub const Mmu = struct {
         interrupt_enable: irq.Flags, // [$FFFF]
     },
 
-    mbc: mbc.Mbc,
+    cart: []const u8,
+    mbc: Mbc,
 
     pub fn reset(self: *Mmu) void {
         // @memset(@ptrCast([*]u8, &self.io), 0, @sizeOf(@typeOf(self.io)));
-        @memset(@ptrCast([*]u8, &self.dyn), 0, 0x8000);
+        @memset(@ptrCast([*]u8, &self.dyn.vram), 0, 0x8000);
     }
 
     pub fn load(self: *Mmu, cart: []const u8) !void {
-        self.mbc = try mbc.Mbc.init(cart);
+        self.mbc = try Mbc.init(cart);
+        self.cart = cart;
+        std.mem.copy(u8, &self.dyn.rom, &BOOTLOADER);
+        std.mem.copy(u8, self.dyn.rom[BOOTLOADER.len..], cart[BOOTLOADER.len..0x8000]);
     }
 
     pub fn instrBytes(self: Mmu, addr: u16) [3]u8 {
-        if (self.dyn.io.boot_complete == 0 and addr < BEYOND_BOOTLOADER) {
-            return [3]u8{ self.get(addr), self.get(addr +% 1), self.get(addr +% 2) };
-        }
-
-        return switch (addr) {
-            0x0000...0x4000 - 3 => self.mbc.cart[addr..][0..3].*,
-            0x4000...0x8000 - 3 => self.mbc.cart[self.mbc.bankIdx(addr)..][0..3].*,
-            0x8000...0x10000 - 3 => {
-                const raw = @ptrCast([*]const u8, &self.dyn);
-                return (raw + addr - BEYOND_CART)[0..3].*;
-            },
-            // Crosses boundaries
-            else => [3]u8{ self.get(addr), self.get(addr +% 1), self.get(addr +% 2) },
-        };
+        return std.mem.asBytes(&self.dyn)[addr..][0..3].*;
     }
 
-    fn get(self: Mmu, addr: u16) u8 {
-        if (self.dyn.io.boot_complete == 0 and addr < BEYOND_BOOTLOADER) {
-            return BOOTLOADER[addr];
-        }
-
-        if (addr < BEYOND_CART) {
-            return self.mbc.get(@intCast(u15, addr));
-        }
-
-        const raw = @ptrCast([*]const u8, &self.dyn);
-        return raw[addr - BEYOND_CART];
+    pub fn get(self: Mmu, addr: u16) u8 {
+        return std.mem.asBytes(&self.dyn)[addr];
     }
 
-    fn set(self: *Mmu, addr: u16, val: u8) void {
+    pub fn set(self: *Mmu, addr: u16, val: u8) void {
         if (addr < BEYOND_CART) {
-            return self.mbc.set(@intCast(u15, addr), val);
+            return @call(.{ .modifier = .never_inline }, self.setRom, .{ @intCast(u15, addr), val });
         }
 
-        const raw = @ptrCast([*]u8, &self.dyn);
-        raw[addr - BEYOND_CART] = val;
+        std.mem.asBytes(&self.dyn)[addr] = val;
 
         // TODO: replace magic with sibling references
         const fd = @fieldParentPtr(main.Fundude, "mmu", self);
@@ -103,7 +143,37 @@ pub const Mmu = struct {
             0xFE00...0xFEA0 - 1 => fd.video.updatedOam(self, addr, val),
             0xFF00 => fd.inputs.sync(self),
             0xFF40...0xFF4C - 1 => fd.video.updatedIo(self, addr, val),
+            0xFF50 => std.mem.copy(u8, &self.dyn.rom, self.cart[0..BOOTLOADER.len]),
             else => {},
+        }
+    }
+
+    // TODO: RAM banking
+    fn setRom(self: *Mmu, addr: u15, val: u8) void {
+        switch (self.mbc) {
+            .None => {},
+            .Mbc1 => {
+                switch (addr) {
+                    0x0000...0x2000 - 1 => {}, // RAM enable
+                    0x2000...BANK_SIZE - 1 => {
+                        var bank = val & 0x1F;
+                        if (bank % 0x20 == 0) {
+                            bank += 1;
+                        }
+                        const total_banks = self.cart.len / BANK_SIZE;
+                        const bank_offset = @as(usize, BANK_SIZE) * std.math.min(bank, total_banks);
+                        // std.mem.copy(u8, self.dyn.rom[BANK_SIZE..], self.cart[bank_offset..][0..BANK_SIZE]);
+                        // Not sure why Zig isn't rolling these up -- manually convert to 8 byte copies instead
+                        std.mem.copy(
+                            u64,
+                            @alignCast(8, std.mem.bytesAsSlice(u64, self.dyn.rom[BANK_SIZE..])),
+                            @alignCast(8, std.mem.bytesAsSlice(u64, self.cart[bank_offset..][0..BANK_SIZE])),
+                        );
+                    },
+                    BANK_SIZE...0x6000 - 1 => {}, // RAM bank
+                    0x6000...0x8000 - 1 => {}, // ROM/RAM Mode Select
+                }
+            },
         }
     }
 };
