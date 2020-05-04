@@ -195,8 +195,9 @@ export fn fd_cpu_reg(fd: *main.Fundude) U8Chunk.Abi {
     return U8Chunk.fromSlice(std.mem.asBytes(&fd.cpu.reg));
 }
 
+/// Only expose the dynamic memory -- e.g. 0x8000 - 0xFFFF
 export fn fd_mmu(fd: *main.Fundude) U8Chunk.Abi {
-    return U8Chunk.fromSlice(std.mem.asBytes(&fd.mmu.dyn));
+    return U8Chunk.fromSlice(std.mem.asBytes(&fd.mmu.dyn)[0x8000..]);
 }
 
 export fn fd_set_breakpoint(fd: *main.Fundude, breakpoint: u16) void {
