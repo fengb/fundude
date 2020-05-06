@@ -408,4 +408,92 @@ pub const Cpu = struct {
         }
         unreachable;
     }
+
+    pub fn toUpper(buffer: []u8) []u8 {
+        for (buffer) |*letter| {
+            if ('a' <= letter.* and letter.* <= 'z') {
+                letter.* = letter.* - 'a' + 'A';
+            }
+        }
+        return buffer;
+    }
+
+    pub fn disassemble(buffer: []u8, bytes: [3]u8) ![]u8 {
+        var stream = std.io.fixedBufferStream(buffer);
+        const os = stream.outStream();
+
+        const op = opDecode(bytes);
+
+        const special: ?[]const u8 = switch (op.id) {
+            .ILLEGAL___ => "",
+            .sys__mo___ => switch (op.arg0.mo) {
+                .halt => "HALT",
+                .stop => "STOP",
+                else => unreachable,
+            },
+            .int__tf___ => switch (op.arg0.tf) {
+                true => "EI",
+                false => "DI",
+            },
+            .cb___ib___ => "CB??",
+            else => null,
+        };
+
+        if (special) |match| {
+            try os.writeAll(match);
+            return toUpper(stream.getWritten());
+        }
+
+        const enum_name = @tagName(op.id);
+
+        if (enum_name[2] == '_') {
+            try os.writeAll(enum_name[0..2]);
+        } else if (enum_name[3] == '_') {
+            try os.writeAll(enum_name[0..3]);
+        } else if (enum_name[4] == '_') {
+            try os.writeAll(enum_name[0..4]);
+        } else {
+            unreachable;
+        }
+
+        try disassembleArg(os, enum_name[5..7], op.arg0);
+        try disassembleArg(os, enum_name[8..10], op.arg1);
+
+        return toUpper(stream.getWritten());
+    }
+
+    fn disassembleArg(os: var, name: []const u8, arg: Op.Arg) !void {
+        const swh = util.Swhash(4);
+        switch (swh.match(name)) {
+            swh.case("__") => {},
+            swh.case("ib") => try os.print(" ${X}", .{arg.ib}),
+            swh.case("iw") => try os.print(" ${X}", .{arg.iw}),
+            swh.case("IB") => try os.print(" (${X})", .{arg.iw}),
+            swh.case("IW") => try os.print(" (${X})", .{arg.iw}),
+            swh.case("zc") => try os.print(" {}", .{@tagName(arg.zc)}),
+            swh.case("rb") => try os.print(" {}", .{@tagName(arg.rb)}),
+            swh.case("rw") => try os.print(" {}", .{@tagName(arg.rw)}),
+            swh.case("RB") => try os.print(" ({})", .{@tagName(arg.rb)}),
+            swh.case("RW") => try os.print(" ({})", .{@tagName(arg.rw)}),
+            else => unreachable,
+        }
+    }
 };
+
+test "" {
+    var buf: [16]u8 = undefined;
+    var output = try Cpu.disassemble(&buf, [3]u8{ 0, 0, 0 });
+    std.debug.warn("{}\n", .{output});
+
+    output = try Cpu.disassemble(&buf, [3]u8{ 0x53, 0, 0 });
+    std.debug.warn("{}\n", .{output});
+
+    output = try Cpu.disassemble(&buf, [3]u8{ 0xC7, 0, 0 });
+    std.debug.warn("{}\n", .{output});
+
+    output = try Cpu.disassemble(&buf, [3]u8{ 0xC6, 0x54, 0 });
+    std.debug.warn("{}\n", .{output});
+
+    output = try Cpu.disassemble(&buf, [3]u8{ 0xCA, 0xCD, 0xAB });
+    std.debug.warn("{}\n", .{output});
+}

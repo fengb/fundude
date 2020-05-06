@@ -21,10 +21,10 @@ durations: [2]u8,
 /// * rw — register word
 /// * ib — immediate byte
 /// * iw — immediate word
-/// * RB — register byte address
-/// * RW — register word address
-/// * IB — immediate byte address
-/// * IW — immediate word address
+/// * RB — register byte dereference
+/// * RW — register word dereference
+/// * IB — immediate byte dereference
+/// * IW — immediate word dereference
 ///
 /// * tf — true/false
 /// * zc — Z/C flag condition
@@ -118,7 +118,7 @@ pub const Id = enum(u8) {
     cb___ib___, // FIXME
 };
 
-const Arg = union {
+pub const Arg = union {
     __: void,
     ib: u8,
     iw: u16,

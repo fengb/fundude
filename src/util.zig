@@ -90,15 +90,51 @@ pub fn EnumArray(comptime E: type, comptime T: type) type {
         data: [len]T,
 
         fn get(self: @This(), tag: E) T {
-            return self.data[@enumToInt(tag)];
+            inline for (std.meta.fields(E)) |field| {
+                if (field.value == @enumToInt(tag)) {
+                    return self.data[field.value];
+                }
+            }
+            unreachable;
+            // return self.data[@enumToInt(tag)];
         }
 
         fn set(self: *@This(), tag: E, value: T) void {
-            self.data[@enumToInt(tag)] = value;
+            inline for (std.meta.fields(E)) |field| {
+                if (field.value == @enumToInt(tag)) {
+                    self.data[field.value] = value;
+                    return;
+                }
+            }
+            unreachable;
+            // self.data[@enumToInt(tag)] = value;
         }
 
         fn copy(self: *@This(), dst: E, src: E) void {
             self.set(dst, self.get(src));
+        }
+    };
+}
+/// Super simple "perfect hash" algorithm
+/// Only really useful for switching on strings
+// TODO: can we auto detect and promote the underlying type?
+pub fn Swhash(comptime max_bytes: comptime_int) type {
+    const T = std.meta.IntType(false, max_bytes * 8);
+
+    return struct {
+        pub fn match(string: []const u8) T {
+            return hash(string) orelse std.math.maxInt(T);
+        }
+
+        pub fn case(comptime string: []const u8) T {
+            return hash(string) orelse @compileError("Cannot hash '" ++ string ++ "'");
+        }
+
+        fn hash(string: []const u8) ?T {
+            if (string.len > max_bytes) return null;
+            var tmp = [_]u8{0} ** max_bytes;
+            std.mem.copy(u8, &tmp, string);
+            return std.mem.readIntNative(T, &tmp);
         }
     };
 }
