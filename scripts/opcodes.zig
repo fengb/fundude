@@ -20,7 +20,9 @@ pub fn main() !void {
             const opcode = @intCast(u8, high << 4 | low);
             const op = fundude.Cpu.opDecode([3]u8{ opcode, 0xCD, 0xAB });
 
-            try stdout.print("<td>{} ", .{op.length});
+            var buffer: [16]u8 = undefined;
+            try stdout.print("<td>{} <br />", .{op.disassemble(&buffer)});
+            try stdout.print("{} ", .{op.length});
             if (op.durations[0] == op.durations[1]) {
                 try stdout.print("{}\n", .{op.durations[0]});
             } else {

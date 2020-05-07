@@ -1,5 +1,6 @@
 const std = @import("std");
 const main = @import("main.zig");
+const util = @import("util.zig");
 pub const cb___ib___ = @import("cpu_opcb.zig").cb___ib___;
 
 const Reg8 = main.cpu.Reg8;
@@ -166,6 +167,65 @@ pub fn Result(lengt: u2, duration: var) type {
 
             duration: u8,
         };
+    }
+}
+
+pub fn disassemble(op: Op, buffer: []u8) ![]u8 {
+    var stream = std.io.fixedBufferStream(buffer);
+    const os = stream.outStream();
+
+    const special: ?[]const u8 = switch (op.id) {
+        .ILLEGAL___ => "",
+        .sys__mo___ => switch (op.arg0.mo) {
+            .halt => "HALT",
+            .stop => "STOP",
+            else => unreachable,
+        },
+        .int__tf___ => switch (op.arg0.tf) {
+            true => "EI",
+            false => "DI",
+        },
+        .cb___ib___ => "CB??",
+        else => null,
+    };
+
+    if (special) |match| {
+        try os.writeAll(match);
+        return util.toUpper(stream.getWritten());
+    }
+
+    const enum_name = @tagName(op.id);
+
+    if (enum_name[2] == '_') {
+        try os.writeAll(enum_name[0..2]);
+    } else if (enum_name[3] == '_') {
+        try os.writeAll(enum_name[0..3]);
+    } else if (enum_name[4] == '_') {
+        try os.writeAll(enum_name[0..4]);
+    } else {
+        unreachable;
+    }
+
+    try disassembleArg(os, enum_name[5..7], op.arg0);
+    try disassembleArg(os, enum_name[8..10], op.arg1);
+
+    return util.toUpper(stream.getWritten());
+}
+
+fn disassembleArg(os: var, name: []const u8, arg: Op.Arg) !void {
+    const swh = util.Swhash(4);
+    switch (swh.match(name)) {
+        swh.case("__") => {},
+        swh.case("ib") => try os.print(" ${X}", .{arg.ib}),
+        swh.case("iw") => try os.print(" ${X}", .{arg.iw}),
+        swh.case("IB") => try os.print(" (${X})", .{arg.ib}),
+        swh.case("IW") => try os.print(" (${X})", .{arg.iw}),
+        swh.case("zc") => try os.print(" {}", .{@tagName(arg.zc)}),
+        swh.case("rb") => try os.print(" {}", .{@tagName(arg.rb)}),
+        swh.case("rw") => try os.print(" {}", .{@tagName(arg.rw)}),
+        swh.case("RB") => try os.print(" ({})", .{@tagName(arg.rb)}),
+        swh.case("RW") => try os.print(" ({})", .{@tagName(arg.rw)}),
+        else => unreachable,
     }
 }
 
