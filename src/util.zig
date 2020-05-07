@@ -85,29 +85,16 @@ pub fn MatrixSlice(comptime T: type) type {
 
 // Adapted from https://github.com/ziglang/zig/issues/793#issuecomment-482927820
 pub fn EnumArray(comptime E: type, comptime T: type) type {
-    return packed struct {
+    return extern struct {
         const len = @typeInfo(E).Enum.fields.len;
         data: [len]T,
 
         fn get(self: @This(), tag: E) T {
-            inline for (std.meta.fields(E)) |field| {
-                if (field.value == @enumToInt(tag)) {
-                    return self.data[field.value];
-                }
-            }
-            unreachable;
-            // return self.data[@enumToInt(tag)];
+            return self.data[@enumToInt(tag)];
         }
 
         fn set(self: *@This(), tag: E, value: T) void {
-            inline for (std.meta.fields(E)) |field| {
-                if (field.value == @enumToInt(tag)) {
-                    self.data[field.value] = value;
-                    return;
-                }
-            }
-            unreachable;
-            // self.data[@enumToInt(tag)] = value;
+            self.data[@enumToInt(tag)] = value;
         }
 
         fn copy(self: *@This(), dst: E, src: E) void {
