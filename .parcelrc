@@ -1,0 +1,7 @@
+{
+  "extends": ["@parcel/config-default"],
+  "transformers": {
+    "*.gb": ["@parcel/transformer-raw"],
+    "*.svg": ["@parcel/transformer-inline-string", "..."]
+  }
+}

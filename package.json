@@ -25,14 +25,12 @@
     "@types/react": "^16.8.13",
     "@types/react-dom": "^16.8.4",
     "@types/react-window": "^1.8.1",
-    "parcel-bundler": "^1.12.3",
-    "parcel-plugin-bundle-visualiser": "^1.2.0",
+    "parcel": "^2.0.0-alpha.3.2",
     "react-snap": "git://github.com/fengb/react-snap.git#d3da4aa1474ab3fd768b38278d1006f173ea1afe",
     "typescript": "^3.4.3",
     "watch": "^1.0.2"
   },
   "dependencies": {
-    "@svgr/parcel-plugin-svgr": "^4.2.0",
     "classnames": "^2.2.6",
     "nano-css": "^5.2.0",
     "preact": "^10.0.0",
