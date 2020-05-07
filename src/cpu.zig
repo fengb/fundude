@@ -113,7 +113,7 @@ pub const Cpu = struct {
         return @bitCast(u8, Op.call_IW___(self, mmu, op));
     }
 
-    fn opDecode(bytes: [3]u8) Op {
+    pub fn opDecode(bytes: [3]u8) Op {
         const ib = bytes[1];
         const iw = @as(u16, bytes[2]) << 8 | bytes[1];
         return switch (bytes[0]) {
