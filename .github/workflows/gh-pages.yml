@@ -16,7 +16,7 @@ jobs:
         with:
           version: master
 
-      - run: zig build
+      - run: zig build -Drelease-safe
 
       - name: Setup Node.js
         uses: actions/setup-node@v1
