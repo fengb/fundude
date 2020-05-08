@@ -1,4 +1,6 @@
-import "preact/debug";
+if (process.env.NODE_ENV==='development') {
+  require("preact/debug");
+}
 import { h, render, hydrate } from "preact";
 import Page from "./Page";
 
