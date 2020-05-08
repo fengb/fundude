@@ -1,12 +1,12 @@
 {
   "name": "fundude",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.html",
   "author": "Benjamin Feng <contact@fengb.me>",
   "license": "MIT",
   "scripts": {
     "dev": "parcel src/web/index.html",
-    "build": "parcel build src/web/index.html --public-url ./",
+    "build": "parcel build src/web/index.html",
     "postbuild": "react-snap"
   },
   "reactSnap": {
