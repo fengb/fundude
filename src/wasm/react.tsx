@@ -1,5 +1,5 @@
 import React from "react";
-import FundudeWasm from ".";
+import FundudeWasm, { WASM_READY } from ".";
 
 interface Item {
   fd: FundudeWasm;
@@ -14,7 +14,7 @@ interface Props {
 }
 
 interface State {
-  fd: FundudeWasm;
+  fd?: FundudeWasm;
 }
 
 const MAX_SKIP_MS = 5000;
@@ -30,11 +30,7 @@ export class Provider extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    this.state = {
-      fd: new FundudeWasm(props.bootCart)
-    };
-
-    Object.assign(window, { fd: this.state.fd });
+    this.state = { fd: null };
 
     this.handleChange = this.handleChange.bind(this);
     this.run = this.run.bind(this);
@@ -43,11 +39,15 @@ export class Provider extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    if (this.props.autoBoot) {
-      this.run();
-    } else {
-      this.state.fd.changed.add(this.handleChange);
-    }
+    WASM_READY.then(() => {
+      this.setState({ fd: new FundudeWasm(this.props.bootCart) }, () => {
+        if (this.props.autoBoot) {
+          this.run();
+        } else {
+          this.state.fd.changed.add(this.handleChange);
+        }
+      });
+    });
   }
 
   handleChange() {
@@ -99,6 +99,9 @@ export class Provider extends React.Component<Props, State> {
   }
 
   render() {
+    if (!this.state.fd) {
+      return null;
+    }
     return (
       <Context.Provider
         value={{ fd: this.state.fd, run: this.run, pause: this.pause }}

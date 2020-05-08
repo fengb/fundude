@@ -18,7 +18,7 @@ const LazyDebug = {
 };
 
 //@ts-ignore
-import Logo from "./logo.svg";
+import logo from "data-url:./logo.svg";
 
 const CSS = {
   root: nano.rule({
@@ -70,7 +70,7 @@ const CSS = {
   }),
 
   logo: nano.rule({
-    color: "white",
+    filter: "invert(1)",
     position: "absolute",
     top: "20%",
     width: "auto",
@@ -101,7 +101,7 @@ export function App(props: { debug?: boolean }) {
             blend
           />
           <h1 className={CSS.title}>
-            <Logo className={CSS.logo} />
+            <img className={CSS.logo} src={logo} />
             FUN
             <i className={CSS.titleSymbol}>&#10012;</i>
             DUDE

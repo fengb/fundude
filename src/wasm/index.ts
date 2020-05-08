@@ -1,8 +1,15 @@
 //@ts-ignore
-import WASM from "../../zig-cache/fundude.wasm";
+import base64 from "data-url:../../zig-cache/fundude.wasm";
+
 import PicoSignal from "./PicoSignal";
 
-Object.assign(window, { WASM });
+// Dance to pretend WASM is synchronous
+let WASM;
+export const WASM_READY = (async () => {
+  const result = await WebAssembly.instantiateStreaming(fetch(base64));
+  WASM = result.instance.exports;
+  Object.assign(window, { WASM });
+})();
 
 export type Matrix<T> = T & {
   width: number;
