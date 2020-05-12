@@ -370,10 +370,9 @@ pub const Video = struct {
         // FIXME: this isn't how DMA works
         if (mmu.dyn.io.video.DMA != 0) {
             const addr = @intCast(u16, mmu.dyn.io.video.DMA) << 8;
-            const oam = @ptrCast([*]u8, &mmu.dyn.oam);
-            for (oam[0..160]) |*tgt, i| {
-                tgt.* = mmu.get(addr +% @intCast(u16, i));
-            }
+            const oam = std.mem.asBytes(&mmu.dyn.oam);
+            std.mem.copy(u8, oam, std.mem.asBytes(&mmu.dyn)[addr..][0..oam.len]);
+
             mmu.dyn.io.video.DMA = 0;
         }
 
@@ -451,11 +450,11 @@ pub const Video = struct {
 
     // TODO: audit this function
     fn render(self: *Video, mmu: *main.Mmu, y: usize) void {
-        // Cache specific lines instead of trying to do it all
-        self.cache.patterns.run(mmu);
-        self.cache.sprites.run(mmu, &self.cache.patterns.data);
-        self.cache.background.run(mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map);
-        self.cache.window.run(mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.window_tile_map);
+        // TODO: Cache specific lines instead of doing it all at once
+        @call(.{ .modifier = .never_inline }, self.cache.patterns.run, .{mmu});
+        @call(.{ .modifier = .never_inline }, self.cache.sprites.run, .{ mmu, &self.cache.patterns.data });
+        @call(.{ .modifier = .never_inline }, self.cache.background.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map });
+        @call(.{ .modifier = .never_inline }, self.cache.window.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.window_tile_map });
 
         const line = self.draw.sliceLine(0, y);
 
