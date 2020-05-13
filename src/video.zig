@@ -216,7 +216,7 @@ pub const Video = struct {
             dirty: bool,
 
             // TODO: this is pretty brutal
-            fn toMatrixSlice(self: *@This()) MatrixSlice(u8) {
+            pub fn toMatrixSlice(self: *@This()) MatrixSlice(u8) {
                 return .{
                     .data = std.mem.asBytes(&self.data),
                     .width = CachedPattern.width,

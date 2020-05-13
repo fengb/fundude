@@ -89,15 +89,15 @@ pub fn EnumArray(comptime E: type, comptime T: type) type {
         const len = @typeInfo(E).Enum.fields.len;
         data: [len]T,
 
-        fn get(self: @This(), tag: E) T {
+        pub fn get(self: @This(), tag: E) T {
             return self.data[@enumToInt(tag)];
         }
 
-        fn set(self: *@This(), tag: E, value: T) void {
+        pub fn set(self: *@This(), tag: E, value: T) void {
             self.data[@enumToInt(tag)] = value;
         }
 
-        fn copy(self: *@This(), dst: E, src: E) void {
+        pub fn copy(self: *@This(), dst: E, src: E) void {
             self.set(dst, self.get(src));
         }
     };
