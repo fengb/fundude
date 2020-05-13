@@ -46,21 +46,21 @@ pub const Io = packed struct {
     WX: u8, // $FF4B
 };
 
-const LcdcMode = enum(u2) {
+const LcdcMode = packed enum(u2) {
     hblank = 0,
     vblank = 1,
     searching = 2,
     transferring = 3,
 };
 
-const Color = enum(u8) {
+const Color = packed enum(u8) {
     _0 = 0,
     _1 = 1,
     _2 = 2,
     _3 = 3,
 };
 
-const Shade = enum(u8) {
+const Shade = packed enum(u8) {
     White = 0,
     Light = 1,
     Dark = 2,
@@ -125,12 +125,12 @@ pub const SpriteAttr = packed struct {
     },
 };
 
-const SpritePalette = enum(u1) {
+const SpritePalette = packed enum(u1) {
     OBP0 = 0,
     OBP1 = 1,
 };
 
-const TileAddressing = enum(u1) {
+const TileAddressing = packed enum(u1) {
     _8800 = 0,
     _8000 = 1,
 
@@ -139,7 +139,7 @@ const TileAddressing = enum(u1) {
     }
 };
 
-const TileMapAddressing = enum(u1) {
+const TileMapAddressing = packed enum(u1) {
     _9800 = 0,
     _9C00 = 1,
 };

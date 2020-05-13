@@ -85,7 +85,7 @@ pub fn MatrixSlice(comptime T: type) type {
 
 // Adapted from https://github.com/ziglang/zig/issues/793#issuecomment-482927820
 pub fn EnumArray(comptime E: type, comptime T: type) type {
-    return packed struct {
+    return extern struct {
         const len = @typeInfo(E).Enum.fields.len;
         data: [len]T,
 
@@ -101,4 +101,36 @@ pub fn EnumArray(comptime E: type, comptime T: type) type {
             self.set(dst, self.get(src));
         }
     };
+}
+/// Super simple "perfect hash" algorithm
+/// Only really useful for switching on strings
+// TODO: can we auto detect and promote the underlying type?
+pub fn Swhash(comptime max_bytes: comptime_int) type {
+    const T = std.meta.IntType(false, max_bytes * 8);
+
+    return struct {
+        pub fn match(string: []const u8) T {
+            return hash(string) orelse std.math.maxInt(T);
+        }
+
+        pub fn case(comptime string: []const u8) T {
+            return hash(string) orelse @compileError("Cannot hash '" ++ string ++ "'");
+        }
+
+        fn hash(string: []const u8) ?T {
+            if (string.len > max_bytes) return null;
+            var tmp = [_]u8{0} ** max_bytes;
+            std.mem.copy(u8, &tmp, string);
+            return std.mem.readIntNative(T, &tmp);
+        }
+    };
+}
+
+pub fn toUpper(buffer: []u8) []u8 {
+    for (buffer) |*letter| {
+        if ('a' <= letter.* and letter.* <= 'z') {
+            letter.* = letter.* - 'a' + 'A';
+        }
+    }
+    return buffer;
 }

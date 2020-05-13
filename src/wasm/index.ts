@@ -248,19 +248,22 @@ export default class FundudeWasm {
   }
 
   *disassemble(): IterableIterator<[number, string]> {
-    const fd = new FundudeWasm(this.cart);
+    const stringPtr = WASM.malloc(16);
     try {
-      while (true) {
-        const addr = fd.cpu().PC();
-        const outChunk = U8Chunk.fromFloat(WASM.fd_disassemble(fd.pointer));
+      let i = 0;
+      while (i < this.cart.length) {
+        const byte0 = this.cart[i];
+        const byte1 = this.cart[i + 1] || 0;
+        const byte2 = this.cart[i + 2] || 0;
+        const outChunk = U8Chunk.fromFloat(
+          WASM.fd_disassemble(stringPtr, byte0, byte1, byte2)
+        );
+        yield [i, outChunk.toUTF8()];
 
-        if (!outChunk.length) {
-          return;
-        }
-        yield [addr, outChunk.toUTF8()];
+        i += WASM.fd_instr_len(byte0);
       }
     } finally {
-      fd.dealloc();
+      WASM.free(stringPtr);
     }
   }
 }

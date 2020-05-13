@@ -17,4 +17,19 @@ pub fn build(b: *std.build.Builder) void {
 
     b.default_step.dependOn(&lib.step);
     b.installArtifact(lib);
+
+    addScript(b, "opcodes");
+}
+
+fn addScript(b: *std.build.Builder, name: []const u8) void {
+    const filename = std.fmt.allocPrint(b.allocator, "scripts/{}.zig", .{name}) catch unreachable;
+    const mode = b.standardReleaseOptions();
+    const exe = b.addExecutable(name, filename);
+    exe.setBuildMode(mode);
+    exe.addPackagePath("fundude", "src/main.zig");
+
+    const run_cmd = exe.run();
+
+    const run_step = b.step(name, filename);
+    run_step.dependOn(&run_cmd.step);
 }
