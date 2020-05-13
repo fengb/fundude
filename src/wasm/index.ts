@@ -18,10 +18,6 @@ class U8Chunk extends Uint8Array {
   //  return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
   //}
 
-  toUTF8() {
-    return new TextDecoder("utf-8").decode(this);
-  }
-
   // TODO: remove floats
   // JS can't handle i64 yet so we're using f64 for now
   toFloat(): number {
@@ -255,10 +251,13 @@ export default class FundudeWasm {
         const byte0 = this.cart[i];
         const byte1 = this.cart[i + 1] || 0;
         const byte2 = this.cart[i + 2] || 0;
+
         const outChunk = U8Chunk.fromFloat(
           WASM.fd_disassemble(stringPtr, byte0, byte1, byte2)
         );
-        yield [i, outChunk.toUTF8()];
+        const utf8 = new TextDecoder("utf-8").decode(outChunk);
+
+        yield [i, utf8];
 
         i += WASM.fd_instr_len(byte0);
       }
