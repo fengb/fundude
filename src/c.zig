@@ -155,6 +155,11 @@ export fn fd_disassemble(buffer: *[16]u8, arg0: u8, arg1: u8, arg2: u8) U8Chunk.
     return U8Chunk.fromSlice(op.disassemble(buffer) catch unreachable);
 }
 
+export fn fd_instr_len(arg0: u8) usize {
+    const op = main.Cpu.opDecode(.{ arg0, 0, 0 });
+    return op.length;
+}
+
 // export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
 //     if (fd.cpu.mode == .fatal) {
 //         return U8Chunk.fromSlice(&[_]u8{});
