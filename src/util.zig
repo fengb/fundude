@@ -126,11 +126,9 @@ pub fn Swhash(comptime max_bytes: comptime_int) type {
     };
 }
 
-pub fn toUpper(buffer: []u8) []u8 {
+pub fn makeUpper(buffer: []u8) []u8 {
     for (buffer) |*letter| {
-        if ('a' <= letter.* and letter.* <= 'z') {
-            letter.* = letter.* - 'a' + 'A';
-        }
+        letter.* = std.ascii.toUpper(letter.*);
     }
     return buffer;
 }

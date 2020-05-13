@@ -110,10 +110,6 @@ export fn fd_step_ms(fd: *main.Fundude, ms: f64) i32 {
 }
 
 export fn fd_step_cycles(fd: *main.Fundude, cycles: i32) i32 {
-    if (fd.cpu.mode == .fatal) {
-        return -9999;
-    }
-
     const target_cycles: i32 = fd.step_underflow + cycles;
     var track = target_cycles;
 
@@ -159,26 +155,6 @@ export fn fd_instr_len(arg0: u8) usize {
     const op = main.Cpu.opDecode(.{ arg0, 0, 0 });
     return op.length;
 }
-
-// export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
-//     if (fd.cpu.mode == .fatal) {
-//         return U8Chunk.fromSlice(&[_]u8{});
-//     }
-
-//     fd.mmu.dyn.io.boot_complete = 1;
-//     const addr = fd.cpu.reg._16.get(.PC);
-
-//     // TODO: explicitly decode
-//     const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.cart.ptr + addr);
-//     const new_addr = addr +% res.length;
-//     fd.cpu.reg._16.set(.PC, new_addr);
-
-//     if (new_addr >= std.math.min(fd.mmu.mbc.cart.len, 0x7FFF) or new_addr < addr) {
-//         fd.cpu.mode = .fatal;
-//     }
-//     std.mem.copy(u8, &fd.disassembly, res.name);
-//     return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]);
-// }
 
 // Video
 export fn fd_screen(fd: *main.Fundude) MatrixChunk(u16).Abi {

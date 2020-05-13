@@ -191,7 +191,7 @@ pub fn disassemble(op: Op, buffer: []u8) ![]u8 {
 
     if (special) |match| {
         try os.writeAll(match);
-        return util.toUpper(stream.getWritten());
+        return util.makeUpper(stream.getWritten());
     }
 
     const enum_name = @tagName(op.id);
@@ -209,7 +209,7 @@ pub fn disassemble(op: Op, buffer: []u8) ![]u8 {
     try disassembleArg(os, enum_name[5..7], op.arg0);
     try disassembleArg(os, enum_name[8..10], op.arg1);
 
-    return util.toUpper(stream.getWritten());
+    return util.makeUpper(stream.getWritten());
 }
 
 fn disassembleArg(os: var, name: []const u8, arg: Op.Arg) !void {

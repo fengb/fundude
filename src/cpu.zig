@@ -9,7 +9,6 @@ pub const Mode = enum(u16) {
     halt,
     stop,
     illegal,
-    fatal, // Not a GB mode, this code is bad and we should feel bad
 };
 
 pub const Reg16 = enum(u3) {
