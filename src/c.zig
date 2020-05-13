@@ -150,25 +150,30 @@ export fn fd_input_release(fd: *main.Fundude, input: u8) u8 {
     return fd.inputs.raw;
 }
 
-export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
-    // if (fd.cpu.mode == .fatal) {
-    return U8Chunk.fromSlice(&[_]u8{});
-    // }
-
-    // fd.mmu.dyn.io.boot_complete = 1;
-    // const addr = fd.cpu.reg._16.get(.PC);
-
-    // // TODO: explicitly decode
-    // const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.cart.ptr + addr);
-    // const new_addr = addr +% res.length;
-    // fd.cpu.reg._16.set(.PC, new_addr);
-
-    // if (new_addr >= std.math.min(fd.mmu.mbc.cart.len, 0x7FFF) or new_addr < addr) {
-    //     fd.cpu.mode = .fatal;
-    // }
-    // std.mem.copy(u8, &fd.disassembly, res.name);
-    // return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]);
+export fn fd_disassemble(buffer: *[16]u8, arg0: u8, arg1: u8, arg2: u8) U8Chunk.Abi {
+    const op = main.Cpu.opDecode(.{ arg0, arg1, arg2 });
+    return U8Chunk.fromSlice(op.disassemble(buffer) catch unreachable);
 }
+
+// export fn fd_disassemble(fd: *main.Fundude) U8Chunk.Abi {
+//     if (fd.cpu.mode == .fatal) {
+//         return U8Chunk.fromSlice(&[_]u8{});
+//     }
+
+//     fd.mmu.dyn.io.boot_complete = 1;
+//     const addr = fd.cpu.reg._16.get(.PC);
+
+//     // TODO: explicitly decode
+//     const res = fd.cpu.opStep(&fd.mmu, fd.mmu.mbc.cart.ptr + addr);
+//     const new_addr = addr +% res.length;
+//     fd.cpu.reg._16.set(.PC, new_addr);
+
+//     if (new_addr >= std.math.min(fd.mmu.mbc.cart.len, 0x7FFF) or new_addr < addr) {
+//         fd.cpu.mode = .fatal;
+//     }
+//     std.mem.copy(u8, &fd.disassembly, res.name);
+//     return U8Chunk.fromSlice(fd.disassembly[0..res.name.len]);
+// }
 
 // Video
 export fn fd_screen(fd: *main.Fundude) MatrixChunk(u16).Abi {
