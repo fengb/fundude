@@ -579,7 +579,9 @@ pub fn ld___RW_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
 
 pub fn ld___IW_rw(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{20}) {
     // TODO: verify this is correct
-    mmu.set(op.arg0.iw, mmu.get(cpu.reg._16.get(op.arg1.rw)));
+    const val = cpu.reg._16.get(op.arg1.rw);
+    mmu.set(op.arg0.iw, @truncate(u8, val));
+    mmu.set(op.arg0.iw +% 1, @truncate(u8, val >> 8));
     return .{};
 }
 
@@ -932,8 +934,8 @@ fn push8(cpu: *main.Cpu, mmu: *main.Mmu, val: u8) void {
 }
 
 fn push16(cpu: *main.Cpu, mmu: *main.Mmu, val: u16) void {
-    push8(cpu, mmu, @intCast(u8, val >> 8 & 0xFF));
-    push8(cpu, mmu, @intCast(u8, val >> 0 & 0xFF));
+    push8(cpu, mmu, @truncate(u8, val >> 8));
+    push8(cpu, mmu, @truncate(u8, val >> 0));
 }
 
 pub const Bit = struct {
