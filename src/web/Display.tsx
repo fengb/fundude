@@ -98,11 +98,11 @@ export default function Display(props: {
        */
 
       const raw = pixels[i];
-      var r0 = 31744 & raw;
-      var r1 = 255 & (raw << 3);
-      var r2 = 992 & raw;
+      var r0 = 0x7c00 & raw;
+      var r1 = 0x00ff & (raw << 3);
+      var r2 = 0x03e0 & raw;
 
-      i32s[i] = -16777216 | (r0 << 9) | r1 | (r2 << 6);
+      i32s[i] = (-1 << 24) | (r0 << 9) | r1 | (r2 << 6);
     }
     // }
     ctx.putImageData(imageData, PADDING, PADDING);
