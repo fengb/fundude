@@ -147,12 +147,12 @@ export fn fd_input_release(fd: *main.Fundude, input: u8) u8 {
 }
 
 export fn fd_disassemble(buffer: *[16]u8, arg0: u8, arg1: u8, arg2: u8) U8Chunk.Abi {
-    const op = main.Cpu.opDecode(.{ arg0, arg1, arg2 });
+    const op = main.cpu.Op.decode(.{ arg0, arg1, arg2 });
     return U8Chunk.fromSlice(op.disassemble(buffer) catch unreachable);
 }
 
 export fn fd_instr_len(arg0: u8) usize {
-    const op = main.Cpu.opDecode(.{ arg0, 0, 0 });
+    const op = main.cpu.Op.decode(.{ arg0, 0, 0 });
     return op.length;
 }
 
