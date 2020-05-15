@@ -182,7 +182,7 @@ pub fn disassemble(op: Op, buffer: []u8) ![]u8 {
     const enum_name = @tagName(op.id);
     for (enum_name) |letter| {
         if (letter == '_') break;
-        os.writeByte(letter) catch unreachable;
+        _ = try os.write(&[1]u8{letter});
     }
 
     try disassembleArg(os, enum_name[5..7], op.arg0);
@@ -211,36 +211,36 @@ fn disassembleSpecial(op: Op) ?[]const u8 {
 fn disassembleArg(outStream: var, name: *const [2]u8, arg: Op.Arg) !void {
     if (std.mem.eql(u8, "__", name)) return;
 
-    try outStream.writeByte(' ');
+    _ = try outStream.write(" ");
 
     if (std.ascii.isUpper(name[0])) {
-        try outStream.writeByte('(');
+        _ = try outStream.write("(");
     }
     const swh = util.Swhash(4);
     switch (swh.match(name)) {
-        swh.case("zc") => try outStream.writeAll(@tagName(arg.zc)),
+        swh.case("zc") => _ = try outStream.write(@tagName(arg.zc)),
         swh.case("ib"), swh.case("IB") => try printHexes(outStream, 2, arg.ib),
         swh.case("iw"), swh.case("IW") => try printHexes(outStream, 4, arg.iw),
-        swh.case("rb"), swh.case("RB") => try outStream.writeAll(@tagName(arg.rb)),
-        swh.case("rw"), swh.case("RW") => try outStream.writeAll(@tagName(arg.rw)),
+        swh.case("rb"), swh.case("RB") => _ = try outStream.write(@tagName(arg.rb)),
+        swh.case("rw"), swh.case("RW") => _ = try outStream.write(@tagName(arg.rw)),
         else => unreachable,
     }
 
     if (std.ascii.isUpper(name[0])) {
-        try outStream.writeByte(')');
+        _ = try outStream.write(")");
     }
 }
 
 fn printHexes(outStream: var, length: u3, val: u16) !void {
     @setCold(true);
-    try outStream.writeByte('$');
+    _ = try outStream.write("$");
     var i: u4 = length;
     while (i > 0) {
         i -= 1;
         const digit_num: u8 = @truncate(u4, val >> (4 * i));
-        try outStream.writeByte(
+        _ = try outStream.write(&[1]u8{
             if (digit_num < 10) '0' + digit_num else 'A' + digit_num - 10,
-        );
+        });
     }
 }
 
