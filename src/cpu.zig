@@ -391,7 +391,7 @@ pub const Cpu = struct {
     }
 
     fn opStep(cpu: *Cpu, mmu: *main.Mmu) u8 {
-        const op = opDecode(mmu.instrBytes(cpu.reg._16.get(.PC)));
+        const op = @call(.{ .modifier = .always_inline }, opDecode, .{mmu.instrBytes(cpu.reg._16.get(.PC))});
         cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% op.length);
 
         inline for (std.meta.fields(Op.Id)) |field| {
