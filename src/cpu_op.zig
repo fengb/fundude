@@ -174,7 +174,25 @@ pub fn disassemble(op: Op, buffer: []u8) ![]u8 {
     var stream = std.io.fixedBufferStream(buffer);
     const os = stream.outStream();
 
-    const special: ?[]const u8 = switch (op.id) {
+    if (@call(.{ .modifier = .never_inline }, disassembleSpecial, .{op})) |special| {
+        std.mem.copy(u8, buffer[0..16], special);
+        return buffer[0..special.len];
+    }
+
+    const enum_name = @tagName(op.id);
+    for (enum_name) |letter| {
+        if (letter == '_') break;
+        os.writeByte(letter) catch unreachable;
+    }
+
+    try disassembleArg(os, enum_name[5..7], op.arg0);
+    try disassembleArg(os, enum_name[8..10], op.arg1);
+
+    return util.makeUpper(stream.getWritten());
+}
+
+fn disassembleSpecial(op: Op) ?[]const u8 {
+    return switch (op.id) {
         .ILLEGAL___ => "",
         .sys__mo___ => switch (op.arg0.mo) {
             .halt => "HALT",
@@ -188,44 +206,41 @@ pub fn disassemble(op: Op, buffer: []u8) ![]u8 {
         .cb___ib___ => "CB??",
         else => null,
     };
-
-    if (special) |match| {
-        try os.writeAll(match);
-        return util.makeUpper(stream.getWritten());
-    }
-
-    const enum_name = @tagName(op.id);
-
-    if (enum_name[2] == '_') {
-        try os.writeAll(enum_name[0..2]);
-    } else if (enum_name[3] == '_') {
-        try os.writeAll(enum_name[0..3]);
-    } else if (enum_name[4] == '_') {
-        try os.writeAll(enum_name[0..4]);
-    } else {
-        unreachable;
-    }
-
-    try disassembleArg(os, enum_name[5..7], op.arg0);
-    try disassembleArg(os, enum_name[8..10], op.arg1);
-
-    return util.makeUpper(stream.getWritten());
 }
 
-fn disassembleArg(os: var, name: []const u8, arg: Op.Arg) !void {
+fn disassembleArg(outStream: var, name: *const [2]u8, arg: Op.Arg) !void {
+    if (std.mem.eql(u8, "__", name)) return;
+
+    try outStream.writeByte(' ');
+
+    if (std.ascii.isUpper(name[0])) {
+        try outStream.writeByte('(');
+    }
     const swh = util.Swhash(4);
     switch (swh.match(name)) {
-        swh.case("__") => {},
-        swh.case("ib") => try os.print(" ${X}", .{arg.ib}),
-        swh.case("iw") => try os.print(" ${X}", .{arg.iw}),
-        swh.case("IB") => try os.print(" (${X})", .{arg.ib}),
-        swh.case("IW") => try os.print(" (${X})", .{arg.iw}),
-        swh.case("zc") => try os.print(" {}", .{@tagName(arg.zc)}),
-        swh.case("rb") => try os.print(" {}", .{@tagName(arg.rb)}),
-        swh.case("rw") => try os.print(" {}", .{@tagName(arg.rw)}),
-        swh.case("RB") => try os.print(" ({})", .{@tagName(arg.rb)}),
-        swh.case("RW") => try os.print(" ({})", .{@tagName(arg.rw)}),
+        swh.case("zc") => try outStream.writeAll(@tagName(arg.zc)),
+        swh.case("ib"), swh.case("IB") => try printHexes(outStream, 2, arg.ib),
+        swh.case("iw"), swh.case("IW") => try printHexes(outStream, 4, arg.iw),
+        swh.case("rb"), swh.case("RB") => try outStream.writeAll(@tagName(arg.rb)),
+        swh.case("rw"), swh.case("RW") => try outStream.writeAll(@tagName(arg.rw)),
         else => unreachable,
+    }
+
+    if (std.ascii.isUpper(name[0])) {
+        try outStream.writeByte(')');
+    }
+}
+
+fn printHexes(outStream: var, length: u3, val: u16) !void {
+    @setCold(true);
+    try outStream.writeByte('$');
+    var i: u4 = length;
+    while (i > 0) {
+        i -= 1;
+        const digit_num: u8 = @truncate(u4, val >> (4 * i));
+        try outStream.writeByte(
+            if (digit_num < 10) '0' + digit_num else 'A' + digit_num - 10,
+        );
     }
 }
 
