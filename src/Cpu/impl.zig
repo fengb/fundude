@@ -2,9 +2,8 @@ const main = @import("../main.zig");
 const Op = @import("Op.zig");
 pub const cb___ib___ = @import("cpu_opcb.zig").cb___ib___;
 
-const Reg8 = main.cpu.Reg8;
-const Reg16 = main.cpu.Reg16;
-const Flags = main.cpu.Flags;
+const Reg8 = main.Cpu.Reg8;
+const Reg16 = main.Cpu.Reg16;
 
 pub fn Result(lengt: u2, duration: var) type {
     if (duration.len == 1) {
@@ -41,7 +40,7 @@ pub fn sys__mo___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
 }
 
 pub fn scf_______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = cpu.reg.flags.Z,
         .N = false,
         .H = false,
@@ -51,7 +50,7 @@ pub fn scf_______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
 }
 
 pub fn ccf_______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = cpu.reg.flags.Z,
         .N = false,
         .H = false,
@@ -111,7 +110,7 @@ pub fn daa__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     }
 
     cpu.reg._8.set(dst, val);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = val == 0,
         .N = cpu.reg.flags.N,
         .H = false,
@@ -350,7 +349,7 @@ pub fn inc__rw___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
 pub fn inc__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{12}) {
     const addr = cpu.reg._16.get(op.arg0.rw);
     const val = mmu.get(addr);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = (val +% 1) == 0,
         .N = false,
         .H = willCarryInto(4, val, 1),
@@ -363,7 +362,7 @@ pub fn inc__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{12}) {
 
 pub fn inc__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     const val = cpu.reg._8.get(op.arg0.rb);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = (val +% 1) == 0,
         .N = false,
         .H = willCarryInto(4, val, 1),
@@ -383,7 +382,7 @@ pub fn dec__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{12}) {
     const addr = cpu.reg._16.get(op.arg0.rw);
     const val = mmu.get(addr);
 
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = (val -% 1) == 0,
         .N = true,
         .H = willBorrowFrom(4, val, 1),
@@ -395,7 +394,7 @@ pub fn dec__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{12}) {
 
 pub fn dec__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     const val = cpu.reg._8.get(op.arg0.rb);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = (val -% 1) == 0,
         .N = true,
         .H = willBorrowFrom(4, val, 1),
@@ -425,7 +424,7 @@ pub fn add__rw_rw(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
     const tgt = op.arg0.rw;
     const src_val = cpu.reg._16.get(op.arg1.rw);
     const tgt_val = cpu.reg._16.get(tgt);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = cpu.reg.flags.Z,
         .N = false,
         .H = willCarryInto(12, tgt_val, src_val),
@@ -439,7 +438,7 @@ pub fn add__rw_IB(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
     const tgt = op.arg0.rw;
     const offset = op.arg1.ib;
     const val = cpu.reg._16.get(tgt);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = false,
         .N = false,
         .H = willCarryInto(12, val, offset),
@@ -564,7 +563,7 @@ pub fn cp___rb_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
 pub fn cpl__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     const tgt = op.arg0.rb;
     const val = cpu.reg._8.get(tgt);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = cpu.reg.flags.Z,
         .N = true,
         .H = true,
@@ -632,7 +631,7 @@ pub const Bit = struct {
 
 // TODO: maybe rename? Not too obvious...
 pub fn flagShift(cpu: *main.Cpu, val: u8, carry: bool) u8 {
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = val == 0,
         .N = false,
         .H = false,
@@ -663,7 +662,7 @@ pub fn doRr(cpu: *main.Cpu, val: u8) u8 {
 
 fn doAddRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     const tgt_val = cpu.reg._8.get(tgt);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = (tgt_val +% val) == 0,
         .N = false,
         .H = willCarryInto(4, tgt_val, val),
@@ -675,7 +674,7 @@ fn doAddRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
 fn doAdcRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     const tgt_val = cpu.reg._8.get(tgt);
     const carry = cpu.reg.flags.c(u1);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = (tgt_val +% val +% carry) == 0,
         .N = false,
         .H = willCarryInto(4, tgt_val, val) or willCarryInto(4, tgt_val, val +% carry),
@@ -693,7 +692,7 @@ fn doSubRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
 fn doSbcRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     const tgt_val = cpu.reg._8.get(tgt);
     const carry = cpu.reg.flags.c(u1);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = (tgt_val -% val -% carry) == 0,
         .N = true,
         .H = willBorrowFrom(4, tgt_val, val) or willBorrowFrom(4, tgt_val -% val, carry),
@@ -704,7 +703,7 @@ fn doSbcRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
 
 fn doCpRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     const tgt_val = cpu.reg._8.get(tgt);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = (tgt_val -% val) == 0,
         .N = true,
         .H = willBorrowFrom(4, tgt_val, val),
@@ -714,7 +713,7 @@ fn doCpRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
 
 fn doAndRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     const tgt_val = cpu.reg._8.get(tgt);
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = (tgt_val & val) == 0,
         .N = false,
         .H = true,

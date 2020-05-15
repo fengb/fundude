@@ -1,12 +1,12 @@
 const std = @import("std");
-const cpu = @import("../cpu.zig");
+const Cpu = @import("../Cpu.zig");
 const util = @import("../util.zig");
 
 pub const impl = @import("impl.zig");
 
-const Reg8 = cpu.Reg8;
-const Reg16 = cpu.Reg16;
-const Flags = cpu.Flags;
+const Reg8 = Cpu.Reg8;
+const Reg16 = Cpu.Reg16;
+const Flags = Cpu.Flags;
 
 const Op = @This();
 
@@ -129,7 +129,7 @@ pub const Arg = union {
 
     tf: bool,
     zc: ZC,
-    mo: cpu.Mode,
+    mo: Cpu.Mode,
 };
 
 pub const ZC = enum(u32) {
@@ -138,16 +138,16 @@ pub const ZC = enum(u32) {
     nc = 0x0_10,
     c = 0x10_10,
 
-    pub fn check(self: ZC, cp: cpu.Cpu) bool {
+    pub fn check(self: ZC, cpu: Cpu) bool {
         // return switch (self) {
-        //     .nz => !cpu.reg.flags.Z,
-        //     .z => cpu.reg.flags.Z,
-        //     .nc => !cpu.reg.flags.C,
-        //     .c => cpu.reg.flags.C,
+        //     .nz => !Cpu.reg.flags.Z,
+        //     .z => Cpu.reg.flags.Z,
+        //     .nc => !Cpu.reg.flags.C,
+        //     .c => Cpu.reg.flags.C,
         // };
         const compare = @enumToInt(self) >> 8;
         const mask = 0xff & @enumToInt(self);
-        return mask & @bitCast(u8, cp.reg.flags) == compare;
+        return mask & @bitCast(u8, cpu.reg.flags) == compare;
     }
 };
 
@@ -534,7 +534,7 @@ pub fn tf___(comptime id: Id, arg0: bool) Op {
     return init(id, .{ .tf = arg0 }, .{ .__ = {} });
 }
 
-pub fn mo___(comptime id: Id, arg0: cpu.Mode) Op {
+pub fn mo___(comptime id: Id, arg0: Cpu.Mode) Op {
     return init(id, .{ .mo = arg0 }, .{ .__ = {} });
 }
 

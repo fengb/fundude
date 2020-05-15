@@ -1,8 +1,7 @@
 const main = @import("../main.zig");
 const Op = @import("Op.zig");
 
-const Reg8 = main.cpu.Reg8;
-const Flags = main.cpu.Flags;
+const Reg8 = main.Cpu.Reg8;
 
 const Result = struct {
     name: []const u8,
@@ -58,7 +57,7 @@ fn nameGlue(comptime prefix: []const u8, val: u3) []const u8 {
 }
 
 fn cb_bit(cpu: *main.Cpu, val: u8, bit: u3) Result {
-    cpu.reg.flags = Flags{
+    cpu.reg.flags = .{
         .Z = Op.impl.Bit.get(val, bit) == 0,
         .N = false,
         .H = true,

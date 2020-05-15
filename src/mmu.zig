@@ -2,10 +2,10 @@ const std = @import("std");
 
 const main = @import("main.zig");
 
+const Cpu = @import("Cpu.zig");
 const joypad = @import("joypad.zig");
 const serial = @import("serial.zig");
 const timer = @import("timer.zig");
-const irq = @import("irq.zig");
 const audio = @import("audio.zig");
 const video = @import("video.zig");
 
@@ -18,7 +18,7 @@ pub const Io = extern struct {
     _pad_ff03: u8,
     timer: timer.Io, // [$FF04 - $FF07]
     _pad_ff08_0e: [7]u8, // [$FF08 - $FF0E]
-    IF: irq.Flags, // [$FF0F]
+    IF: Cpu.Irq, // [$FF0F]
     audio: audio.Io, // [$FF10 - $FF3F]
     video: video.Io, // [$FF40 - $FF4C]
     _pad_ff4d_4f: [4]u8, // [$FF4D - $FF4F]
@@ -100,7 +100,7 @@ pub const Mmu = struct {
         _pad_fea0_ff00: [0x0060]u8, // [$FEA0 - $FF00)
         io: Io, // [$FF00 - $FF80)
         high_ram: [0x007F]u8, // [$FF80 - $FFFF)
-        interrupt_enable: irq.Flags, // [$FFFF]
+        interrupt_enable: Cpu.Irq, // [$FFFF]
     },
 
     cart: []const u8,

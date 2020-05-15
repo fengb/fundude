@@ -1,11 +1,10 @@
 const std = @import("std");
-pub const cpu = @import("cpu.zig");
+pub const Cpu = @import("Cpu.zig");
 const video = @import("video.zig");
 const joypad = @import("joypad.zig");
 const mmu = @import("mmu.zig");
 const timer = @import("timer.zig");
 
-pub const Cpu = cpu.Cpu;
 pub const Mmu = mmu.Mmu;
 
 pub const WIDTH = 160;
@@ -17,7 +16,7 @@ pub const Fundude = struct {
     allocator: *std.mem.Allocator,
 
     video: video.Video,
-    cpu: cpu.Cpu,
+    cpu: Cpu,
     mmu: mmu.Mmu,
 
     inputs: joypad.Inputs,
