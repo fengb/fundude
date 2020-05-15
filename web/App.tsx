@@ -1,6 +1,6 @@
 import React from "react";
 
-import FD from "../wasm/react";
+import FD from "../src/wasm/react";
 import nano from "./nano";
 
 import Display from "./Display";

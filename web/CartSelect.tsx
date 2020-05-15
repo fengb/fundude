@@ -5,7 +5,7 @@ import nano from "./nano";
 import { mapObject } from "./smalldash";
 import { readAsArray } from "./promise";
 
-import FD from "../wasm/react";
+import FD from "../src/wasm/react";
 
 import ROMS from "../roms";
 import DEBUG_ROMS from "../roms/debug";

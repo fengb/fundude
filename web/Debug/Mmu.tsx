@@ -6,7 +6,7 @@ import useDimensions from "react-use-dimensions";
 import nano from "../nano";
 import { hex2, hex4 } from "./util";
 
-import FundudeWasm, { MMU_OFFSETS } from "../../wasm";
+import FundudeWasm, { MMU_OFFSETS } from "../../src/wasm";
 import Form from "../Form";
 
 const CSS = {
@@ -14,35 +14,35 @@ const CSS = {
     display: "flex",
     flexDirection: "column",
     flex: "1 1 0",
-    maxHeight: "100vh"
+    maxHeight: "100vh",
   }),
   controls: nano.rule({
     display: "flex",
     fontFamily: "monospace",
-    textAlign: "center"
+    textAlign: "center",
   }),
   custom: nano.rule({
     display: "flex",
-    width: "50px"
+    width: "50px",
   }),
 
   output: nano.rule({
     fontFamily: "monospace",
     textAlign: "center",
-    flex: "1 1 0"
+    flex: "1 1 0",
   }),
   outputCell: nano.rule({
     "&.active": {
-      boxShadow: "inset 0 0 0 1px black"
-    }
+      boxShadow: "inset 0 0 0 1px black",
+    },
   }),
 
   hl: nano.rule({
-    backgroundColor: "#d0ffff"
+    backgroundColor: "#d0ffff",
   }),
   sp: nano.rule({
-    backgroundColor: "#ffd0ff"
-  })
+    backgroundColor: "#ffd0ff",
+  }),
 };
 
 const REGION_CSS: Record<string, string> = {
@@ -50,7 +50,7 @@ const REGION_CSS: Record<string, string> = {
   ram: nano.rule({ backgroundColor: "#ffffaa" }),
   oam: nano.rule({ backgroundColor: "#aaffaa" }),
   io: nano.rule({ backgroundColor: "#aaffff" }),
-  himem: nano.rule({ backgroundColor: "#aaaaff" })
+  himem: nano.rule({ backgroundColor: "#aaaaff" }),
 };
 
 const MEMLOC_CSS: Record<number, string> = {};
@@ -77,7 +77,7 @@ function MmuOutput(props: {
     gridRef.current &&
       gridRef.current.scrollToItem({
         columnIndex: i % WIDTH,
-        rowIndex: i / WIDTH
+        rowIndex: i / WIDTH,
       });
   }, [gridRef.current, props.focus]);
 
@@ -120,7 +120,7 @@ export default function Mmu(props: { fd: FundudeWasm }) {
   return (
     <div className={CSS.root}>
       <div className={CSS.controls}>
-        {MMU_OFFSETS.segments.map(segment => (
+        {MMU_OFFSETS.segments.map((segment) => (
           <div key={segment.name} className={REGION_CSS[segment.name]}>
             <div>{segment.name}</div>
             <button onClick={() => setFocus(segment.start)}>
@@ -143,7 +143,7 @@ export default function Mmu(props: { fd: FundudeWasm }) {
         focus={focus}
         highlightClasses={{
           [cpu.HL()]: CSS.hl,
-          [cpu.SP()]: CSS.sp
+          [cpu.SP()]: CSS.sp,
         }}
       />
     </div>

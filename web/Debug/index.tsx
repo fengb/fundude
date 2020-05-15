@@ -2,42 +2,42 @@ import React from "react";
 
 import nano from "../nano";
 
-import FD from "../../wasm/react";
+import FD from "../../src/wasm/react";
 import Display from "../Display";
 import Disassembler from "./Disassembler";
 import Cpu from "./Cpu";
 import Mmu from "./Mmu";
-import FundudeWasm from "../../wasm";
+import FundudeWasm from "../../src/wasm";
 
 const CSS = {
   base: nano.rule({
     display: "flex",
     flexDirection: "column",
     position: "relative",
-    margin: "0 50px"
+    margin: "0 50px",
   }),
 
   controls: nano.rule({
     display: "flex",
-    justifyContent: "space-between"
+    justifyContent: "space-between",
   }),
 
   displays: nano.rule({
     position: "relative",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-end"
+    alignItems: "flex-end",
   }),
 
   displayPatterns: nano.rule({
     position: "absolute",
     top: 0,
-    left: "100%"
-  })
+    left: "100%",
+  }),
 };
 
 function timed<T, R>(fn: (T) => R): (T) => R {
-  return function(t: T) {
+  return function (t: T) {
     const start = Date.now();
     const val = fn(t);
     console.log(`${(Date.now() - start) / 1000}s realtime -- 250s ingame`);
@@ -75,7 +75,7 @@ function Displays(props: { fd: FundudeWasm }) {
   const [_, setRerender] = React.useState(false);
   React.useEffect(() => {
     function forceRender() {
-      setRerender(prev => !prev);
+      setRerender((prev) => !prev);
     }
     fd.changed.add(forceRender);
     return () => fd.changed.remove(forceRender);
@@ -106,7 +106,7 @@ function Displays(props: { fd: FundudeWasm }) {
             [scx, scy],
             [scx - 256, scy],
             [scx, scy - 256],
-            [scx - 256, scy - 256]
+            [scx - 256, scy - 256],
           ]}
           gridColor="lightgray"
         />
