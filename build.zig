@@ -9,11 +9,11 @@ pub fn build(b: *std.build.Builder) void {
     lib.setBuildMode(mode);
     lib.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
 
-    //var main_tests = b.addTest("src/fundude.zig");
-    //main_tests.setBuildMode(mode);
+    var main_tests = b.addTest("src/main.zig");
+    main_tests.setBuildMode(mode);
 
-    //const test_step = b.step("test", "Run library tests");
-    //test_step.dependOn(&main_tests.step);
+    const test_step = b.step("test", "Run library tests");
+    test_step.dependOn(&main_tests.step);
 
     b.default_step.dependOn(&lib.step);
     b.installArtifact(lib);

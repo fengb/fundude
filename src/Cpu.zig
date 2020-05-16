@@ -20,6 +20,52 @@ reg: packed union {
     },
 },
 
+test "register arrangement" {
+    var cpu: Cpu = undefined;
+    cpu.reg._8.set(.A, 0x12);
+    cpu.reg._8.set(.F, 0x34);
+    std.testing.expectEqual(@as(u16, 0x1234), cpu.reg._16.get(.AF));
+
+    cpu.reg._8.set(.B, 0x23);
+    cpu.reg._8.set(.C, 0x34);
+    std.testing.expectEqual(@as(u16, 0x2334), cpu.reg._16.get(.BC));
+
+    cpu.reg._8.set(.D, 0x58);
+    cpu.reg._8.set(.E, 0x76);
+    std.testing.expectEqual(@as(u16, 0x5876), cpu.reg._16.get(.DE));
+
+    cpu.reg._8.set(.H, 0xAF);
+    cpu.reg._8.set(.L, 0xCD);
+    std.testing.expectEqual(@as(u16, 0xAFCD), cpu.reg._16.get(.HL));
+}
+
+test "flags" {
+    var cpu: Cpu = undefined;
+    cpu.reg.flags = .{
+        .Z = true,
+        .N = true,
+        .H = 1,
+        .C = 1,
+    };
+    std.testing.expectEqual(@as(u8, 0xF0), cpu.reg._8.get(.F));
+
+    cpu.reg.flags = .{
+        .Z = true,
+        .N = false,
+        .H = 0,
+        .C = 0,
+    };
+    std.testing.expectEqual(@as(u8, 0x80), cpu.reg._8.get(.F));
+
+    cpu.reg.flags = .{
+        .Z = false,
+        .N = false,
+        .H = 0,
+        .C = 1,
+    };
+    std.testing.expectEqual(@as(u8, 0x10), cpu.reg._8.get(.F));
+}
+
 pub fn reset(self: *Cpu) void {
     self.mode = .norm;
     self.interrupt_master = false;
@@ -161,3 +207,7 @@ pub const Irq = packed struct {
         self.* = @bitCast(Irq, (~pos.mask()) & @bitCast(u8, self.*));
     }
 };
+
+test "" {
+    _ = Op;
+}

@@ -429,6 +429,22 @@ pub fn decode(bytes: [3]u8) Op {
     };
 }
 
+test "decode sanity" {
+    var i: usize = 0;
+    while (i < 256) : (i += 1) {
+        const bytes = [_]u8{ @truncate(u8, i), 0, 0 };
+        const op = decode(bytes);
+        std.testing.expect(op.length > 0);
+
+        std.testing.expect(op.durations[0] > 0);
+        std.testing.expect(op.durations[1] > 0);
+        std.testing.expect(op.durations[0] <= op.durations[1]);
+
+        std.testing.expect(op.durations[0] % 4 == 0);
+        std.testing.expect(op.durations[1] % 4 == 0);
+    }
+}
+
 pub fn disassemble(op: Op, buffer: []u8) ![]u8 {
     var stream = std.io.fixedBufferStream(buffer);
     const os = stream.outStream();

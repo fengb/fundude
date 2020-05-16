@@ -51,3 +51,7 @@ pub const Fundude = struct {
         self.step_underflow = 0;
     }
 };
+
+test "" {
+    _ = Fundude;
+}

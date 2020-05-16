@@ -139,7 +139,7 @@ pub fn jp___IW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{16}) {
     return .{};
 }
 
-pub fn jp___zc_IW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{ 16, 12 }) {
+pub fn jp___zc_IW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(3, .{ 12, 16 }) {
     if (op.arg0.zc.check(cpu.*)) {
         cpu.reg._16.set(.PC, op.arg1.iw);
         return .{ .duration = 16 };

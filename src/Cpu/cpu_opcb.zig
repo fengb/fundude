@@ -25,12 +25,12 @@ fn cb_rr(cpu: *main.Cpu, val: u8) Result {
 }
 
 fn cb_sla(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, val << 1, impl.Bit.get(val, 7)) };
+    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, val << 1, Op.impl.Bit.get(val, 7)) };
 }
 
 fn cb_sra(cpu: *main.Cpu, val: u8) Result {
     const msb = val & 0b10000000;
-    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, msb | val >> 1, impl.Bit.get(val, 0)) };
+    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, msb | val >> 1, Op.impl.Bit.get(val, 0)) };
 }
 
 fn cb_swap(cpu: *main.Cpu, val: u8) Result {
@@ -40,7 +40,7 @@ fn cb_swap(cpu: *main.Cpu, val: u8) Result {
 }
 
 fn cb_srl(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, val >> 1, impl.Bit.get(val, 0)) };
+    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, val >> 1, Op.impl.Bit.get(val, 0)) };
 }
 
 fn nameGlue(comptime prefix: []const u8, val: u3) []const u8 {
