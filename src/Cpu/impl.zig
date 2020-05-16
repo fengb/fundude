@@ -43,8 +43,8 @@ pub fn scf_______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     cpu.reg.flags = .{
         .Z = cpu.reg.flags.Z,
         .N = false,
-        .H = false,
-        .C = true,
+        .H = 0,
+        .C = 1,
     };
     return .{};
 }
@@ -53,8 +53,8 @@ pub fn ccf_______(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     cpu.reg.flags = .{
         .Z = cpu.reg.flags.Z,
         .N = false,
-        .H = false,
-        .C = !cpu.reg.flags.C,
+        .H = 0,
+        .C = ~cpu.reg.flags.C,
     };
     return .{};
 }
@@ -83,29 +83,29 @@ pub fn daa__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
 
     if (cpu.reg.flags.N) {
         // SUB -> DAA
-        if (cpu.reg.flags.H) {
+        if (cpu.reg.flags.H == 1) {
             val -%= 0x6;
         }
 
-        if (cpu.reg.flags.C) {
+        if (cpu.reg.flags.C == 1) {
             val -%= 0x60;
         }
 
         if (val > start) {
-            carry = true;
+            carry = 1;
         }
     } else {
         // ADD -> DAA
-        if (cpu.reg.flags.H or (start >> 0 & 0xF) > 0x9) {
+        if (cpu.reg.flags.H == 1 or (start >> 0 & 0xF) > 0x9) {
             val +%= 0x6;
         }
 
-        if (cpu.reg.flags.C or (start >> 4 & 0xF) > 0x9) {
+        if (cpu.reg.flags.C == 1 or (start >> 4 & 0xF) > 0x9) {
             val +%= 0x60;
         }
 
         if (val < start) {
-            carry = true;
+            carry = 1;
         }
     }
 
@@ -113,7 +113,7 @@ pub fn daa__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     cpu.reg.flags = .{
         .Z = val == 0,
         .N = cpu.reg.flags.N,
-        .H = false,
+        .H = 0,
         .C = carry,
     };
     return .{};
@@ -566,7 +566,7 @@ pub fn cpl__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
     cpu.reg.flags = .{
         .Z = cpu.reg.flags.Z,
         .N = true,
-        .H = true,
+        .H = 1,
         .C = cpu.reg.flags.C,
     };
     cpu.reg._8.set(tgt, ~val);
@@ -587,17 +587,17 @@ pub fn pop__rw___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{12}) {
 
 // -- internal
 
-fn willCarryInto(size: u5, a: i32, b: i32) bool {
+fn willCarryInto(size: u5, a: i32, b: i32) u1 {
     if (a < 0 or b < 0) {
-        return false;
+        return 0;
     }
     const mask = (@as(u32, 1) << size) - 1;
-    return (@intCast(u32, a) & mask) + (@intCast(u32, b) & mask) > mask;
+    return @boolToInt((@intCast(u32, a) & mask) + (@intCast(u32, b) & mask) > mask);
 }
 
-fn willBorrowFrom(size: u5, a: u16, b: u16) bool {
+fn willBorrowFrom(size: u5, a: u16, b: u16) u1 {
     const mask = (@as(u32, 1) << size) - 1;
-    return (a & mask) < (b & mask);
+    return @boolToInt((a & mask) < (b & mask));
 }
 
 fn pop8(cpu: *main.Cpu, mmu: *main.Mmu) u8 {
@@ -624,17 +624,17 @@ fn push16(cpu: *main.Cpu, mmu: *main.Mmu, val: u16) void {
 }
 
 pub const Bit = struct {
-    pub fn get(data: u8, bit: u3) u8 {
-        return data >> bit & 1;
+    pub fn get(data: u8, bit: u3) u1 {
+        return @truncate(u1, data >> bit);
     }
 };
 
 // TODO: maybe rename? Not too obvious...
-pub fn flagShift(cpu: *main.Cpu, val: u8, carry: bool) u8 {
+pub fn flagShift(cpu: *main.Cpu, val: u8, carry: u1) u8 {
     cpu.reg.flags = .{
         .Z = val == 0,
         .N = false,
-        .H = false,
+        .H = 0,
         .C = carry,
     };
     return val;
@@ -642,22 +642,22 @@ pub fn flagShift(cpu: *main.Cpu, val: u8, carry: bool) u8 {
 
 pub fn doRlc(cpu: *main.Cpu, val: u8) u8 {
     const msb = Bit.get(val, 7);
-    return flagShift(cpu, val << 1 | msb, msb != 0);
+    return flagShift(cpu, val << 1 | msb, msb);
 }
 
 pub fn doRrc(cpu: *main.Cpu, val: u8) u8 {
     const lsb = Bit.get(val, 0);
-    return flagShift(cpu, val >> 1 | (lsb << 7), lsb != 0);
+    return flagShift(cpu, val >> 1 | (@as(u8, lsb) << 7), lsb);
 }
 
 pub fn doRl(cpu: *main.Cpu, val: u8) u8 {
     const msb = Bit.get(val, 7);
-    return flagShift(cpu, val << 1 | cpu.reg.flags.c(u8), msb != 0);
+    return flagShift(cpu, val << 1 | cpu.reg.flags.C, msb);
 }
 
 pub fn doRr(cpu: *main.Cpu, val: u8) u8 {
     const lsb = Bit.get(val, 0);
-    return flagShift(cpu, val >> 1 | cpu.reg.flags.c(u8) << 7, lsb != 0);
+    return flagShift(cpu, val >> 1 | @as(u8, cpu.reg.flags.C) << 7, lsb);
 }
 
 fn doAddRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
@@ -673,12 +673,12 @@ fn doAddRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
 
 fn doAdcRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     const tgt_val = cpu.reg._8.get(tgt);
-    const carry = cpu.reg.flags.c(u1);
+    const carry = cpu.reg.flags.C;
     cpu.reg.flags = .{
         .Z = (tgt_val +% val +% carry) == 0,
         .N = false,
-        .H = willCarryInto(4, tgt_val, val) or willCarryInto(4, tgt_val, val +% carry),
-        .C = willCarryInto(8, tgt_val, val) or willCarryInto(8, tgt_val, val +% carry),
+        .H = willCarryInto(4, tgt_val, val) | willCarryInto(4, tgt_val, val +% carry),
+        .C = willCarryInto(8, tgt_val, val) | willCarryInto(8, tgt_val, val +% carry),
     };
     cpu.reg._8.set(tgt, tgt_val +% val +% carry);
 }
@@ -691,12 +691,12 @@ fn doSubRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
 
 fn doSbcRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     const tgt_val = cpu.reg._8.get(tgt);
-    const carry = cpu.reg.flags.c(u1);
+    const carry = cpu.reg.flags.C;
     cpu.reg.flags = .{
         .Z = (tgt_val -% val -% carry) == 0,
         .N = true,
-        .H = willBorrowFrom(4, tgt_val, val) or willBorrowFrom(4, tgt_val -% val, carry),
-        .C = willBorrowFrom(8, tgt_val, val) or willBorrowFrom(8, tgt_val -% val, carry),
+        .H = willBorrowFrom(4, tgt_val, val) | willBorrowFrom(4, tgt_val -% val, carry),
+        .C = willBorrowFrom(8, tgt_val, val) | willBorrowFrom(8, tgt_val -% val, carry),
     };
     cpu.reg._8.set(tgt, tgt_val -% val -% carry);
 }
@@ -716,20 +716,20 @@ fn doAndRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     cpu.reg.flags = .{
         .Z = (tgt_val & val) == 0,
         .N = false,
-        .H = true,
-        .C = false,
+        .H = 1,
+        .C = 0,
     };
     cpu.reg._8.set(tgt, tgt_val & val);
 }
 
 fn doOrRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     const tgt_val = cpu.reg._8.get(tgt);
-    cpu.reg._8.set(tgt, flagShift(cpu, tgt_val | val, false));
+    cpu.reg._8.set(tgt, flagShift(cpu, tgt_val | val, 0));
 }
 
 fn doXorRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     const tgt_val = cpu.reg._8.get(tgt);
-    cpu.reg._8.set(tgt, flagShift(cpu, tgt_val ^ val, false));
+    cpu.reg._8.set(tgt, flagShift(cpu, tgt_val ^ val, 0));
 }
 
 fn signedAdd(a: u16, b: u8) u16 {

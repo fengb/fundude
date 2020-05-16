@@ -25,22 +25,22 @@ fn cb_rr(cpu: *main.Cpu, val: u8) Result {
 }
 
 fn cb_sla(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, val << 1, val >> 7 != 0) };
+    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, val << 1, impl.Bit.get(val, 7)) };
 }
 
 fn cb_sra(cpu: *main.Cpu, val: u8) Result {
     const msb = val & 0b10000000;
-    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, msb | val >> 1, val & 1 != 0) };
+    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, msb | val >> 1, impl.Bit.get(val, 0)) };
 }
 
 fn cb_swap(cpu: *main.Cpu, val: u8) Result {
     const hi = val >> 4;
     const lo = val & 0xF;
-    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, lo << 4 | hi, false) };
+    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, lo << 4 | hi, 0) };
 }
 
 fn cb_srl(cpu: *main.Cpu, val: u8) Result {
-    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, val >> 1, val & 1 != 0) };
+    return Result{ .name = "SLA", .val = Op.impl.flagShift(cpu, val >> 1, impl.Bit.get(val, 0)) };
 }
 
 fn nameGlue(comptime prefix: []const u8, val: u3) []const u8 {
@@ -60,7 +60,7 @@ fn cb_bit(cpu: *main.Cpu, val: u8, bit: u3) Result {
     cpu.reg.flags = .{
         .Z = Op.impl.Bit.get(val, bit) == 0,
         .N = false,
-        .H = true,
+        .H = 1,
         .C = cpu.reg.flags.C,
     };
     return Result{ .name = nameGlue("BIT", bit), .val = val };

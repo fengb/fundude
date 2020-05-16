@@ -13,14 +13,10 @@ reg: packed union {
     _8: util.EnumArray(Reg8, u8),
     flags: packed struct {
         _pad: u4 = 0,
-        C: bool,
-        H: bool,
+        C: u1,
+        H: u1,
         N: bool,
         Z: bool,
-
-        pub fn c(self: @This(), comptime T: type) T {
-            return @boolToInt(self.C);
-        }
     },
 },
 
