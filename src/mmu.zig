@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const main = @import("main.zig");
+const Fundude = @import("main.zig");
 
 const Cpu = @import("Cpu.zig");
 const joypad = @import("joypad.zig");
@@ -172,7 +172,7 @@ pub const Mmu = struct {
         std.mem.asBytes(&self.dyn)[addr] = val;
 
         // TODO: replace magic with sibling references
-        const fd = @fieldParentPtr(main.Fundude, "mmu", self);
+        const fd = @fieldParentPtr(Fundude, "mmu", self);
 
         switch (addr) {
             0x8000...0xA000 - 1 => fd.video.updatedVram(self, addr, val),
