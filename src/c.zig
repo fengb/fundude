@@ -158,7 +158,7 @@ export fn fd_instr_len(arg0: u8) usize {
 
 // Video
 export fn fd_screen(fd: *main.Fundude) MatrixChunk(u16).Abi {
-    return MatrixChunk(u16).fromMatrix(fd.video.screen);
+    return MatrixChunk(u16).fromMatrix(fd.video.screen.toSlice());
 }
 
 export fn fd_background(fd: *main.Fundude) MatrixChunk(u16).Abi {

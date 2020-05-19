@@ -151,10 +151,10 @@ pub const Vram = packed struct {
         _9800: Matrix(u8, 32, 32), // $9800-9BFF
         _9C00: Matrix(u8, 32, 32), // $9C00-9FFF
 
-        pub fn get(self: *@This(), addressing: TileMapAddressing) MatrixSlice(u8) {
+        pub fn get(self: @This(), addressing: TileMapAddressing) Matrix(u8, 32, 32) {
             return switch (addressing) {
-                ._9800 => self._9800.toSlice(),
-                ._9C00 => self._9C00.toSlice(),
+                ._9800 => self._9800,
+                ._9C00 => self._9C00,
             };
         }
     },
@@ -164,8 +164,8 @@ pub const Video = struct {
     buffer0: Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
     buffer1: Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
 
-    screen: MatrixSlice(Pixel),
-    draw: MatrixSlice(Pixel),
+    screen: *Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
+    draw: *Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
 
     clock: struct {
         line: u32,
@@ -178,7 +178,7 @@ pub const Video = struct {
             data: Matrix(Pixel, 256, 256),
             dirty: bool,
 
-            fn run(self: *@This(), mmu: *main.Mmu, patternsData: []CachedPattern, tile_map_addr: TileMapAddressing) void {
+            fn run(self: *@This(), mmu: main.Mmu, patternsData: []CachedPattern, tile_map_addr: TileMapAddressing) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -224,7 +224,7 @@ pub const Video = struct {
                 };
             }
 
-            fn run(self: *@This(), mmu: *main.Mmu) void {
+            fn run(self: *@This(), mmu: main.Mmu) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -259,7 +259,7 @@ pub const Video = struct {
                 return lhs.x_pos > rhs.x_pos;
             }
 
-            fn run(self: *@This(), mmu: *main.Mmu, patternsData: []CachedPattern) void {
+            fn run(self: *@This(), mmu: main.Mmu, patternsData: []CachedPattern) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -328,8 +328,8 @@ pub const Video = struct {
 
     pub fn reset(self: *Video) void {
         self.buffer0.reset(Shade.White.asPixel());
-        self.screen = self.buffer0.toSlice();
-        self.draw = self.buffer1.toSlice();
+        self.screen = &self.buffer0;
+        self.draw = &self.buffer1;
         self.clock.offset = 0;
         self.clock.line = 0;
 
@@ -426,7 +426,7 @@ pub const Video = struct {
         switch (new_mode) {
             .searching => {
                 // TODO: ready the pixel gun here and draw the dots across .transferring
-                @call(.{ .modifier = .never_inline }, self.render, .{ mmu, line_num });
+                @call(.{ .modifier = .never_inline }, self.render, .{ mmu.*, line_num });
                 if (mmu.dyn.io.video.STAT.irq_oam) {
                     mmu.dyn.io.IF.lcd_stat = true;
                 }
@@ -438,7 +438,7 @@ pub const Video = struct {
                 }
             },
             .vblank => {
-                std.mem.swap(MatrixSlice(Pixel), &self.screen, &self.draw);
+                std.mem.swap(*Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT), &self.screen, &self.draw);
 
                 mmu.dyn.io.IF.vblank = true;
                 if (mmu.dyn.io.video.STAT.irq_vblank) {
@@ -449,7 +449,7 @@ pub const Video = struct {
     }
 
     // TODO: audit this function
-    fn render(self: *Video, mmu: *main.Mmu, y: usize) void {
+    fn render(self: *Video, mmu: main.Mmu, y: usize) void {
         // TODO: Cache specific lines instead of doing it all at once
         @call(.{ .modifier = .never_inline }, self.cache.patterns.run, .{mmu});
         @call(.{ .modifier = .never_inline }, self.cache.sprites.run, .{ mmu, &self.cache.patterns.data });
