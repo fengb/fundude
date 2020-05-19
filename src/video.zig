@@ -254,6 +254,7 @@ pub const Video = struct {
             data: Matrix(Pixel, 256 + 2 * 8, 256 + 2 * 16),
             meta: Matrix(SpriteMeta, 256 + 2 * 8, 256 + 2 * 16),
             dirty: bool,
+            prev_oam: [40]SpriteAttr,
 
             fn oamLessThan(lhs: SpriteAttr, rhs: SpriteAttr) bool {
                 return lhs.x_pos > rhs.x_pos;
@@ -263,7 +264,25 @@ pub const Video = struct {
                 if (!self.dirty) return;
                 self.dirty = false;
 
-                self.data.reset(Shade.White.asPixel());
+                const width = 8;
+                const height: usize = switch (mmu.dyn.io.video.LCDC.obj_size) {
+                    .Small => 8,
+                    .Large => 16,
+                };
+
+                for (self.prev_oam) |prev, i| {
+                    const curr = mmu.dyn.oam[i];
+                    if (@bitCast(u32, prev) == @bitCast(u32, curr)) continue;
+
+                    var y: usize = 0;
+                    while (y < height) : (y += 1) {
+                        const ys = prev.y_pos + y;
+
+                        const slice = self.data.sliceLine(prev.x_pos, ys);
+                        std.mem.set(Pixel, slice[0..width], Shade.White.asPixel());
+                    }
+                }
+                std.mem.copy(SpriteAttr, &self.prev_oam, &mmu.dyn.oam);
 
                 var sorted = mmu.dyn.oam;
                 std.sort.sort(SpriteAttr, &sorted, oamLessThan);
@@ -278,34 +297,28 @@ pub const Video = struct {
                     .Small => 0xFF,
                     .Large => 0xFE,
                 };
-                const height: usize = switch (mmu.dyn.io.video.LCDC.obj_size) {
-                    .Small => 8,
-                    .Large => 16,
-                };
-
                 for (sorted) |sprite_attr, i| {
                     const palette = switch (sprite_attr.flags.palette) {
                         .OBP0 => obp0,
                         .OBP1 => obp1,
                     };
 
-                    const pattern0 = patternsData[sprite_attr.pattern & mask];
-                    const pattern1 = patternsData[sprite_attr.pattern | ~mask];
+                    var pattern = patternsData[sprite_attr.pattern & mask].toSlice();
+                    // Large sprites are right next to each other in memory
+                    // So we can simply expand this height
+                    pattern.height = height;
 
                     var x: usize = 0;
-                    while (x < pattern0.width) : (x += 1) {
+                    while (x < pattern.width) : (x += 1) {
                         const xs = sprite_attr.x_pos +
-                            if (sprite_attr.flags.x_flip) pattern0.width - x - 1 else x;
+                            if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
 
                         var y: usize = 0;
-                        while (y < height) : (y += 1) {
+                        while (y < pattern.height) : (y += 1) {
                             const ys = sprite_attr.y_pos +
-                                if (sprite_attr.flags.y_flip) height - y - 1 else y;
+                                if (sprite_attr.flags.y_flip) pattern.height - y - 1 else y;
 
-                            const color = if (y < pattern0.height)
-                                pattern0.get(x, y)
-                            else
-                                pattern1.get(x, y - pattern0.height);
+                            const color = pattern.get(x, y);
 
                             if (color != ._0) {
                                 const shade = palette.get(color);
@@ -332,8 +345,9 @@ pub const Video = struct {
         self.clock.offset = 0;
         self.clock.line = 0;
 
-        self.cache.patterns.dirty = true;
         self.cache.sprites.dirty = true;
+        self.cache.sprites.data.reset(Shade.White.asPixel());
+        self.cache.patterns.dirty = true;
         self.cache.window.dirty = true;
         self.cache.background.dirty = true;
     }
@@ -373,6 +387,7 @@ pub const Video = struct {
             std.mem.copy(u8, oam, std.mem.asBytes(&mmu.dyn)[addr..][0..oam.len]);
 
             mmu.dyn.io.video.DMA = 0;
+            self.cache.sprites.dirty = true;
         }
 
         if (!mmu.dyn.io.video.LCDC.lcd_enable) {
