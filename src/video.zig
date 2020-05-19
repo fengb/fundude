@@ -264,7 +264,6 @@ pub const Video = struct {
                 self.dirty = false;
 
                 self.data.reset(Shade.White.asPixel());
-                self.meta.reset(.{});
 
                 var sorted = mmu.dyn.oam;
                 std.sort.sort(SpriteAttr, &sorted, oamLessThan);
