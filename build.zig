@@ -19,6 +19,7 @@ pub fn build(b: *std.build.Builder) void {
     b.installArtifact(lib);
 
     addScript(b, "opcodes");
+    addScript(b, "testrom");
 }
 
 fn addScript(b: *std.build.Builder, name: []const u8) void {
@@ -29,6 +30,9 @@ fn addScript(b: *std.build.Builder, name: []const u8) void {
     exe.addPackagePath("fundude", "src/main.zig");
 
     const run_cmd = exe.run();
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
 
     const run_step = b.step(name, filename);
     run_step.dependOn(&run_cmd.step);
