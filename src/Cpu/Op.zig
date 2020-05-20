@@ -522,15 +522,8 @@ fn printHexes(outStream: var, length: u3, val: u16) !void {
 // -- init helpers
 
 fn init(comptime id: Id, arg0: Arg, arg1: Arg) Op {
-    const ResultMeta: type = blk: {
-        inline for (std.meta.fields(Id)) |field| {
-            if (field.value == @enumToInt(id)) {
-                const func = @field(Op.impl, field.name);
-                break :blk @typeInfo(@TypeOf(func)).Fn.return_type.?;
-            }
-        }
-        unreachable;
-    };
+    const func = @field(Op.impl, @tagName(id));
+    const ResultMeta = @typeInfo(@TypeOf(func)).Fn.return_type.?;
 
     return .{
         .id = id,
