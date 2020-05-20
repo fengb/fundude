@@ -476,13 +476,11 @@ pub const Video = struct {
             const xbg = mmu.dyn.io.video.SCX % self.cache.background.data.width;
             const ybg = (mmu.dyn.io.video.SCY + y) % self.cache.background.data.height;
 
-            const bg_start = self.cache.background.data.sliceLine(xbg, ybg);
-            std.mem.copy(Pixel, line, bg_start[0..std.math.min(bg_start.len, line.len)]);
-
-            if (line.len > bg_start.len) {
-                const bg_rest = self.cache.background.data.sliceLine(0, ybg);
-                std.mem.copy(Pixel, line[bg_start.len..], bg_rest[0 .. line.len - bg_start.len]);
-            }
+            const bg_line = self.cache.background.data.sliceLine(0, ybg);
+            const bg_start = bg_line[xbg..];
+            const split_idx = std.math.min(bg_start.len, line.len);
+            std.mem.copy(Pixel, line, bg_start[0..split_idx]);
+            std.mem.copy(Pixel, line[split_idx..], bg_line[0 .. line.len - split_idx]);
         } else {
             std.mem.set(Pixel, line, Shade.White.asPixel());
         }
@@ -494,14 +492,19 @@ pub const Video = struct {
             std.mem.copy(Pixel, line[xw..], win[0 .. line.len - xw]);
         }
 
-        // TODO: vectorize
         if (mmu.dyn.io.video.LCDC.obj_enable) {
-            const sprites = self.cache.sprites.data.sliceLine(8, y + 16);
+            const sprites = self.cache.sprites.data.sliceLine(8, y + 16)[0..SCREEN_WIDTH];
             const metas = self.cache.sprites.meta.sliceLine(8, y + 16);
 
-            for (line) |*pixel, x| {
-                if (sprites[x].opaque and (metas[x].in_front or !pixel.opaque)) {
-                    pixel.* = sprites[x];
+            // TODO: use real vectors
+            for (std.mem.bytesAsSlice(u64, std.mem.sliceAsBytes(sprites))) |*chunk, i| {
+                if (chunk.* == 0) continue;
+
+                for (@ptrCast(*[4]Pixel, chunk)) |pixel, j| {
+                    const x = 4 * i + j;
+                    if (pixel.opaque and (metas[x].in_front or !line[x].opaque)) {
+                        line[x] = pixel;
+                    }
                 }
             }
         }
