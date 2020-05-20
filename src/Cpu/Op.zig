@@ -117,7 +117,31 @@ pub const Id = enum(u8) {
     rra__rb___,
     rrca_rb___,
 
-    cb___ib___, // FIXME
+    // -- CB
+
+    rlc__rb___,
+    rlc__RW___,
+    rrc__rb___,
+    rrc__RW___,
+    rl___rb___,
+    rl___RW___,
+    rr___rb___,
+    rr___RW___,
+    sla__rb___,
+    sla__RW___,
+    sra__rb___,
+    sra__RW___,
+    swap_rb___,
+    swap_RW___,
+    srl__rb___,
+    srl__RW___,
+
+    bit__bt_rb,
+    bit__bt_RW,
+    res__bt_rb,
+    res__bt_RW,
+    set__bt_rb,
+    set__bt_RW,
 };
 
 pub const Arg = union {
@@ -127,6 +151,7 @@ pub const Arg = union {
     rb: Reg8,
     rw: Reg16,
 
+    bt: u3,
     tf: bool,
     zc: ZC,
     mo: Cpu.Mode,
@@ -370,7 +395,7 @@ pub fn decode(bytes: [3]u8) Op {
         0xC8 => Op.zc___(.ret__zc___, .z),
         0xC9 => Op._____(.ret_______),
         0xCA => Op.zc_iw(.jp___zc_IW, .z, iw),
-        0xCB => Op.ib___(.cb___ib___, ib), // FIXME
+        0xCB => decodeCB(ib),
         0xCC => Op.zc_iw(.call_zc_IW, .z, iw),
         0xCD => Op.iw___(.call_IW___, iw),
         0xCE => Op.rb_ib(.adc__rb_ib, .A, ib),
@@ -429,6 +454,53 @@ pub fn decode(bytes: [3]u8) Op {
     };
 }
 
+pub fn decodeCB(next: u8) Op {
+    const suffix = @truncate(u3, next);
+    const prefix = next - suffix;
+    const bit = @truncate(u3, next >> 3);
+
+    const reg: Reg8 = switch (suffix) {
+        0x0 => .B,
+        0x1 => .C,
+        0x2 => .D,
+        0x3 => .E,
+        0x4 => .H,
+        0x5 => .L,
+        0x6 => {
+            return switch (prefix) {
+                0x00...0x07 => Op.rw___(.rlc__RW___, .HL),
+                0x08...0x0F => Op.rw___(.rrc__RW___, .HL),
+                0x10...0x17 => Op.rw___(.rl___RW___, .HL),
+                0x18...0x1F => Op.rw___(.rr___RW___, .HL),
+                0x20...0x27 => Op.rw___(.sla__RW___, .HL),
+                0x28...0x2F => Op.rw___(.sra__RW___, .HL),
+                0x30...0x37 => Op.rw___(.swap_RW___, .HL),
+                0x38...0x3F => Op.rw___(.srl__RW___, .HL),
+
+                0x40...0x7F => Op.bt_rw(.bit__bt_RW, bit, .HL),
+                0x80...0xBF => Op.bt_rw(.res__bt_RW, bit, .HL),
+                0xC0...0xFF => Op.bt_rw(.set__bt_RW, bit, .HL),
+            };
+        },
+        0x7 => .A,
+    };
+
+    return switch (prefix) {
+        0x00...0x07 => Op.rb___(.rlc__rb___, reg),
+        0x08...0x0F => Op.rb___(.rrc__rb___, reg),
+        0x10...0x17 => Op.rb___(.rl___rb___, reg),
+        0x18...0x1F => Op.rb___(.rr___rb___, reg),
+        0x20...0x27 => Op.rb___(.sla__rb___, reg),
+        0x28...0x2F => Op.rb___(.sra__rb___, reg),
+        0x30...0x37 => Op.rb___(.swap_rb___, reg),
+        0x38...0x3F => Op.rb___(.srl__rb___, reg),
+
+        0x40...0x7F => Op.bt_rb(.bit__bt_rb, bit, reg),
+        0x80...0xBF => Op.bt_rb(.res__bt_rb, bit, reg),
+        0xC0...0xFF => Op.bt_rb(.set__bt_rb, bit, reg),
+    };
+}
+
 test "decode sanity" {
     var i: usize = 0;
     while (i < 256) : (i += 1) {
@@ -478,7 +550,6 @@ fn disassembleSpecial(op: Op) ?[]const u8 {
             true => "EI",
             false => "DI",
         },
-        .cb___ib___ => "CB??",
         else => null,
     };
 }
@@ -494,6 +565,7 @@ fn disassembleArg(outStream: var, name: *const [2]u8, arg: Op.Arg) !void {
     const swh = util.Swhash(4);
     switch (swh.match(name)) {
         swh.case("zc") => _ = try outStream.write(@tagName(arg.zc)),
+        swh.case("bt") => try printHexes(outStream, 1, arg.bt),
         swh.case("ib"), swh.case("IB") => try printHexes(outStream, 2, arg.ib),
         swh.case("iw"), swh.case("IW") => try printHexes(outStream, 4, arg.iw),
         swh.case("rb"), swh.case("RB") => _ = try outStream.write(@tagName(arg.rb)),
@@ -621,4 +693,12 @@ pub fn rw_rb(comptime id: Id, arg0: Reg16, arg1: Reg8) Op {
 
 pub fn rw_rw(comptime id: Id, arg0: Reg16, arg1: Reg16) Op {
     return init(id, .{ .rw = arg0 }, .{ .rw = arg1 });
+}
+
+pub fn bt_rb(comptime id: Id, arg0: u3, arg1: Reg8) Op {
+    return init(id, .{ .bt = arg0 }, .{ .rb = arg1 });
+}
+
+pub fn bt_rw(comptime id: Id, arg0: u3, arg1: Reg16) Op {
+    return init(id, .{ .bt = arg0 }, .{ .rw = arg1 });
 }
