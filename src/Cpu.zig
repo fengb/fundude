@@ -125,7 +125,10 @@ fn irqStep(self: *Cpu, mmu: *main.Mmu) ?u8 {
 pub fn opStep(cpu: *Cpu, mmu: *main.Mmu) u8 {
     const op = @call(.{ .modifier = .always_inline }, Op.decode, .{mmu.instrBytes(cpu.reg._16.get(.PC))});
     cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% op.length);
+    return opExecute(cpu, mmu, op);
+}
 
+pub fn opExecute(cpu: *Cpu, mmu: *main.Mmu, op: Op) u8 {
     inline for (std.meta.fields(Op.Id)) |field| {
         if (field.value == @enumToInt(op.id)) {
             const func = @field(Op.impl, field.name);

@@ -1,3 +1,4 @@
+const std = @import("std");
 const main = @import("../main.zig");
 const Op = @import("Op.zig");
 pub const cb___ib___ = @import("cpu_opcb.zig").cb___ib___;
@@ -117,6 +118,80 @@ pub fn daa__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{4}) {
         .C = carry,
     };
     return .{};
+}
+
+test "DAA add" {
+    const DAA = Op.decode(.{ 0x27, 0, 0 });
+    const OP_ADD_A = 0xC6;
+
+    var cpu: main.Cpu = undefined;
+    var mmu: main.Mmu = undefined;
+
+    {
+        cpu.reg._8.set(.A, 0x0);
+
+        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_ADD_A, 0x5, 0 }));
+        std.testing.expectEqual(@as(u8, 0x5), cpu.reg._8.get(.A));
+
+        _ = cpu.opExecute(&mmu, DAA);
+        std.testing.expectEqual(@as(u8, 0x5), cpu.reg._8.get(.A));
+    }
+
+    {
+        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_ADD_A, 0x9, 0 }));
+        std.testing.expectEqual(@as(u8, 0xE), cpu.reg._8.get(.A));
+
+        _ = cpu.opExecute(&mmu, DAA);
+        std.testing.expectEqual(@as(u8, 0x14), cpu.reg._8.get(.A));
+        std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
+    }
+
+    {
+        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_ADD_A, 0x91, 0 }));
+        std.testing.expectEqual(@as(u8, 0xA5), cpu.reg._8.get(.A));
+        std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
+
+        _ = cpu.opExecute(&mmu, DAA);
+        std.testing.expectEqual(@as(u8, 0x05), cpu.reg._8.get(.A));
+        std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
+    }
+}
+
+test "DAA sub" {
+    const DAA = Op.decode(.{ 0x27, 0, 0 });
+    const OP_SUB_A = 0xD6;
+
+    var cpu: main.Cpu = undefined;
+    var mmu: main.Mmu = undefined;
+
+    {
+        cpu.reg._8.set(.A, 0x45);
+
+        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_SUB_A, 0x2, 0 }));
+        std.testing.expectEqual(@as(u8, 0x43), cpu.reg._8.get(.A));
+
+        _ = cpu.opExecute(&mmu, DAA);
+        std.testing.expectEqual(@as(u8, 0x43), cpu.reg._8.get(.A));
+    }
+
+    {
+        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_SUB_A, 0x5, 0 }));
+        std.testing.expectEqual(@as(u8, 0x3E), cpu.reg._8.get(.A));
+
+        _ = cpu.opExecute(&mmu, DAA);
+        std.testing.expectEqual(@as(u8, 0x38), cpu.reg._8.get(.A));
+        std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
+    }
+
+    {
+        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_SUB_A, 0x91, 0 }));
+        std.testing.expectEqual(@as(u8, 0xA7), cpu.reg._8.get(.A));
+        std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
+
+        _ = cpu.opExecute(&mmu, DAA);
+        std.testing.expectEqual(@as(u8, 0x47), cpu.reg._8.get(.A));
+        std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
+    }
 }
 
 pub fn jr___IB___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{12}) {
