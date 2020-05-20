@@ -99,12 +99,16 @@ const RamSize = enum(u8) {
 pub const Mbc = enum {
     None = 0x0,
     Mbc1 = 0x1,
+    Mbc1Ram = 0x2,
+    Mbc1RamBattery = 0x3,
 
     pub fn init(cart: []const u8) CartHeaderError!Mbc {
         const size = try RomSize.init(cart[0x148]);
         if (cart.len != size.bytes()) {
             return error.RomSizeError;
         }
+
+        // TODO: validate RAM
 
         return std.meta.intToEnum(Mbc, cart[0x147]) catch error.CartTypeError;
     }
@@ -190,25 +194,25 @@ pub const Mmu = struct {
     fn setRom(self: *Mmu, addr: u15, val: u8) void {
         switch (self.mbc) {
             .None => {},
-            .Mbc1 => {
+            .Mbc1, .Mbc1Ram, .Mbc1RamBattery => {
                 switch (addr) {
-                    0x0000...0x2000 - 1 => {}, // RAM enable
-                    0x2000...BANK_SIZE - 1 => {
+                    0x0000...0x1FFF => {}, // RAM enable
+                    0x2000...0x3FFF => {
                         var bank = val & 0x1F;
                         if (bank % 0x20 == 0) {
                             bank += 1;
                         }
                         const total_banks = self.cart.len / BANK_SIZE;
-                        self.selectBank(std.math.min(bank, total_banks));
+                        self.selectRomBank(std.math.min(bank, total_banks));
                     },
-                    BANK_SIZE...0x6000 - 1 => {}, // RAM bank
-                    0x6000...0x8000 - 1 => {}, // ROM/RAM Mode Select
+                    0x4000...0x5FFF => {}, // RAM bank
+                    0x6000...0x7FFF => {}, // ROM/RAM Mode Select
                 }
             },
         }
     }
 
-    fn selectBank(self: *Mmu, bank: u8) void {
+    fn selectRomBank(self: *Mmu, bank: u8) void {
         if (self.bank == bank) return;
 
         self.bank = bank;
