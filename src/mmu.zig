@@ -97,21 +97,8 @@ const RamSize = enum(u8) {
 };
 
 pub const Mbc = enum {
-    None = 0x0,
-    Mbc1 = 0x1,
-    Mbc1Ram = 0x2,
-    Mbc1RamBattery = 0x3,
-
-    pub fn init(cart: []const u8) CartHeaderError!Mbc {
-        const size = try RomSize.init(cart[0x148]);
-        if (cart.len != size.bytes()) {
-            return error.RomSizeError;
-        }
-
-        // TODO: validate RAM
-
-        return std.meta.intToEnum(Mbc, cart[0x147]) catch error.CartTypeError;
-    }
+    None,
+    Mbc1,
 };
 
 test "linear" {
@@ -144,16 +131,35 @@ pub const Mmu = struct {
     },
 
     cart: []const u8,
-    mbc: Mbc,
     bank: u8,
+
+    cart_meta: struct {
+        mbc: Mbc,
+        ram: bool = false,
+        battery: bool = false,
+    },
 
     pub fn reset(self: *Mmu) void {
         // @memset(@ptrCast([*]u8, &self.io), 0, @sizeOf(@typeOf(self.io)));
         @memset(@ptrCast([*]u8, &self.dyn.vram), 0, 0x8000);
     }
 
-    pub fn load(self: *Mmu, cart: []const u8) !void {
-        self.mbc = try Mbc.init(cart);
+    pub fn load(self: *Mmu, cart: []const u8) CartHeaderError!void {
+        const size = try RomSize.init(cart[0x148]);
+        if (cart.len != size.bytes()) {
+            return error.RomSizeError;
+        }
+
+        self.cart_meta = switch (cart[0x147]) {
+            0x0 => .{ .mbc = .None },
+            0x1 => .{ .mbc = .Mbc1 },
+            0x2 => .{ .mbc = .Mbc1, .ram = true },
+            0x3 => .{ .mbc = .Mbc1, .ram = true, .battery = true },
+            else => return error.CartTypeError,
+        };
+
+        // TODO: validate RAM
+
         self.cart = cart;
         self.bank = 1;
         std.mem.copy(u8, &self.dyn.rom, Bootloaders.dmg);
@@ -196,9 +202,9 @@ pub const Mmu = struct {
 
     // TODO: RAM banking
     fn setRom(self: *Mmu, addr: u15, val: u8) void {
-        switch (self.mbc) {
+        switch (self.cart_meta.mbc) {
             .None => {},
-            .Mbc1, .Mbc1Ram, .Mbc1RamBattery => {
+            .Mbc1 => {
                 switch (addr) {
                     0x0000...0x1FFF => {}, // RAM enable
                     0x2000...0x3FFF => {
