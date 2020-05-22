@@ -24,6 +24,7 @@ pub fn main() !u8 {
 
         var fd: Fundude = undefined;
         try fd.load(&cart);
+        fd.mmu.loadBootloader(Fundude.mmu.Bootloaders.mini);
         while (fd.cpu.reg._16.get(.PC) < 0x7FFD) {
             _ = fd.step();
         }

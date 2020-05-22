@@ -3,6 +3,7 @@ const std = @import("std");
 pub const Cpu = @import("Cpu.zig");
 const video = @import("video.zig");
 const joypad = @import("joypad.zig");
+pub const mmu = @import("mmu.zig");
 pub const Mmu = @import("mmu.zig").Mmu;
 const timer = @import("timer.zig");
 
