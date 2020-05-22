@@ -161,11 +161,8 @@ pub const Vram = packed struct {
 };
 
 pub const Video = struct {
-    buffer0: Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
-    buffer1: Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
-
-    screen: *Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
-    draw: *Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
+    buffers: [2]Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
+    screen_index: u1,
 
     clock: struct {
         line: u32,
@@ -338,10 +335,13 @@ pub const Video = struct {
         window: TilesCache,
     },
 
+    pub fn screen(self: *Video) *Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT) {
+        return &self.buffers[self.screen_index];
+    }
+
     pub fn reset(self: *Video) void {
-        self.buffer0.reset(Shade.White.asPixel());
-        self.screen = &self.buffer0;
-        self.draw = &self.buffer1;
+        self.buffers[0].reset(Shade.White.asPixel());
+        self.screen_index = 0;
         self.clock.offset = 0;
         self.clock.line = 0;
 
@@ -452,7 +452,7 @@ pub const Video = struct {
                 }
             },
             .vblank => {
-                std.mem.swap(*Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT), &self.screen, &self.draw);
+                self.screen_index ^= 1;
 
                 mmu.dyn.io.IF.vblank = true;
                 if (mmu.dyn.io.video.STAT.irq_vblank) {
@@ -470,7 +470,8 @@ pub const Video = struct {
         @call(.{ .modifier = .never_inline }, self.cache.background.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map });
         @call(.{ .modifier = .never_inline }, self.cache.window.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.window_tile_map });
 
-        const line = self.draw.sliceLine(0, y);
+        const draw_index = self.screen_index ^ 1;
+        const line = self.buffers[draw_index].sliceLine(0, y);
 
         if (mmu.dyn.io.video.LCDC.bg_enable) {
             const xbg = mmu.dyn.io.video.SCX % self.cache.background.data.width;
