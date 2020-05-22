@@ -1,4 +1,4 @@
-name: Rom Test
+name: Test
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  deploy:
+  rom:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -18,3 +18,14 @@ jobs:
           version: master
 
       - run: zig build testrom -- vendor/fundude-test/*
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v1.2.2
+        with:
+          version: master
+
+      - run: zig build test
