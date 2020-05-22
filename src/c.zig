@@ -52,11 +52,11 @@ pub fn MatrixChunk(comptime T: type) type {
         height: UsizeHalf,
 
         pub fn fromMatrix(matrix: var) Abi {
-            const M = std.meta.Child(@TypeOf(matrix.data));
+            const M = std.meta.Child(@TypeOf(matrix.ptr));
             if (@sizeOf(M) != @sizeOf(T)) @compileError("Unsupported Matrix type: " ++ @typeName(M));
 
             const self = MatrixChunk(T){
-                .ptr = @ptrCast([*]T, matrix.data.ptr),
+                .ptr = @ptrCast([*]T, matrix.ptr),
                 .width = @intCast(UsizeHalf, matrix.width),
                 .height = @intCast(UsizeHalf, matrix.height),
             };

@@ -17,7 +17,7 @@ pub fn Matrix(comptime T: type, widt: usize, heigh: usize) type {
 
         pub fn toSlice(self: *Self) MatrixSlice(T) {
             return MatrixSlice(T){
-                .data = self.toArraySlice(),
+                .ptr = &self.data,
                 .width = width,
                 .height = height,
             };
@@ -55,24 +55,24 @@ pub fn MatrixSlice(comptime T: type) type {
     return struct {
         const Self = @This();
 
-        data: []T,
+        ptr: [*]T,
         width: usize,
         height: usize,
 
         pub fn get(self: Self, x: usize, y: usize) T {
             const i = self.idx(x, y);
-            return self.data[i];
+            return self.ptr[i];
         }
 
         pub fn set(self: Self, x: usize, y: usize, val: T) void {
             const i = self.idx(x, y);
-            self.data[i] = val;
+            self.ptr[i] = val;
         }
 
         pub fn sliceLine(self: *Self, x: usize, y: usize) []T {
             const start = self.idx(x, y);
             const len = self.width - (x % self.width);
-            return self.data[start .. start + len];
+            return self.ptr[start .. start + len];
         }
 
         fn idx(self: Self, x: usize, y: usize) usize {
