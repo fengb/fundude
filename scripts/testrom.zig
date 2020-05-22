@@ -33,11 +33,11 @@ pub fn main() !u8 {
         const expecteds = cart[0x4000..];
         const actuals = std.mem.asBytes(&fd.mmu.dyn)[stack_top..0xE000];
 
-        std.debug.warn("{} compared bytes: 0x{X}\n", .{ arg, actuals.len });
+        std.debug.warn("\n{}\n    compared bytes: 0x{X}\n", .{ arg, actuals.len });
 
         for (actuals) |actual, i| {
             if (actual != expecteds[i]) {
-                std.debug.warn("0x{X}: 0x{X} != 0x{X} \n", .{ stack_top + i, actual, expecteds[i] });
+                std.debug.warn("    0x{X}: 0x{X} != 0x{X} \n", .{ stack_top + i, actual, expecteds[i] });
                 status = 1;
             }
         }
