@@ -1,4 +1,4 @@
-name: Test
+name: Rom Test
 
 on:
   push:
@@ -17,4 +17,4 @@ jobs:
         with:
           version: master
 
-      - run: zig build test
+      - run: zig build testrom -- vendor/fundude-test/*
