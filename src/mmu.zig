@@ -99,6 +99,7 @@ const RamSize = enum(u8) {
 pub const Mbc = enum {
     None,
     Mbc1,
+    Mbc3,
 };
 
 test "linear" {
@@ -135,6 +136,7 @@ pub const Mmu = struct {
 
     cart_meta: struct {
         mbc: Mbc,
+        timer: bool = false,
         ram: bool = false,
         battery: bool = false,
     },
@@ -151,10 +153,15 @@ pub const Mmu = struct {
         }
 
         self.cart_meta = switch (cart[0x147]) {
-            0x0 => .{ .mbc = .None },
-            0x1 => .{ .mbc = .Mbc1 },
-            0x2 => .{ .mbc = .Mbc1, .ram = true },
-            0x3 => .{ .mbc = .Mbc1, .ram = true, .battery = true },
+            0x00 => .{ .mbc = .None },
+            0x01 => .{ .mbc = .Mbc1 },
+            0x02 => .{ .mbc = .Mbc1, .ram = true },
+            0x03 => .{ .mbc = .Mbc1, .ram = true, .battery = true },
+            0x0F => .{ .mbc = .Mbc3, .timer = true, .battery = true },
+            0x10 => .{ .mbc = .Mbc3, .timer = true, .ram = true, .battery = true },
+            0x11 => .{ .mbc = .Mbc3 },
+            0x12 => .{ .mbc = .Mbc3, .ram = true },
+            0x13 => .{ .mbc = .Mbc3, .ram = true, .battery = true },
             else => return error.CartTypeError,
         };
 
@@ -208,7 +215,7 @@ pub const Mmu = struct {
                 switch (addr) {
                     0x0000...0x1FFF => {}, // RAM enable
                     0x2000...0x3FFF => {
-                        var bank = val & 0x1F;
+                        var bank = val & 0x7F;
                         if (bank % 0x20 == 0) {
                             bank += 1;
                         }
@@ -217,6 +224,18 @@ pub const Mmu = struct {
                     },
                     0x4000...0x5FFF => {}, // RAM bank
                     0x6000...0x7FFF => {}, // ROM/RAM Mode Select
+                }
+            },
+            .Mbc3 => {
+                switch (addr) {
+                    0x0000...0x1FFF => {}, // RAM/Timer enable
+                    0x2000...0x3FFF => {
+                        const bank = std.math.max(1, val & 0x7F);
+                        const total_banks = self.cart.len / BANK_SIZE;
+                        self.selectRomBank(std.math.min(bank, total_banks));
+                    },
+                    0x4000...0x5FFF => {}, // RAM bank
+                    0x6000...0x7FFF => {}, // Latch clock
                 }
             },
         }
