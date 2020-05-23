@@ -55,21 +55,39 @@ pub const Io = extern struct {
     _pad_ff60_7f: [0x0020]u8, // [$FF60 - $FF7F]
 };
 
-test "Io" {
-    std.testing.expectEqual(0x04, @byteOffsetOf(Io, "timer"));
-    std.testing.expectEqual(0x0F, @byteOffsetOf(Io, "IF"));
+test "offsets" {
+    const Linear = std.meta.fieldInfo(Mmu, "dyn").field_type;
+    std.testing.expectEqual(0x10000, @sizeOf(Linear));
 
-    std.testing.expectEqual(0x10, @byteOffsetOf(Io, "audio"));
-    std.testing.expectEqual(0x00, @byteOffsetOf(audio.Io, "NR10"));
-    std.testing.expectEqual(0x0E, @byteOffsetOf(audio.Io, "NR34"));
-    std.testing.expectEqual(0x10, @byteOffsetOf(audio.Io, "NR41"));
-    std.testing.expectEqual(0x16, @byteOffsetOf(audio.Io, "NR52"));
-    std.testing.expectEqual(0x20, @byteOffsetOf(audio.Io, "wave_pattern"));
+    std.testing.expectEqual(0x0000, @byteOffsetOf(Linear, "rom"));
+    std.testing.expectEqual(0x8000, @byteOffsetOf(Linear, "vram"));
+    std.testing.expectEqual(0xA000, @byteOffsetOf(Linear, "switchable_ram"));
+    std.testing.expectEqual(0xC000, @byteOffsetOf(Linear, "ram"));
+    std.testing.expectEqual(0xE000, @byteOffsetOf(Linear, "_pad_ram_echo"));
+    std.testing.expectEqual(0xFE00, @byteOffsetOf(Linear, "oam"));
+    std.testing.expectEqual(0xFF00, @byteOffsetOf(Linear, "io"));
+    std.testing.expectEqual(0xFF80, @byteOffsetOf(Linear, "high_ram"));
+    std.testing.expectEqual(0xFFFF, @byteOffsetOf(Linear, "interrupt_enable"));
+}
 
-    std.testing.expectEqual(0x40, @byteOffsetOf(Io, "video"));
-    std.testing.expectEqual(0x0, @byteOffsetOf(video.Io, "LCDC"));
-    std.testing.expectEqual(0x9, @byteOffsetOf(video.Io, "OBP1"));
-    std.testing.expectEqual(0xA, @byteOffsetOf(video.Io, "WY"));
+fn offsetOf(ref: var, target: var) usize {
+    return @ptrToInt(target) - @ptrToInt(ref);
+}
+
+test "Io offsets" {
+    var mmu: Mmu = undefined;
+    std.testing.expectEqual(@as(usize, 0xFF04), offsetOf(&mmu.dyn, &mmu.dyn.io.timer));
+    std.testing.expectEqual(@as(usize, 0xFF0F), offsetOf(&mmu.dyn, &mmu.dyn.io.IF));
+
+    std.testing.expectEqual(@as(usize, 0xFF10), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR10));
+    std.testing.expectEqual(@as(usize, 0xFF1E), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR34));
+    std.testing.expectEqual(@as(usize, 0xFF20), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR41));
+    std.testing.expectEqual(@as(usize, 0xFF26), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR52));
+    std.testing.expectEqual(@as(usize, 0xFF30), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.wave_pattern));
+
+    std.testing.expectEqual(@as(usize, 0xFF40), offsetOf(&mmu.dyn, &mmu.dyn.io.video.LCDC));
+    std.testing.expectEqual(@as(usize, 0xFF49), offsetOf(&mmu.dyn, &mmu.dyn.io.video.OBP1));
+    std.testing.expectEqual(@as(usize, 0xFF4A), offsetOf(&mmu.dyn, &mmu.dyn.io.video.WY));
 }
 
 const CartHeaderError = error{
@@ -122,21 +140,6 @@ pub const Mbc = enum {
     Mbc1,
     Mbc3,
 };
-
-test "linear" {
-    const Linear = std.meta.fieldInfo(Mmu, "dyn").field_type;
-    std.testing.expectEqual(0x10000, @sizeOf(Linear));
-
-    std.testing.expectEqual(0x0000, @byteOffsetOf(Linear, "rom"));
-    std.testing.expectEqual(0x8000, @byteOffsetOf(Linear, "vram"));
-    std.testing.expectEqual(0xA000, @byteOffsetOf(Linear, "switchable_ram"));
-    std.testing.expectEqual(0xC000, @byteOffsetOf(Linear, "ram"));
-    std.testing.expectEqual(0xE000, @byteOffsetOf(Linear, "_pad_ram_echo"));
-    std.testing.expectEqual(0xFE00, @byteOffsetOf(Linear, "oam"));
-    std.testing.expectEqual(0xFF00, @byteOffsetOf(Linear, "io"));
-    std.testing.expectEqual(0xFF80, @byteOffsetOf(Linear, "high_ram"));
-    std.testing.expectEqual(0xFFFF, @byteOffsetOf(Linear, "interrupt_enable"));
-}
 
 pub fn reset(self: *Mmu) void {
     // @memset(@ptrCast([*]u8, &self.io), 0, @sizeOf(@typeOf(self.io)));
