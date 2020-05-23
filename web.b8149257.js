@@ -35,11 +35,13 @@ var e;!function(){"use strict";var r={}.hasOwnProperty;function n(){for(var e=[]
 "use strict";function t(t,o){const e=[];for(const r in t)e.push(o(t[r],r));return e}function o(t){const o={};for(const[e,r]of t)o[e]=r;return o}function e(t,o,e){return t==t&&(void 0!==e&&(t=t<=e?t:e),void 0!==o&&(t=t>=o?t:o)),t}Object.defineProperty(exports,"__esModule",{value:!0}),exports.mapObject=t,exports.fromEntries=o,exports.clamp=e;
 },{}],"wTND":[function(require,module,exports) {
 "use strict";function e(){let e,r;const t=new Promise((t,n)=>{e=t,r=n});return Object.assign(t,{resolve:e,reject:r})}function r(){return new Promise(requestAnimationFrame)}function t(e){const r=new FileReader;return new Promise((t,n)=>{r.onload=(e=>t(e.target.result)),r.onerror=n,r.readAsArrayBuffer(e)})}Object.defineProperty(exports,"__esModule",{value:!0}),exports.deferred=e,exports.nextAnimationFrame=r,exports.readAsArray=t;
+},{}],"gdUT":[function(require,module,exports) {
+module.exports="2048.7ffc2f09.gb";
 },{}],"ZKvs":[function(require,module,exports) {
 module.exports="sheepitup.0e02743c.gb";
 },{}],"BTun":[function(require,module,exports) {
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.default=void 0;var e=t(require("./sheepitup.gb"));function t(e){return e&&e.__esModule?e:{default:e}}var u={sheepitup:e.default};exports.default=u;
-},{"./sheepitup.gb":"ZKvs"}],"xyDC":[function(require,module,exports) {
+"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.default=void 0;var e=u(require("./2048.gb")),t=u(require("./sheepitup.gb"));function u(e){return e&&e.__esModule?e:{default:e}}var r={_2048:e.default,sheepitup:t.default};exports.default=r;
+},{"./2048.gb":"gdUT","./sheepitup.gb":"ZKvs"}],"xyDC":[function(require,module,exports) {
 module.exports="cpu-01-special.a3de6f54.gb";
 },{}],"KsCW":[function(require,module,exports) {
 module.exports="cpu-02-interrupts.d41c3e41.gb";
@@ -90,6 +92,6 @@ module.exports=function(t){return fetch(t).then(function(t){return WebAssembly.i
 },{}],"Yi9z":[function(require,module,exports) {
 module.exports=function(n){return new Promise(function(e,o){var r=document.createElement("script");r.async=!0,r.type="text/javascript",r.charset="utf-8",r.src=n,r.onerror=function(n){r.onerror=r.onload=null,o(n)},r.onload=function(){r.onerror=r.onload=null,e()},document.getElementsByTagName("head")[0].appendChild(r)})};
 },{}],0:[function(require,module,exports) {
-var b=require("TUK3");b.register("wasm",require("SeQb"));b.register("js",require("Yi9z"));b.load([["fundude.a8422c66.wasm","Sb9Q"]]).then(function(){require("zo2T");});
+var b=require("TUK3");b.register("wasm",require("SeQb"));b.register("js",require("Yi9z"));b.load([["fundude.47fd8d1e.wasm","Sb9Q"]]).then(function(){require("zo2T");});
 },{}]},{},[0], null)
-//# sourceMappingURL=web.64032f27.js.map
+//# sourceMappingURL=web.b8149257.js.map
