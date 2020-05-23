@@ -1,7 +1,6 @@
 const std = @import("std");
 const main = @import("../main.zig");
 const Op = @import("Op.zig");
-pub const cb___ib___ = @import("cpu_opcb.zig").cb___ib___;
 
 const Reg8 = main.Cpu.Reg8;
 const Reg16 = main.Cpu.Reg16;
@@ -657,6 +656,173 @@ pub fn pop__rw___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{12}) {
     cpu.reg._16.set(op.arg0.rw, pop16(cpu, mmu));
     // Always setting is faster than if check
     cpu.reg.flags._pad = 0;
+    return .{};
+}
+
+// -- CB prefix
+
+pub fn rlc__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const tgt = op.arg0.rb;
+    cpu.reg._8.set(tgt, doRlc(cpu, cpu.reg._8.get(tgt)));
+    return .{};
+}
+
+pub fn rlc__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    const val = mmu.get(addr);
+    mmu.set(addr, doRlc(cpu, val));
+    return .{};
+}
+
+pub fn rrc__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const tgt = op.arg0.rb;
+    cpu.reg._8.set(tgt, doRrc(cpu, cpu.reg._8.get(tgt)));
+    return .{};
+}
+
+pub fn rrc__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    const val = mmu.get(addr);
+    mmu.set(addr, doRrc(cpu, val));
+    return .{};
+}
+
+pub fn rl___rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const tgt = op.arg0.rb;
+    cpu.reg._8.set(tgt, doRl(cpu, cpu.reg._8.get(tgt)));
+    return .{};
+}
+
+pub fn rl___RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    const val = mmu.get(addr);
+    mmu.set(addr, doRl(cpu, val));
+    return .{};
+}
+
+pub fn rr___rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const tgt = op.arg0.rb;
+    cpu.reg._8.set(tgt, doRr(cpu, cpu.reg._8.get(tgt)));
+    return .{};
+}
+
+pub fn rr___RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    const val = mmu.get(addr);
+    mmu.set(addr, doRr(cpu, val));
+    return .{};
+}
+
+pub fn sla__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const val = cpu.reg._8.get(op.arg0.rb);
+    cpu.reg._8.set(op.arg0.rb, flagShift(cpu, val << 1, Bit.get(val, 7)));
+    return .{};
+}
+
+pub fn sla__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    const val = mmu.get(addr);
+    mmu.set(addr, flagShift(cpu, val << 1, Bit.get(val, 7)));
+    return .{};
+}
+
+pub fn sra__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const val = cpu.reg._8.get(op.arg0.rb);
+    const msb = val & 0b10000000;
+    cpu.reg._8.set(op.arg0.rb, flagShift(cpu, msb | val >> 1, Bit.get(val, 0)));
+    return .{};
+}
+
+pub fn sra__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    const val = mmu.get(addr);
+    const msb = val & 0b10000000;
+    mmu.set(addr, flagShift(cpu, msb | val >> 1, Bit.get(val, 0)));
+    return .{};
+}
+
+pub fn swap_rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const val = cpu.reg._8.get(op.arg0.rb);
+    const hi = val >> 4;
+    const lo = val & 0xF;
+    cpu.reg._8.set(op.arg0.rb, flagShift(cpu, lo << 4 | hi, 0));
+    return .{};
+}
+
+pub fn swap_RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    const val = mmu.get(addr);
+    const hi = val >> 4;
+    const lo = val & 0xF;
+    mmu.set(addr, flagShift(cpu, lo << 4 | hi, 0));
+    return .{};
+}
+
+pub fn srl__rb___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const val = cpu.reg._8.get(op.arg0.rb);
+    cpu.reg._8.set(op.arg0.rb, flagShift(cpu, val >> 1, Bit.get(val, 0)));
+    return .{};
+}
+
+pub fn srl__RW___(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg0.rw);
+    const val = mmu.get(addr);
+    const hi = val >> 4;
+    const lo = val & 0xF;
+    mmu.set(addr, flagShift(cpu, val >> 1, Bit.get(val, 0)));
+    return .{};
+}
+
+pub fn bit__bt_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const val = cpu.reg._8.get(op.arg1.rb);
+    cpu.reg.flags = .{
+        .Z = Bit.get(val, op.arg0.bt) == 0,
+        .N = false,
+        .H = 1,
+        .C = cpu.reg.flags.C,
+    };
+    return .{};
+}
+
+pub fn bit__bt_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    const val = mmu.get(addr);
+    cpu.reg.flags = .{
+        .Z = Bit.get(val, op.arg0.bt) == 0,
+        .N = false,
+        .H = 1,
+        .C = cpu.reg.flags.C,
+    };
+    return .{};
+}
+
+pub fn res__bt_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const mask = @as(u8, 1) << op.arg0.bt;
+    const val = cpu.reg._8.get(op.arg1.rb);
+    cpu.reg._8.set(op.arg1.rb, val & ~mask);
+    return .{};
+}
+
+pub fn res__bt_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    const val = mmu.get(addr);
+    const mask = @as(u8, 1) << op.arg0.bt;
+    mmu.set(addr, val & ~mask);
+    return .{};
+}
+
+pub fn set__bt_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
+    const mask = @as(u8, 1) << op.arg0.bt;
+    const val = cpu.reg._8.get(op.arg1.rb);
+    cpu.reg._8.set(op.arg1.rb, val | mask);
+    return .{};
+}
+
+pub fn set__bt_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+    const addr = cpu.reg._16.get(op.arg1.rw);
+    const val = mmu.get(addr);
+    const mask = @as(u8, 1) << op.arg0.bt;
+    mmu.set(addr, val | mask);
     return .{};
 }
 

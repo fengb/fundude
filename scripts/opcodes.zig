@@ -18,7 +18,7 @@ pub fn main() !void {
 
         for ([_]u8{0} ** 16) |_, low| {
             const opcode = @intCast(u8, high << 4 | low);
-            const op = fundude.Cpu.opDecode([3]u8{ opcode, 0xCD, 0xAB });
+            const op = fundude.Cpu.Op.decode([3]u8{ opcode, 0xCD, 0xAB });
 
             var buffer: [16]u8 = undefined;
             try stdout.print("<td>{} <br />", .{op.disassemble(&buffer)});
@@ -33,5 +33,33 @@ pub fn main() !void {
 
         try stdout.print("</tr>\n", .{});
     }
+
+    try stdout.print("<tr>\n<th></th>\n", .{});
+    for ([_]u8{0} ** 16) |_, i| {
+        try stdout.print("<th>x{X}</th>\n", .{i});
+    }
+    try stdout.print("</tr>\n", .{});
+
+    for ([_]u8{0} ** 16) |_, high| {
+        try stdout.print("<tr><th>{X}x</th>\n", .{high});
+
+        for ([_]u8{0} ** 16) |_, low| {
+            const opcode = @intCast(u8, high << 4 | low);
+            const op = fundude.Cpu.Op.decode([3]u8{ 0xCB, opcode, 0 });
+
+            var buffer: [16]u8 = undefined;
+            try stdout.print("<td>{} <br />", .{op.disassemble(&buffer)});
+            try stdout.print("{} ", .{op.length});
+            if (op.durations[0] == op.durations[1]) {
+                try stdout.print("{}\n", .{op.durations[0]});
+            } else {
+                try stdout.print("{}/{}\n", .{ op.durations[0], op.durations[1] });
+            }
+            try stdout.print("</td>\n", .{});
+        }
+
+        try stdout.print("</tr>\n", .{});
+    }
+
     try stdout.print("</table>\n</body>\n</html>\n", .{});
 }
