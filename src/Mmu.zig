@@ -19,7 +19,7 @@ dyn: extern struct {
     vram: video.Vram, // [$8000 - $A000)
     switchable_ram: [0x2000]u8, // [$A000 - $C000)
     ram: [0x2000]u8, // [$C000 - $E000)
-    _pad_ram_echo: [0x1E00]u8, // [$E000 - $FE00)
+    ram_echo: [0x1E00]u8, // [$E000 - $FE00)
     oam: [40]video.SpriteAttr, // [$FE00 - $FEA0)
     _pad_fea0_ff00: [0x0060]u8, // [$FEA0 - $FF00)
     io: Io, // [$FF00 - $FF80)
@@ -63,7 +63,7 @@ test "offsets" {
     std.testing.expectEqual(0x8000, @byteOffsetOf(Linear, "vram"));
     std.testing.expectEqual(0xA000, @byteOffsetOf(Linear, "switchable_ram"));
     std.testing.expectEqual(0xC000, @byteOffsetOf(Linear, "ram"));
-    std.testing.expectEqual(0xE000, @byteOffsetOf(Linear, "_pad_ram_echo"));
+    std.testing.expectEqual(0xE000, @byteOffsetOf(Linear, "ram_echo"));
     std.testing.expectEqual(0xFE00, @byteOffsetOf(Linear, "oam"));
     std.testing.expectEqual(0xFF00, @byteOffsetOf(Linear, "io"));
     std.testing.expectEqual(0xFF80, @byteOffsetOf(Linear, "high_ram"));
@@ -197,7 +197,7 @@ pub fn set(self: *Mmu, addr: u16, val: u8) void {
 
     switch (addr) {
         0x8000...0xA000 - 1 => fd.video.updatedVram(self, addr, val),
-        0xC000...0xDE00 - 1 => self.dyn.ram[addr - 0xC000] = val, // Echo of 8kB Internal RAM
+        0xC000...0xDE00 - 1 => self.dyn.ram_echo[addr - 0xC000] = val, // Echo of 8kB Internal RAM
         0xE000...0xFE00 - 1 => self.dyn.ram[addr - 0xE000] = val, // Echo of 8kB Internal RAM
         0xFE00...0xFEA0 - 1 => fd.video.updatedOam(self, addr, val),
         0xFF00 => fd.inputs.sync(self),
@@ -205,6 +205,23 @@ pub fn set(self: *Mmu, addr: u16, val: u8) void {
         0xFF50 => std.mem.copy(u8, &self.dyn.rom, self.cart[0..Bootloaders.len]),
         else => {},
     }
+}
+
+test "RAM echo" {
+    var mmu: Mmu = undefined;
+    mmu.set(0xC000, 'A');
+    std.testing.expectEqual(@as(u8, 'A'), mmu.get(0xE000));
+
+    mmu.set(0xC000, 'z');
+    std.testing.expectEqual(@as(u8, 'z'), mmu.get(0xE000));
+
+    mmu.set(0xC777, '?');
+    std.testing.expectEqual(@as(u8, '?'), mmu.get(0xE777));
+
+    // Don't echo OAM
+    mmu.set(0xFE00, 69);
+    mmu.set(0xDE00, 123);
+    std.testing.expectEqual(@as(u8, 69), mmu.get(0xFE00));
 }
 
 // TODO: RAM banking
