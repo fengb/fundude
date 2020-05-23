@@ -1,7 +1,7 @@
 const std = @import("std");
-const main = @import("main.zig");
+
+const Fundude = @import("main.zig");
 pub const Op = @import("Cpu/Op.zig");
-const irq = @import("irq.zig");
 const util = @import("util.zig");
 
 const Cpu = @This();
@@ -72,7 +72,7 @@ pub fn reset(self: *Cpu) void {
     self.reg._16.set(.PC, 0);
 }
 
-pub fn step(self: *Cpu, mmu: *main.Mmu) u8 {
+pub fn step(self: *Cpu, mmu: *Fundude.Mmu) u8 {
     if (self.irqStep(mmu)) |res| {
         return res;
     } else if (self.mode == .halt) {
@@ -82,7 +82,7 @@ pub fn step(self: *Cpu, mmu: *main.Mmu) u8 {
     }
 }
 
-fn irqStep(self: *Cpu, mmu: *main.Mmu) ?u8 {
+fn irqStep(self: *Cpu, mmu: *Fundude.Mmu) ?u8 {
     if (!self.interrupt_master) return null;
 
     const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
@@ -122,13 +122,13 @@ fn irqStep(self: *Cpu, mmu: *main.Mmu) ?u8 {
     return @bitCast(u8, Op.impl.call_IW___(self, mmu, op));
 }
 
-pub fn opStep(cpu: *Cpu, mmu: *main.Mmu) u8 {
+pub fn opStep(cpu: *Cpu, mmu: *Fundude.Mmu) u8 {
     const op = @call(.{ .modifier = .always_inline }, Op.decode, .{mmu.instrBytes(cpu.reg._16.get(.PC))});
     cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% op.length);
     return opExecute(cpu, mmu, op);
 }
 
-pub fn opExecute(cpu: *Cpu, mmu: *main.Mmu, op: Op) u8 {
+pub fn opExecute(cpu: *Cpu, mmu: *Fundude.Mmu, op: Op) u8 {
     inline for (std.meta.fields(Op.Id)) |field| {
         if (field.value == @enumToInt(op.id)) {
             const func = @field(Op.impl, field.name);
@@ -141,6 +141,17 @@ pub fn opExecute(cpu: *Cpu, mmu: *main.Mmu, op: Op) u8 {
         }
     }
     unreachable;
+}
+
+test "opExecute smoke" {
+    var fd: Fundude = undefined;
+    fd.mmu.cart_meta.mbc = .None;
+
+    var i: usize = 0;
+    while (i < 256) : (i += 1) {
+        const op = Op.decode(.{ @intCast(u8, i), 0, 0 });
+        _ = fd.cpu.opExecute(&fd.mmu, op);
+    }
 }
 
 pub const Mode = enum(u16) {
