@@ -20,6 +20,7 @@ pub fn build(b: *std.build.Builder) void {
 
     addScript(b, "opcodes");
     addScript(b, "testrom");
+    addScript(b, "smoke");
 }
 
 fn addScript(b: *std.build.Builder, name: []const u8) void {

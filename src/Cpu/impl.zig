@@ -785,7 +785,7 @@ pub fn bit__bt_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
 }
 
 pub fn bit__bt_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
-    const addr = cpu.reg._16.get(op.arg0.rw);
+    const addr = cpu.reg._16.get(op.arg1.rw);
     const val = mmu.get(addr);
     cpu.reg.flags = .{
         .Z = Bit.get(val, op.arg0.bt) == 0,
@@ -804,7 +804,7 @@ pub fn res__bt_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
 }
 
 pub fn res__bt_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
-    const addr = cpu.reg._16.get(op.arg0.rw);
+    const addr = cpu.reg._16.get(op.arg1.rw);
     const val = mmu.get(addr);
     const mask = @as(u8, 1) << op.arg0.bt;
     mmu.set(addr, val & ~mask);
@@ -819,7 +819,7 @@ pub fn set__bt_rb(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{8}) {
 }
 
 pub fn set__bt_RW(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
-    const addr = cpu.reg._16.get(op.arg0.rw);
+    const addr = cpu.reg._16.get(op.arg1.rw);
     const val = mmu.get(addr);
     const mask = @as(u8, 1) << op.arg0.bt;
     mmu.set(addr, val | mask);
