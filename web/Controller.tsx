@@ -4,7 +4,7 @@ import useEvent from "react-use/lib/useEvent";
 
 import nano from "./nano";
 
-import FundudeWasm, { Input } from "../wasm";
+import FundudeWasm, { Input } from "../src/wasm";
 
 const CSS = {
   root: nano.rule({
