@@ -439,13 +439,12 @@ pub const Video = struct {
 
         switch (new_mode) {
             .searching => {
-                // TODO: ready the pixel gun here and draw the dots across .transferring
-                @call(.{ .modifier = .never_inline }, self.render, .{ mmu.*, line_num });
+                // TODO: ready the pixel gun here
                 if (mmu.dyn.io.video.STAT.irq_oam) {
                     mmu.dyn.io.IF.lcd_stat = true;
                 }
             },
-            .transferring => {},
+            .transferring => @call(.{ .modifier = .never_inline }, self.render, .{ mmu.*, line_num }),
             .hblank => {
                 if (mmu.dyn.io.video.STAT.irq_hblank) {
                     mmu.dyn.io.IF.lcd_stat = true;
