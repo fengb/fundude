@@ -1,4 +1,4 @@
-# ![FUN DUDE](src/web/logo.svg) <br> 🚧 Under Construction 🚧
+# ![FUN DUDE](web/logo.svg) <br> 🚧 Under Construction 🚧
 
 ### Game compatibility
 
