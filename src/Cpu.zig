@@ -152,6 +152,13 @@ test "opExecute smoke" {
         const op = Op.decode(.{ @intCast(u8, i), 0, 0 });
         _ = fd.cpu.opExecute(&fd.mmu, op);
     }
+
+    // CB instructions
+    i = 0;
+    while (i < 256) : (i += 1) {
+        const op = Op.decode(.{ 0xCB, @intCast(u8, i), 0 });
+        _ = fd.cpu.opExecute(&fd.mmu, op);
+    }
 }
 
 pub const Mode = enum(u16) {
