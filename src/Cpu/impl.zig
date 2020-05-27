@@ -365,9 +365,14 @@ pub fn ld___rw_rw(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
     return .{};
 }
 
-pub fn ldhl_rw_IB(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
-    // TODO: audit LDHL SP,n
+pub fn ldhl_rw_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
     const val = cpu.reg._16.get(op.arg0.rw);
+    cpu.reg.flags = .{
+        .Z = false,
+        .N = false,
+        .H = willCarryInto(4, val, op.arg1.ib),
+        .C = willCarryInto(8, val, op.arg1.ib),
+    };
     cpu.reg._16.set(.HL, signedAdd(val, op.arg1.ib));
     return .{};
 }
@@ -508,15 +513,15 @@ pub fn add__rw_rw(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(1, .{8}) {
     return .{};
 }
 
-pub fn add__rw_IB(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
+pub fn add__rw_ib(cpu: *main.Cpu, mmu: *main.Mmu, op: Op) Result(2, .{16}) {
     const tgt = op.arg0.rw;
     const offset = op.arg1.ib;
     const val = cpu.reg._16.get(tgt);
     cpu.reg.flags = .{
         .Z = false,
         .N = false,
-        .H = willCarryInto(12, val, offset),
-        .C = willCarryInto(16, val, offset),
+        .H = willCarryInto(4, val, offset),
+        .C = willCarryInto(8, val, offset),
     };
     cpu.reg._16.set(tgt, signedAdd(val, offset));
     return .{};
