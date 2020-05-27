@@ -45,6 +45,7 @@ pub fn reset(self: *Fundude) void {
     self.cpu.reset();
     self.inputs.reset();
     self.timer.reset();
+    self.breakpoint = 0xFFFF;
     self.step_underflow = 0;
 }
 
