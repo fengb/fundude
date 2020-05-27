@@ -923,8 +923,8 @@ fn doAdcRr(cpu: *main.Cpu, tgt: Reg8, val: u8) void {
     cpu.reg.flags = .{
         .Z = (tgt_val +% val +% carry) == 0,
         .N = false,
-        .H = willCarryInto(4, tgt_val, val) | willCarryInto(4, tgt_val, val +% carry),
-        .C = willCarryInto(8, tgt_val, val) | willCarryInto(8, tgt_val, val +% carry),
+        .H = willCarryInto(4, tgt_val, val) | willCarryInto(4, tgt_val +% val, carry),
+        .C = willCarryInto(8, tgt_val, val) | willCarryInto(8, tgt_val +% val, carry),
     };
     cpu.reg._8.set(tgt, tgt_val +% val +% carry);
 }
