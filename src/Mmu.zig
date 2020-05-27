@@ -190,7 +190,10 @@ pub fn set(self: *Mmu, addr: u16, val: u8) void {
         return @call(.{ .modifier = .never_inline }, self.setRom, .{ @intCast(u15, addr), val });
     }
 
-    std.mem.asBytes(&self.dyn)[addr] = val;
+    const bytes = std.mem.asBytes(&self.dyn);
+    const old = bytes[addr];
+    if (old == val) return;
+    bytes[addr] = val;
 
     // TODO: replace magic with sibling references
     const fd = @fieldParentPtr(Fundude, "mmu", self);
