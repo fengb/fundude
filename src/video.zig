@@ -487,7 +487,10 @@ pub const Video = struct {
 
         const xw = mmu.dyn.io.video.WX -% 7;
         const yw = y -% mmu.dyn.io.video.WY;
-        if (mmu.dyn.io.video.LCDC.window_enable and xw < self.cache.window.data.width and yw < self.cache.window.data.height) {
+        if (mmu.dyn.io.video.LCDC.window_enable and
+            xw < line.len and xw < self.cache.window.data.width and
+            yw < self.cache.window.data.height)
+        {
             const win = self.cache.window.data.sliceLine(0, yw);
             std.mem.copy(Pixel, line[xw..], win[0 .. line.len - xw]);
         }
