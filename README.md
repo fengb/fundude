@@ -9,6 +9,12 @@ Playable:
 - **Tetris**
 - **Super Mario Land**
 - **Bionic Commando**
+- **Pokemon Red/Blue**
+- **Kirby's Dreamland**
+
+Has major problems:
+- **Dr. Mario**
+- **Zelda: Link's Awakening**
 
 ### Implementation details
 
