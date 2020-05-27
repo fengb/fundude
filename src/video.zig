@@ -53,14 +53,14 @@ const LcdcMode = packed enum(u2) {
     transferring = 3,
 };
 
-const Color = packed enum(u8) {
+const Color = extern enum(u8) {
     _0 = 0,
     _1 = 1,
     _2 = 2,
     _3 = 3,
 };
 
-const Shade = packed enum(u8) {
+const Shade = extern enum(u8) {
     White = 0,
     Light = 1,
     Dark = 2,
@@ -101,8 +101,11 @@ const ColorPalette = packed struct {
     fn lookup(self: ColorPalette) EnumArray(Color, Shade) {
         var result: EnumArray(Color, Shade) = undefined;
         result.set(._0, @intToEnum(Shade, self._ >> (0 * 2) & 0b11));
-        result.set(._1, @intToEnum(Shade, self._ >> (1 * 2) & 0b11));
-        result.set(._2, @intToEnum(Shade, self._ >> (2 * 2) & 0b11));
+
+        // I have no idea why these two values are reversed
+        result.set(._1, @intToEnum(Shade, self._ >> (2 * 2) & 0b11));
+        result.set(._2, @intToEnum(Shade, self._ >> (1 * 2) & 0b11));
+
         result.set(._3, @intToEnum(Shade, self._ >> (3 * 2) & 0b11));
         return result;
     }
