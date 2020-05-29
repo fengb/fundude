@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
 import cx from "classnames";
-import useEvent from "react-use/lib/useEvent";
 
 import nano from "./nano";
 
@@ -13,7 +12,7 @@ const CSS = {
     flex: "1",
     justifyContent: "space-between",
     alignItems: "center",
-    touchAction: "none"
+    touchAction: "none",
   }),
 
   button: nano.rule({
@@ -27,25 +26,25 @@ const CSS = {
 
     "&.pressed": {
       background: "white",
-      color: "#082A08"
-    }
+      color: "#082A08",
+    },
   }),
 
   dpad: {
     base: nano.rule({
       position: "relative",
       width: "90px",
-      height: "90px"
+      height: "90px",
     }),
     direction: nano.rule({
       position: "absolute",
       height: "33.3333%",
-      width: "33.3333%"
+      width: "33.3333%",
     }),
     up: nano.rule({ left: "33.3333%", top: 0 }),
     down: nano.rule({ left: "33.3333%", bottom: 0 }),
     left: nano.rule({ left: 0, top: "33.3333%" }),
-    right: nano.rule({ right: 0, top: "33.3333%" })
+    right: nano.rule({ right: 0, top: "33.3333%" }),
   },
 
   buttons: {
@@ -54,9 +53,19 @@ const CSS = {
     start: nano.rule({ width: "50px", fontSize: "12px", margin: "0 2px" }),
 
     base: nano.rule({}),
-    a: nano.rule({ width: "40px", height: "40px", margin: "0 2px", borderRadius: "100%" }),
-    b: nano.rule({ width: "40px", height: "40px", margin: "0 2px", borderRadius: "100%" }),
-  }
+    a: nano.rule({
+      width: "40px",
+      height: "40px",
+      margin: "0 2px",
+      borderRadius: "100%",
+    }),
+    b: nano.rule({
+      width: "40px",
+      height: "40px",
+      margin: "0 2px",
+      borderRadius: "100%",
+    }),
+  },
 };
 
 const INITIAL_STATE = {
@@ -68,7 +77,7 @@ const INITIAL_STATE = {
   select: false,
   start: false,
   a: false,
-  b: false
+  b: false,
 };
 
 const KEY_MAP: Record<string, Input> = {
@@ -94,75 +103,98 @@ const KEY_MAP: Record<string, Input> = {
   KeyO: "select",
   KeyP: "start",
   BracketLeft: "b",
-  BracketRight: "a"
+  BracketRight: "a",
 };
+
+function useEvent(
+  target: any,
+  eventName: string,
+  callback: (event?: any) => void,
+  deps?: React.DependencyList
+) {
+  useEffect(() => {
+    target.addEventListener(eventName, callback);
+    return () => target.removeEventListener(eventName, callback);
+  }, [target, eventName, ...(deps || [])]);
+}
 
 export default function Controller(props: { fd: FundudeWasm }) {
   const [inputs, setInputs] = React.useState(INITIAL_STATE);
-  const [clicking, setClicking] = React.useState(false);
+  // const [clicking, setClicking] = React.useState(false);
 
-  function handleMouseDown(event: React.MouseEvent<HTMLButtonElement>) {
-    setClicking(true);
-    setInputs(props.fd.inputPress(event.currentTarget.value as any));
-  }
+  // function handleMouseDown(event: React.MouseEvent<HTMLButtonElement>) {
+  //   setClicking(true);
+  //   setInputs(props.fd.inputPress(event.currentTarget.value as any));
+  // }
 
-  function handleMouseEnter(event: React.MouseEvent<HTMLButtonElement>) {
-    if (!clicking) {
-      return;
-    }
-    event.currentTarget.focus();
-    setInputs(props.fd.inputPress(event.currentTarget.value as any));
-  }
+  // function handleMouseEnter(event: React.MouseEvent<HTMLButtonElement>) {
+  //   if (!clicking) {
+  //     return;
+  //   }
+  //   event.currentTarget.focus();
+  //   setInputs(props.fd.inputPress(event.currentTarget.value as any));
+  // }
 
-  function handleMouseLeave(event: React.MouseEvent<HTMLButtonElement>) {
-    if (!clicking) {
-      return;
-    }
-    event.currentTarget.blur();
-    setInputs(props.fd.inputRelease(event.currentTarget.value as any));
-  }
+  // function handleMouseLeave(event: React.MouseEvent<HTMLButtonElement>) {
+  //   if (!clicking) {
+  //     return;
+  //   }
+  //   event.currentTarget.blur();
+  //   setInputs(props.fd.inputRelease(event.currentTarget.value as any));
+  // }
 
-  useEvent("mouseup", (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (!clicking) {
-      return;
-    }
-    setClicking(false);
-    event.currentTarget.blur();
-    setInputs(props.fd.inputReleaseAll());
-  });
+  // useEvent("mouseup", (event: React.MouseEvent<HTMLButtonElement>) => {
+  //   if (!clicking) {
+  //     return;
+  //   }
+  //   setClicking(false);
+  //   event.currentTarget.blur();
+  //   setInputs(props.fd.inputReleaseAll());
+  // });
 
-  function handleTouch(event: React.TouchEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    setInputs(props.fd.inputPress(event.currentTarget.value as any));
-  }
+  // function handleTouch(event: React.TouchEvent<HTMLButtonElement>) {
+  //   event.preventDefault();
+  //   setInputs(props.fd.inputPress(event.currentTarget.value as any));
+  // }
 
-  function handleUntouch(event: React.TouchEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    setInputs(props.fd.inputRelease(event.currentTarget.value as any));
-  }
+  // function handleUntouch(event: React.TouchEvent<HTMLButtonElement>) {
+  //   event.preventDefault();
+  //   setInputs(props.fd.inputRelease(event.currentTarget.value as any));
+  // }
 
-  useEvent("keydown", (event: KeyboardEvent) => {
-    if (event.target.nodeName == "INPUT") {
-      return;
-    }
+  useEvent(
+    window,
+    "keydown",
+    (event: KeyboardEvent) => {
+      if ((event.target as any).nodeName == "INPUT") {
+        return;
+      }
 
-    const input = KEY_MAP[event.code];
-    if (input) {
-      event.preventDefault();
-      setInputs(props.fd.inputPress(input));
-    }
-  });
-  useEvent("keyup", (event: KeyboardEvent) => {
-    if (event.target.nodeName == "INPUT") {
-      return;
-    }
+      const input = KEY_MAP[event.code];
+      if (input) {
+        event.preventDefault();
+        setInputs(props.fd.inputPress(input));
+      }
+    },
+    [props.fd]
+  );
 
-    const input = KEY_MAP[event.code];
-    if (input) {
-      event.preventDefault();
-      setInputs(props.fd.inputRelease(input));
-    }
-  });
+  useEvent(
+    window,
+    "keyup",
+    (event: KeyboardEvent) => {
+      if ((event.target as any).nodeName == "INPUT") {
+        return;
+      }
+
+      const input = KEY_MAP[event.code];
+      if (input) {
+        event.preventDefault();
+        setInputs(props.fd.inputRelease(input));
+      }
+    },
+    [props.fd]
+  );
 
   function Button(props: {
     value: Input;
@@ -173,13 +205,13 @@ export default function Controller(props: { fd: FundudeWasm }) {
       <button
         value={props.value}
         className={cx(CSS.button, props.className, {
-          pressed: inputs[props.value]
+          pressed: inputs[props.value],
         })}
-        onMouseDown={handleMouseDown}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleTouch}
-        onTouchEnd={handleUntouch}
+        // onMouseDown={handleMouseDown}
+        // onMouseEnter={handleMouseEnter}
+        // onMouseLeave={handleMouseLeave}
+        // onTouchStart={handleTouch}
+        // onTouchEnd={handleUntouch}
       >
         {props.children}
       </button>
