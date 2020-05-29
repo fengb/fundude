@@ -11,14 +11,16 @@ interrupt_master: bool,
 reg: packed union {
     _16: util.EnumArray(Reg16, u16),
     _8: util.EnumArray(Reg8, u8),
-    flags: packed struct {
-        _pad: u4 = 0,
-        C: u1,
-        H: u1,
-        N: bool,
-        Z: bool,
-    },
+    flags: Flags,
 },
+
+pub const Flags = packed struct {
+    _pad: u4 = 0,
+    C: u1,
+    H: u1,
+    N: bool,
+    Z: bool,
+};
 
 test "register arrangement" {
     var cpu: Cpu = undefined;
