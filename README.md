@@ -11,17 +11,17 @@ Playable:
 - **Bionic Commando**
 - **Pokemon Red/Blue**
 - **Kirby's Dreamland**
+- **Dr. Mario**
 
 Has major problems:
-- **Dr. Mario**
-- **Zelda: Link's Awakening**
+- **Zelda: Link's Awakening** — inventory doesn't render properly
 
 ### Implementation details
 
 | | |
 |-|-|
 | CPU | some bugs, incorrect instruction durations |
-| PPU | mostly working -- render hacks |
+| Video | mostly working -- render hacks |
 | Joypad | should work |
 | Timer | untested, poor timing |
 | Interrupts | untested |
