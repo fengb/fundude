@@ -10,7 +10,7 @@ export type Matrix<T> = T & {
 };
 
 class U8Chunk extends Uint8Array {
-  constructor(private ptr: number, length: number) {
+  constructor(public ptr: number, length: number) {
     super(WASM.memory.buffer, ptr, length);
   }
 
@@ -181,6 +181,30 @@ export default class FundudeWasm {
     }
 
     this.changed.dispatch();
+  }
+
+  dump() {
+    const dumpChunk = U8Chunk.fromFloat(WASM.fd_dump(this.pointer));
+    try {
+      return Uint8Array.from(dumpChunk);
+    } finally {
+      WASM.free(dumpChunk.ptr);
+    }
+  }
+
+  restore(bytes: Uint8Array) {
+    const ptr = WASM.malloc(bytes.length);
+    if (ptr == 0) {
+      throw "WASM out of memory";
+    }
+
+    const copy = new U8Chunk(ptr, bytes.length);
+    copy.set(bytes);
+    try {
+      WASM.fd_restore(this.pointer, copy.toFloat());
+    } finally {
+      WASM.free(ptr);
+    }
   }
 
   dealloc() {
