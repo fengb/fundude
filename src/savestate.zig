@@ -16,10 +16,10 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
 
         fn dump(self: T, out_stream: var) !void {
             inline for (field_names) |field_name| {
-                const field_value = @field(self, field_name);
-                const FieldType = @TypeOf(field_value);
+                const field_ptr = &@field(self, field_name);
+                const FieldType = @TypeOf(field_ptr.*);
                 try out_stream.writeIntNative(u32, @sizeOf(FieldType));
-                try out_stream.writeAll(std.mem.asBytes(&field_value));
+                try out_stream.writeAll(std.mem.asBytes(field_ptr));
             }
         }
 
@@ -31,16 +31,18 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
                     return error.SizeMismatch;
                 }
 
-                @field(self, field_name) = switch (@typeInfo(FieldType)) {
-                    .Enum => |enum_info| @intToEnum(FieldType, try in_stream.readIntNative(enum_info.tag_type)),
-                    .Bool => 0 != try in_stream.readByte(),
-                    .Int => |int_info| blk: {
+                switch (@typeInfo(FieldType)) {
+                    .Bool => @field(self, field_name) = 0 != try in_stream.readByte(),
+                    .Int => |int_info| {
                         const WireType = std.meta.Int(false, 8 * wire_size);
                         const raw = try in_stream.readIntNative(WireType);
-                        break :blk @intCast(FieldType, raw);
+                        @field(self, field_name) = @intCast(FieldType, raw);
                     },
-                    else => @bitCast(FieldType, try in_stream.readBytesNoEof(wire_size)),
-                };
+                    else => {
+                        const result_location = &@field(self, field_name);
+                        try in_stream.readNoEof(std.mem.asBytes(result_location));
+                    },
+                }
             }
         }
     };
