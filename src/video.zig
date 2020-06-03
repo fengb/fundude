@@ -167,7 +167,7 @@ pub const Video = struct {
     buffers: [2]Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
     screen_index: u1,
 
-    clock: struct {
+    clock: extern struct {
         line: u32,
         offset: u32,
     },

@@ -5,6 +5,7 @@ const video = @import("video.zig");
 const joypad = @import("joypad.zig");
 pub const Mmu = @import("Mmu.zig");
 const timer = @import("timer.zig");
+const savestate = @import("savestate.zig");
 
 pub const MHz = 4194304;
 
@@ -59,6 +60,10 @@ pub fn step(self: *Fundude) i8 {
     return @intCast(i8, duration);
 }
 
+pub const dump = savestate.dump;
+pub const restore = savestate.restore;
+
 test "" {
     _ = Fundude;
+    _ = savestate;
 }
