@@ -2,9 +2,11 @@ const std = @import("std");
 
 pub const Cpu = @import("Cpu.zig");
 const video = @import("video.zig");
+pub const Video = video.Video;
 const joypad = @import("joypad.zig");
 pub const Mmu = @import("Mmu.zig");
 const timer = @import("timer.zig");
+pub const Timer = timer.Timer;
 const savestate = @import("savestate.zig");
 
 pub const MHz = 4194304;

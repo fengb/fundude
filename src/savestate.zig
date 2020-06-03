@@ -16,11 +16,21 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
         fn restore(self: *T, in_stream: var) !void {
             inline for (field_names) |field_name| {
                 const FieldType = @TypeOf(@field(self, field_name));
-                const check_size = try in_stream.readIntNative(u32);
-                if (check_size != @sizeOf(FieldType)) {
+                const wire_size = @sizeOf(FieldType);
+                if (wire_size != try in_stream.readIntNative(u32)) {
                     return error.SizeMismatch;
                 }
-                @field(self, field_name) = @bitCast(FieldType, try in_stream.readBytesNoEof(@sizeOf(FieldType)));
+
+                @field(self, field_name) = switch (@typeInfo(FieldType)) {
+                    .Enum => |enum_info| @intToEnum(FieldType, try in_stream.readIntNative(enum_info.tag_type)),
+                    .Bool => 0 != try in_stream.readByte(),
+                    .Int => |int_info| blk: {
+                        const WireType = std.meta.Int(false, 8 * wire_size);
+                        const raw = try in_stream.readIntNative(WireType);
+                        break :blk @intCast(FieldType, raw);
+                    },
+                    else => @bitCast(FieldType, try in_stream.readBytesNoEof(wire_size)),
+                };
             }
         }
     };

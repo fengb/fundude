@@ -124,6 +124,16 @@ export fn fd_step_cycles(fd: *Fundude, cycles: i32) i32 {
     return target_cycles - track;
 }
 
+export fn fd_dump(fd: *Fundude) ?[*]u8 {
+    return null;
+}
+
+export fn fd_restore(fd: *Fundude, bytes: U8Chunk.Abi) u8 {
+    var stream = std.io.fixedBufferStream(U8Chunk.toSlice(bytes));
+    fd.restore(stream.inStream()) catch return 1;
+    return 0;
+}
+
 export fn fd_input_press(fd: *Fundude, input: u8) u8 {
     const changed = fd.inputs.press(&fd.mmu, .{ .raw = input });
     if (changed) {
