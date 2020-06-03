@@ -4,6 +4,16 @@ const Fundude = @import("main.zig");
 
 fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
     return struct {
+        pub const ssize: comptime_int = blk: {
+            var result = 0;
+            inline for (field_names) |field_name| {
+                var fake: T = undefined;
+                const FieldType = @TypeOf(@field(fake, field_name));
+                result += @sizeOf(u32) + @sizeOf(FieldType);
+            }
+            break :blk result;
+        };
+
         fn dump(self: T, out_stream: var) !void {
             inline for (field_names) |field_name| {
                 const field_value = @field(self, field_name);
@@ -99,6 +109,8 @@ const Timer = Serializer(Fundude.Timer, &[_][]const u8{
     "clock",
     "timer",
 });
+
+pub const size = Cpu.ssize + Mmu.ssize + Video.ssize + Timer.ssize;
 
 pub fn dump(fd: Fundude, out_stream: var) !void {
     try Cpu.dump(fd.cpu, out_stream);

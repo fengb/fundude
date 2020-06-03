@@ -64,6 +64,7 @@ pub fn step(self: *Fundude) i8 {
 
 pub const dump = savestate.dump;
 pub const restore = savestate.restore;
+pub const savestate_size = savestate.size;
 
 test "" {
     _ = Fundude;
