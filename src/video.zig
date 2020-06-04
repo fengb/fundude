@@ -505,10 +505,10 @@ pub const Video = struct {
             const metas = self.cache.sprites.meta.sliceLine(8, y + 16);
 
             // TODO: use real vectors
-            for (std.mem.bytesAsSlice(u64, std.mem.sliceAsBytes(sprites))) |*chunk, i| {
-                if (chunk.* == 0) continue;
+            for (std.mem.bytesAsSlice(u64, std.mem.sliceAsBytes(sprites))) |chunk, i| {
+                if (chunk == 0) continue;
 
-                for (@ptrCast(*[4]Pixel, chunk)) |pixel, j| {
+                for (@bitCast([4]Pixel, chunk)) |pixel, j| {
                     const x = 4 * i + j;
                     if (pixel.opaque and (metas[x].in_front or !line[x].opaque)) {
                         line[x] = pixel;
