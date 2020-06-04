@@ -12,9 +12,7 @@ Playable:
 - **Pokemon Red/Blue**
 - **Kirby's Dreamland**
 - **Dr. Mario**
-
-Has major problems:
-- **Zelda: Link's Awakening** — inventory doesn't render properly
+- **Zelda: Link's Awakening**
 
 ### Implementation details
 

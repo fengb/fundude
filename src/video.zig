@@ -488,14 +488,16 @@ pub const Video = struct {
             std.mem.set(Pixel, line, Shade.White.asPixel());
         }
 
-        const xw = mmu.dyn.io.video.WX -% 7;
-        const yw = y -% mmu.dyn.io.video.WY;
-        if (mmu.dyn.io.video.LCDC.window_enable and
-            xw < line.len and xw < self.cache.window.data.width and
-            yw < self.cache.window.data.height)
-        {
-            const win = self.cache.window.data.sliceLine(0, yw);
-            std.mem.copy(Pixel, line[xw..], win[0 .. line.len - xw]);
+        if (mmu.dyn.io.video.LCDC.window_enable and y >= mmu.dyn.io.video.WY) {
+            const win_line = self.cache.window.data.sliceLine(0, y - mmu.dyn.io.video.WY);
+            if (mmu.dyn.io.video.WX < 7) {
+                // TODO: add hardware bugs
+                const xw = 7 - mmu.dyn.io.video.WX;
+                std.mem.copy(Pixel, line, win_line[xw..][0..line.len]);
+            } else {
+                const xw = mmu.dyn.io.video.WX - 7;
+                std.mem.copy(Pixel, line[xw..], win_line[0 .. line.len - xw]);
+            }
         }
 
         if (mmu.dyn.io.video.LCDC.obj_enable) {
