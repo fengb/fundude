@@ -285,7 +285,7 @@ pub const Video = struct {
                 std.mem.copy(SpriteAttr, &self.prev_oam, &mmu.dyn.oam);
 
                 var sorted = mmu.dyn.oam;
-                std.sort.sort(SpriteAttr, &sorted, oamLessThan);
+                std.sort.insertionSort(SpriteAttr, &sorted, oamLessThan);
                 // Lower == higher priority, so we need to iterate backwards for painters algorithm
                 // TODO: ignore sprites > 10
                 std.mem.reverse(SpriteAttr, &sorted);
