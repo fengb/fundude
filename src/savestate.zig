@@ -112,9 +112,16 @@ const Timer = Serializer(Fundude.Timer, &[_][]const u8{
     "timer",
 });
 
-pub const size = Cpu.ssize + Mmu.ssize + Video.ssize + Timer.ssize;
+pub const size = magic_number.len + cart_meta_len +
+    Cpu.ssize + Mmu.ssize + Video.ssize + Timer.ssize;
+
+const magic_number = [_]u8{ 0xDC, 0x00, 0x46, 0x44, 0x0D, 0x0A, 0x1A, 0x0A };
+const cart_meta_len = 0x18;
 
 pub fn dump(fd: Fundude, out_stream: var) !void {
+    try out_stream.writeAll(&magic_number);
+    try out_stream.writeAll(fd.mmu.cart[0x134..][0..cart_meta_len]);
+
     try Cpu.dump(fd.cpu, out_stream);
     try Mmu.dump(fd.mmu, out_stream);
     try Video.dump(fd.video, out_stream);
@@ -122,6 +129,15 @@ pub fn dump(fd: Fundude, out_stream: var) !void {
 }
 
 pub fn restore(fd: *Fundude, in_stream: var) !void {
+    const header = try in_stream.readBytesNoEof(magic_number.len);
+    if (!std.mem.eql(u8, &header, &magic_number)) {
+        return error.HeaderMismatch;
+    }
+    const cart_meta = try in_stream.readBytesNoEof(0x18);
+    if (!std.mem.eql(u8, &cart_meta, fd.mmu.cart[0x134..][0..cart_meta_len])) {
+        return error.CartMismatch;
+    }
+
     try Cpu.restore(&fd.cpu, in_stream);
     try Mmu.restore(&fd.mmu, in_stream);
     try Video.restore(&fd.video, in_stream);

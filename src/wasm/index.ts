@@ -201,7 +201,10 @@ export default class FundudeWasm {
     const copy = new U8Chunk(ptr, bytes.length);
     copy.set(bytes);
     try {
-      WASM.fd_restore(this.pointer, copy.toFloat());
+      const result = WASM.fd_restore(this.pointer, copy.toFloat());
+      if (result !== 0) {
+        alert("Load failed");
+      }
     } finally {
       WASM.free(ptr);
     }
