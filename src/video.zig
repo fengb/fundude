@@ -348,6 +348,10 @@ pub const Video = struct {
         self.clock.offset = 0;
         self.clock.line = 0;
 
+        self.resetCache();
+    }
+
+    pub fn resetCache(self: *Video) void {
         self.cache.sprites.dirty = true;
         self.cache.sprites.data.reset(Shade.White.asPixel());
         self.cache.patterns.dirty = true;

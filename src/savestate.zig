@@ -137,8 +137,9 @@ pub fn dump(fd: Fundude, out_stream: var) !void {
 
     try Cpu.dump(fd.cpu, out_stream);
     try Mmu.dump(fd.mmu, out_stream);
-    try Video.dump(fd.video, out_stream);
     try Timer.dump(fd.timer, out_stream);
+
+    try Video.dump(fd.video, out_stream);
 }
 
 fn validateHeader(fd: *Fundude, in_stream: var) !void {
@@ -157,8 +158,9 @@ pub fn validate(fd: *Fundude, in_stream: var) !void {
 
     try Cpu.validate(in_stream);
     try Mmu.validate(in_stream);
-    try Video.validate(in_stream);
     try Timer.validate(in_stream);
+
+    try Video.validate(in_stream);
 }
 
 pub fn restore(fd: *Fundude, in_stream: var) !void {
@@ -166,6 +168,8 @@ pub fn restore(fd: *Fundude, in_stream: var) !void {
 
     try Cpu.restore(&fd.cpu, in_stream);
     try Mmu.restore(&fd.mmu, in_stream);
-    try Video.restore(&fd.video, in_stream);
     try Timer.restore(&fd.timer, in_stream);
+
+    try Video.restore(&fd.video, in_stream);
+    fd.video.resetCache();
 }
