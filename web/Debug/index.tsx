@@ -83,6 +83,11 @@ function Displays(props: { fd: FundudeWasm }) {
 
   const mmu = fd.mmu();
 
+  const lcdc = mmu[0xff40 - 0x8000];
+  const bgEnable = Boolean((lcdc >> 0) & 1);
+  const objEnable = Boolean((lcdc >> 1) & 1);
+  const windowEnable = Boolean((lcdc >> 5) & 1);
+
   const scx = mmu[0xff43 - 0x8000];
   const scy = mmu[0xff42 - 0x8000];
   const wx = mmu[0xff4b - 0x8000];
@@ -98,24 +103,26 @@ function Displays(props: { fd: FundudeWasm }) {
       /> */}
       <Display
         pixels={() => fd.sprites()}
-        viewports={[[8, 16]]}
+        viewports={objEnable && [[8, 16]]}
         gridColor="lightgray"
       />
       <div className={CSS.displays}>
         <Display
           pixels={() => fd.background()}
-          viewports={[
-            [scx, scy],
-            [scx - 256, scy],
-            [scx, scy - 256],
-            [scx - 256, scy - 256],
-          ]}
+          viewports={
+            bgEnable && [
+              [scx, scy],
+              [scx - 256, scy],
+              [scx, scy - 256],
+              [scx - 256, scy - 256],
+            ]
+          }
           gridColor="lightgray"
         />
         <Display
           pixels={() => fd.window()}
           gridColor="lightgray"
-          viewports={[[wx - 7, -wy]]}
+          viewports={windowEnable && [[7 - wx, -wy]]}
         />
       </div>
     </React.Fragment>
