@@ -140,7 +140,10 @@ export fn fd_dump(fd: *Fundude) U8Chunk.Abi {
 
 export fn fd_restore(fd: *Fundude, bytes: U8Chunk.Abi) u8 {
     var stream = std.io.fixedBufferStream(U8Chunk.toSlice(bytes));
-    fd.restore(stream.inStream()) catch return 1;
+    fd.validateSavestate(stream.inStream()) catch return 1;
+
+    stream.reset();
+    fd.restore(stream.inStream()) catch unreachable;
     return 0;
 }
 

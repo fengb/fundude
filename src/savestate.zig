@@ -23,6 +23,19 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
             }
         }
 
+        fn validate(in_stream: var) !void {
+            var fake: T = undefined;
+            inline for (field_names) |field_name| {
+                const FieldType = @TypeOf(@field(fake, field_name));
+                const wire_size = @sizeOf(FieldType);
+                if (wire_size != try in_stream.readIntNative(u32)) {
+                    return error.SizeMismatch;
+                }
+
+                try in_stream.skipBytes(wire_size);
+            }
+        }
+
         fn restore(self: *T, in_stream: var) !void {
             inline for (field_names) |field_name| {
                 const FieldType = @TypeOf(@field(self, field_name));
@@ -128,7 +141,7 @@ pub fn dump(fd: Fundude, out_stream: var) !void {
     try Timer.dump(fd.timer, out_stream);
 }
 
-pub fn restore(fd: *Fundude, in_stream: var) !void {
+fn validateHeader(fd: *Fundude, in_stream: var) !void {
     const header = try in_stream.readBytesNoEof(magic_number.len);
     if (!std.mem.eql(u8, &header, &magic_number)) {
         return error.HeaderMismatch;
@@ -137,6 +150,19 @@ pub fn restore(fd: *Fundude, in_stream: var) !void {
     if (!std.mem.eql(u8, &cart_meta, fd.mmu.cart[0x134..][0..cart_meta_len])) {
         return error.CartMismatch;
     }
+}
+
+pub fn validate(fd: *Fundude, in_stream: var) !void {
+    try validateHeader(fd, in_stream);
+
+    try Cpu.validate(in_stream);
+    try Mmu.validate(in_stream);
+    try Video.validate(in_stream);
+    try Timer.validate(in_stream);
+}
+
+pub fn restore(fd: *Fundude, in_stream: var) !void {
+    try validateHeader(fd, in_stream);
 
     try Cpu.restore(&fd.cpu, in_stream);
     try Mmu.restore(&fd.mmu, in_stream);
