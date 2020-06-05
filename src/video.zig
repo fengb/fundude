@@ -167,7 +167,7 @@ pub const Video = struct {
     buffers: [2]Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
     screen_index: u1,
 
-    clock: struct {
+    clock: extern struct {
         line: u32,
         offset: u32,
     },
@@ -348,6 +348,10 @@ pub const Video = struct {
         self.clock.offset = 0;
         self.clock.line = 0;
 
+        self.resetCache();
+    }
+
+    pub fn resetCache(self: *Video) void {
         self.cache.sprites.dirty = true;
         self.cache.sprites.data.reset(Shade.White.asPixel());
         self.cache.patterns.dirty = true;

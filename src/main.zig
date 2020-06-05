@@ -2,9 +2,12 @@ const std = @import("std");
 
 pub const Cpu = @import("Cpu.zig");
 const video = @import("video.zig");
+pub const Video = video.Video;
 const joypad = @import("joypad.zig");
 pub const Mmu = @import("Mmu.zig");
 const timer = @import("timer.zig");
+pub const Timer = timer.Timer;
+const savestate = @import("savestate.zig");
 
 pub const MHz = 4194304;
 
@@ -59,6 +62,12 @@ pub fn step(self: *Fundude) i8 {
     return @intCast(i8, duration);
 }
 
+pub const dump = savestate.dump;
+pub const restore = savestate.restore;
+pub const validateSavestate = savestate.validate;
+pub const savestate_size = savestate.size;
+
 test "" {
     _ = Fundude;
+    _ = savestate;
 }
