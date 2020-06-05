@@ -85,6 +85,8 @@ function Displays(props: { fd: FundudeWasm }) {
 
   const scx = mmu[0xff43 - 0x8000];
   const scy = mmu[0xff42 - 0x8000];
+  const wx = mmu[0xff4b - 0x8000];
+  const wy = mmu[0xff4a - 0x8000];
 
   return (
     <React.Fragment>
@@ -113,7 +115,7 @@ function Displays(props: { fd: FundudeWasm }) {
         <Display
           pixels={() => fd.window()}
           gridColor="lightgray"
-          viewports={[]}
+          viewports={[[wx - 7, -wy]]}
         />
       </div>
     </React.Fragment>
