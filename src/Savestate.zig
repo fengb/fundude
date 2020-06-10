@@ -2,6 +2,17 @@ const std = @import("std");
 
 const Fundude = @import("main.zig");
 
+const Savestate = @This();
+
+data: [size]u8,
+
+fn init() Savestate {
+    var result: Savestate = undefined;
+    var stream = std.io.fixedBufferStream(mem);
+    dump(stream.outStream()) catch unreachable;
+    return result;
+}
+
 fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
     return struct {
         pub const ssize: comptime_int = blk: {
