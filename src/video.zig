@@ -386,7 +386,7 @@ pub const Video = struct {
         }
     }
 
-    pub fn step(self: *Video, mmu: *main.Mmu, cycles: u16) void {
+    pub fn step(self: *Video, mmu: *main.Mmu, cycles: u16, catchup: bool) void {
         // FIXME: this isn't how DMA works
         if (mmu.dyn.io.video.DMA != 0) {
             const addr = @intCast(u16, mmu.dyn.io.video.DMA) << 8;
@@ -451,7 +451,11 @@ pub const Video = struct {
                     mmu.dyn.io.IF.lcd_stat = true;
                 }
             },
-            .transferring => @call(.{ .modifier = .never_inline }, self.render, .{ mmu.*, line_num }),
+            .transferring => {
+                if (!catchup) {
+                    @call(.{ .modifier = .never_inline }, self.render, .{ mmu.*, line_num });
+                }
+            },
             .hblank => {
                 if (mmu.dyn.io.video.STAT.irq_hblank) {
                     mmu.dyn.io.IF.lcd_stat = true;

@@ -7,6 +7,8 @@ const util = @import("util.zig");
 
 const CYCLES_PER_MS = Fundude.MHz / 1000;
 
+const is_benchmarking = false;
+
 const allocator = if (builtin.link_libc)
     std.heap.c_allocator
 else if (builtin.arch.isWasm()) blk: {
@@ -102,7 +104,7 @@ export fn fd_reset(fd: *Fundude) void {
 export fn fd_step(fd: *Fundude) i8 {
     // Reset tracking -- single step will always accrue negatives
     fd.step_underflow = 0;
-    return fd.step();
+    return fd.step(false);
 }
 
 export fn fd_step_ms(fd: *Fundude, ms: f64) i32 {
@@ -116,7 +118,8 @@ export fn fd_step_cycles(fd: *Fundude, cycles: i32) i32 {
     var track = target_cycles;
 
     while (track >= 0) {
-        track -= fd.step();
+        const catchup = track > 140_000 and !is_benchmarking;
+        track -= fd.step(catchup);
 
         if (fd.breakpoint == fd.cpu.reg._16.get(.PC)) {
             fd.step_underflow = 0;

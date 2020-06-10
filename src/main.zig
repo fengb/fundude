@@ -52,11 +52,12 @@ pub fn reset(self: *Fundude) void {
     self.step_underflow = 0;
 }
 
-pub fn step(self: *Fundude) i8 {
+// TODO: convert "catchup" to an enum
+pub fn step(self: *Fundude, catchup: bool) i8 {
     const duration = @call(.{ .modifier = .never_inline }, self.cpu.step, .{&self.mmu});
     std.debug.assert(duration > 0);
 
-    @call(.{ .modifier = .never_inline }, self.video.step, .{ &self.mmu, duration });
+    @call(.{ .modifier = .never_inline }, self.video.step, .{ &self.mmu, duration, catchup });
     @call(.{ .modifier = .never_inline }, self.timer.step, .{ &self.mmu, duration });
 
     return @intCast(i8, duration);
