@@ -6,11 +6,14 @@ const Savestate = @This();
 
 data: [size]u8,
 
-fn init() Savestate {
-    var result: Savestate = undefined;
-    var stream = std.io.fixedBufferStream(mem);
-    dump(stream.outStream()) catch unreachable;
-    return result;
+pub fn dumpFrom(self: *Savestate, fd: Fundude) void {
+    var stream = std.io.fixedBufferStream(&self.data);
+    dump(fd, stream.outStream()) catch unreachable;
+}
+
+pub fn restoreInto(self: Savestate, fd: *Fundude) !void {
+    var stream = std.io.fixedBufferStream(&self.data);
+    try restore(fd, stream.inStream());
 }
 
 fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {

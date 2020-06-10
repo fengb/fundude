@@ -8,6 +8,7 @@ pub const Mmu = @import("Mmu.zig");
 const timer = @import("timer.zig");
 pub const Timer = timer.Timer;
 pub const Savestate = @import("Savestate.zig");
+pub const Temportal = @import("Temportal.zig");
 
 pub const MHz = 4194304;
 
@@ -21,10 +22,10 @@ mmu: Mmu,
 
 inputs: joypad.Inputs,
 timer: timer.Timer,
+temportal: Temportal,
 
 step_underflow: i32,
 breakpoint: u16,
-disassembly: [24]u8,
 
 pub fn init(allocator: *std.mem.Allocator) !*Fundude {
     var fd = try allocator.create(Fundude);
@@ -48,16 +49,19 @@ pub fn reset(self: *Fundude) void {
     self.cpu.reset();
     self.inputs.reset();
     self.timer.reset();
+    self.temportal.reset();
     self.breakpoint = 0xFFFF;
     self.step_underflow = 0;
 }
 
 pub fn step(self: *Fundude) i8 {
+    // TODO: make cpu.step advance a consistent duration=4
     const duration = @call(.{ .modifier = .never_inline }, self.cpu.step, .{&self.mmu});
     std.debug.assert(duration > 0);
 
     @call(.{ .modifier = .never_inline }, self.video.step, .{ &self.mmu, duration });
     @call(.{ .modifier = .never_inline }, self.timer.step, .{ &self.mmu, duration });
+    @call(.{ .modifier = .never_inline }, self.temportal.step, .{ self, duration });
 
     return @intCast(i8, duration);
 }
