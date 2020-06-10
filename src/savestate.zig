@@ -116,8 +116,6 @@ const Mmu = Serializer(Fundude.Mmu, &[_][]const u8{
     "bank",
 });
 const Video = Serializer(Fundude.Video, &[_][]const u8{
-    "buffers",
-    "screen_index",
     "clock",
 });
 const Timer = Serializer(Fundude.Timer, &[_][]const u8{
@@ -128,7 +126,8 @@ const Timer = Serializer(Fundude.Timer, &[_][]const u8{
 pub const size = magic_number.len + cart_meta_len +
     Cpu.ssize + Mmu.ssize + Video.ssize + Timer.ssize;
 
-const magic_number = [_]u8{ 0xDC, 0x00, 0x46, 0x44, 0x0D, 0x0A, 0x1A, 0x0A };
+const version = 0x00;
+const magic_number = [_]u8{ 0xDC, version, 0x46, 0x44, 0x0D, 0x0A, 0x1A, 0x0A };
 const cart_meta_len = 0x18;
 
 pub fn dump(fd: Fundude, out_stream: var) !void {
@@ -170,6 +169,6 @@ pub fn restore(fd: *Fundude, in_stream: var) !void {
     try Mmu.restore(&fd.mmu, in_stream);
     try Timer.restore(&fd.timer, in_stream);
 
+    fd.video.reset();
     try Video.restore(&fd.video, in_stream);
-    fd.video.resetCache();
 }
