@@ -14,8 +14,8 @@ pub fn reset(self: *Temportal) void {
     self.clock = 0;
 }
 
-pub fn step(self: *Temportal, fd: *Fundude, cycles: u8) void {
-    self.clock +%= cycles;
+pub fn tick(self: *Temportal, fd: *Fundude) void {
+    self.clock +%= 4;
 
     if (self.clock >= Fundude.MHz) {
         self.clock -= Fundude.MHz;

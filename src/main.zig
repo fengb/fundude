@@ -24,7 +24,6 @@ inputs: joypad.Inputs,
 timer: timer.Timer,
 temportal: Temportal,
 
-step_underflow: i32,
 breakpoint: u16,
 
 pub fn init(allocator: *std.mem.Allocator) !*Fundude {
@@ -54,20 +53,14 @@ pub fn reset(self: *Fundude) void {
     self.temportal.save(self);
 
     self.breakpoint = 0xFFFF;
-    self.step_underflow = 0;
 }
 
 // TODO: convert "catchup" to an enum
-pub fn step(self: *Fundude, catchup: bool) i8 {
-    const duration = 4;
-
+pub fn tick(self: *Fundude, catchup: bool) void {
     @call(.{ .modifier = .never_inline }, self.cpu.tick, .{&self.mmu});
-
-    @call(.{ .modifier = .never_inline }, self.video.step, .{ &self.mmu, duration, catchup });
-    @call(.{ .modifier = .never_inline }, self.timer.step, .{ &self.mmu, duration });
-    @call(.{ .modifier = .never_inline }, self.temportal.step, .{ self, duration });
-
-    return duration;
+    @call(.{ .modifier = .never_inline }, self.video.tick, .{ &self.mmu, catchup });
+    @call(.{ .modifier = .never_inline }, self.timer.tick, .{&self.mmu});
+    @call(.{ .modifier = .never_inline }, self.temportal.tick, .{self});
 }
 
 pub const dump = Savestate.dump;

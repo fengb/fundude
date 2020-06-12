@@ -386,7 +386,7 @@ pub const Video = struct {
         }
     }
 
-    pub fn step(self: *Video, mmu: *main.Mmu, cycles: u16, catchup: bool) void {
+    pub fn tick(self: *Video, mmu: *main.Mmu, catchup: bool) void {
         // FIXME: this isn't how DMA works
         if (mmu.dyn.io.video.DMA != 0) {
             const addr = @intCast(u16, mmu.dyn.io.video.DMA) << 8;
@@ -405,7 +405,7 @@ pub const Video = struct {
             return;
         }
 
-        self.clock.offset += cycles;
+        self.clock.offset += 4;
 
         // Manually wrapping this reduces overhead by ~20%
         // compared to using division + modulus

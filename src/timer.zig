@@ -20,18 +20,18 @@ pub const Timer = struct {
         self.timer = 0;
     }
 
-    pub fn step(self: *Timer, mmu: *main.Mmu, cycles: u8) void {
-        // if (@addWithOverflow(u8, self.clock, cycles, &self.clock)) {
+    pub fn tick(self: *Timer, mmu: *main.Mmu) void {
+        // if (@addWithOverflow(u8, self.clock, 4, &self.clock)) {
         //     mmu.dyn.io.timer.DIV +%= 1;
         // }
-        self.clock +%= cycles;
+        self.clock +%= 4;
         mmu.dyn.io.timer.DIV = @truncate(u8, self.clock >> 8);
 
         if (!mmu.dyn.io.timer.TAC.active) {
             return;
         }
 
-        self.timer += cycles;
+        self.timer += 4;
 
         const freq = mmu.dyn.io.timer.TAC.speed.frequency();
         if (self.timer >= freq) {

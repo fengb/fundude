@@ -102,9 +102,13 @@ export fn fd_reset(fd: *Fundude) void {
 }
 
 export fn fd_step(fd: *Fundude) i8 {
-    // Reset tracking -- single step will always accrue negatives
-    fd.step_underflow = 0;
-    return fd.step(false);
+    fd.tick(false);
+    var duration: i8 = 4;
+    while (fd.cpu.remaining > 0) {
+        fd.tick(false);
+        duration += 4;
+    }
+    return duration;
 }
 
 export fn fd_step_ms(fd: *Fundude, ms: f64) i32 {
@@ -114,20 +118,19 @@ export fn fd_step_ms(fd: *Fundude, ms: f64) i32 {
 }
 
 export fn fd_step_cycles(fd: *Fundude, cycles: i32) i32 {
-    const target_cycles: i32 = fd.step_underflow + cycles;
+    const target_cycles: i32 = cycles;
     var track = target_cycles;
 
     while (track >= 0) {
         const catchup = track > 140_000 and !is_benchmarking;
-        track -= fd.step(catchup);
+        fd.tick(catchup);
+        track -= 4;
 
         if (fd.breakpoint == fd.cpu.reg._16.get(.PC)) {
-            fd.step_underflow = 0;
             return target_cycles - track;
         }
     }
 
-    fd.step_underflow = track;
     return target_cycles - track;
 }
 
