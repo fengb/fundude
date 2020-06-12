@@ -49,7 +49,10 @@ pub fn reset(self: *Fundude) void {
     self.cpu.reset();
     self.inputs.reset();
     self.timer.reset();
+
     self.temportal.reset();
+    self.temportal.save(self);
+
     self.breakpoint = 0xFFFF;
     self.step_underflow = 0;
 }

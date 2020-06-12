@@ -19,19 +19,28 @@ pub fn step(self: *Temportal, fd: *Fundude, cycles: u8) void {
 
     if (self.clock >= Fundude.MHz) {
         self.clock -= Fundude.MHz;
-        self.states[self.top].dumpFrom(fd.*);
-        self.top +%= 1;
-        if (self.top == self.bottom) {
-            self.bottom +%= 1;
-        }
+
+        self.save(fd);
+    }
+}
+
+pub fn save(self: *Temportal, fd: *Fundude) void {
+    self.states[self.top].dumpFrom(fd.*);
+    self.top +%= 1;
+    if (self.top == self.bottom) {
+        self.bottom +%= 1;
     }
 }
 
 pub fn rewind(self: *Temportal, fd: *Fundude) void {
     if (self.bottom == self.top) return;
 
-    self.top -%= 1;
     self.clock = 0;
+    self.top -%= 1;
 
     self.states[self.top].restoreInto(fd) catch unreachable;
+
+    if (self.top == self.bottom) {
+        self.top +%= 1;
+    }
 }
