@@ -35,12 +35,17 @@ pub fn save(self: *Temportal, fd: *Fundude) void {
 pub fn rewind(self: *Temportal, fd: *Fundude) void {
     if (self.bottom == self.top) return;
 
+    // Rewind semantics are similar to CD player:
+    //     If currently elapsed < 0.5s, go to previous track
+    //     Otherwise go to beginning of current track
+    if (self.clock < Fundude.MHz / 2) {
+        self.top -%= 1;
+    }
     self.clock = 0;
-    self.top -%= 1;
 
-    self.states[self.top].restoreInto(fd) catch unreachable;
-
+    // Off by 1 errors galore
     if (self.top == self.bottom) {
         self.top +%= 1;
     }
+    self.states[self.top -% 1].restoreInto(fd) catch unreachable;
 }
