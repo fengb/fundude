@@ -77,5 +77,5 @@ pub const savestate_size = Savestate.size;
 
 test "" {
     _ = Fundude;
-    _ = savestate;
+    _ = Savestate;
 }
