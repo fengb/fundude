@@ -51,6 +51,7 @@ export function Left() {
     <div className={CSS.base}>
       <div className={CSS.controls}>
         <div>
+          <button onClick={() => fd.rewind()}>&#9665;</button>
           <button onClick={run}>&#9658;</button>
           <button onClick={pause}>&#10073;&#10073;</button>
         </div>
