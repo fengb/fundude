@@ -256,8 +256,8 @@ pub const Video = struct {
             dirty: bool,
             prev_oam: [40]SpriteAttr,
 
-            fn oamLessThan(lhs: SpriteAttr, rhs: SpriteAttr) bool {
-                return lhs.x_pos > rhs.x_pos;
+            fn oamLessThan(context: void, lhs: SpriteAttr, rhs: SpriteAttr) bool {
+                return lhs.x_pos < rhs.x_pos;
             }
 
             fn run(self: *@This(), mmu: main.Mmu, patternsData: []CachedPattern) void {
@@ -285,7 +285,7 @@ pub const Video = struct {
                 std.mem.copy(SpriteAttr, &self.prev_oam, &mmu.dyn.oam);
 
                 var sorted = mmu.dyn.oam;
-                std.sort.insertionSort(SpriteAttr, &sorted, oamLessThan);
+                std.sort.insertionSort(SpriteAttr, &sorted, {}, oamLessThan);
                 // Lower == higher priority, so we need to iterate backwards for painters algorithm
                 // TODO: ignore sprites > 10
                 std.mem.reverse(SpriteAttr, &sorted);

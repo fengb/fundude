@@ -138,7 +138,7 @@ export fn fd_rewind(fd: *Fundude) void {
 export fn fd_dump(fd: *Fundude) U8Chunk.Abi {
     const mem = allocator.alloc(u8, Fundude.savestate_size) catch return U8Chunk.empty();
     var stream = std.io.fixedBufferStream(mem);
-    fd.dump(stream.outStream()) catch {
+    fd.dump(stream.writer()) catch {
         allocator.free(mem);
         return U8Chunk.empty();
     };
@@ -147,10 +147,10 @@ export fn fd_dump(fd: *Fundude) U8Chunk.Abi {
 
 export fn fd_restore(fd: *Fundude, bytes: U8Chunk.Abi) u8 {
     var stream = std.io.fixedBufferStream(U8Chunk.toSlice(bytes));
-    fd.validateSavestate(stream.inStream()) catch return 1;
+    fd.validateSavestate(stream.reader()) catch return 1;
 
     stream.reset();
-    fd.restore(stream.inStream()) catch unreachable;
+    fd.restore(stream.reader()) catch unreachable;
     return 0;
 }
 

@@ -2,7 +2,7 @@ const std = @import("std");
 const fundude = @import("fundude");
 
 pub fn main() !void {
-    const stdout = std.io.getStdOut().outStream();
+    const stdout = std.io.getStdOut().writer();
     try stdout.print("<html>\n", .{});
     try stdout.print("<style>td {{ white-space: nowrap; font-family: monospace }}</style>\n", .{});
     try stdout.print("<html>\n<body>\n<table>\n", .{});

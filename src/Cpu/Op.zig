@@ -519,7 +519,7 @@ test "decode sanity" {
 
 pub fn disassemble(op: Op, buffer: []u8) ![]u8 {
     var stream = std.io.fixedBufferStream(buffer);
-    const os = stream.outStream();
+    const os = stream.writer();
 
     if (@call(.{ .modifier = .never_inline }, disassembleSpecial, .{op})) |special| {
         std.mem.copy(u8, buffer[0..16], special);
@@ -554,38 +554,38 @@ fn disassembleSpecial(op: Op) ?[]const u8 {
     };
 }
 
-fn disassembleArg(outStream: var, name: *const [2]u8, arg: Op.Arg) !void {
+fn disassembleArg(writer: var, name: *const [2]u8, arg: Op.Arg) !void {
     if (std.mem.eql(u8, "__", name)) return;
 
-    _ = try outStream.write(" ");
+    _ = try writer.write(" ");
 
     if (std.ascii.isUpper(name[0])) {
-        _ = try outStream.write("(");
+        _ = try writer.write("(");
     }
     const swh = util.Swhash(4);
     switch (swh.match(name)) {
-        swh.case("zc") => _ = try outStream.write(@tagName(arg.zc)),
-        swh.case("bt") => try printHexes(outStream, 1, arg.bt),
-        swh.case("ib"), swh.case("IB") => try printHexes(outStream, 2, arg.ib),
-        swh.case("iw"), swh.case("IW") => try printHexes(outStream, 4, arg.iw),
-        swh.case("rb"), swh.case("RB") => _ = try outStream.write(@tagName(arg.rb)),
-        swh.case("rw"), swh.case("RW") => _ = try outStream.write(@tagName(arg.rw)),
+        swh.case("zc") => _ = try writer.write(@tagName(arg.zc)),
+        swh.case("bt") => try printHexes(writer, 1, arg.bt),
+        swh.case("ib"), swh.case("IB") => try printHexes(writer, 2, arg.ib),
+        swh.case("iw"), swh.case("IW") => try printHexes(writer, 4, arg.iw),
+        swh.case("rb"), swh.case("RB") => _ = try writer.write(@tagName(arg.rb)),
+        swh.case("rw"), swh.case("RW") => _ = try writer.write(@tagName(arg.rw)),
         else => unreachable,
     }
 
     if (std.ascii.isUpper(name[0])) {
-        _ = try outStream.write(")");
+        _ = try writer.write(")");
     }
 }
 
-fn printHexes(outStream: var, length: u3, val: u16) !void {
+fn printHexes(writer: var, length: u3, val: u16) !void {
     @setCold(true);
-    _ = try outStream.write("$");
+    _ = try writer.write("$");
     var i: u4 = length;
     while (i > 0) {
         i -= 1;
         const digit_num: u8 = @truncate(u4, val >> (4 * i));
-        _ = try outStream.write(&[1]u8{
+        _ = try writer.write(&[1]u8{
             if (digit_num < 10) '0' + digit_num else 'A' + digit_num - 10,
         });
     }

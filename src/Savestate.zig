@@ -8,12 +8,12 @@ data: [size]u8,
 
 pub fn dumpFrom(self: *Savestate, fd: Fundude) void {
     var stream = std.io.fixedBufferStream(&self.data);
-    dump(fd, stream.outStream()) catch unreachable;
+    dump(fd, stream.writer()) catch unreachable;
 }
 
 pub fn restoreInto(self: Savestate, fd: *Fundude) !void {
     var stream = std.io.fixedBufferStream(&self.data);
-    try restore(fd, stream.inStream());
+    try restore(fd, stream.reader());
 }
 
 fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
@@ -28,46 +28,46 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
             break :blk result;
         };
 
-        fn dump(self: T, out_stream: var) !void {
+        fn dump(self: T, writer: var) !void {
             inline for (field_names) |field_name| {
                 const field_ptr = &@field(self, field_name);
                 const FieldType = @TypeOf(field_ptr.*);
-                try out_stream.writeIntNative(u32, @sizeOf(FieldType));
-                try out_stream.writeAll(std.mem.asBytes(field_ptr));
+                try writer.writeIntNative(u32, @sizeOf(FieldType));
+                try writer.writeAll(std.mem.asBytes(field_ptr));
             }
         }
 
-        fn validate(in_stream: var) !void {
+        fn validate(reader: var) !void {
             var fake: T = undefined;
             inline for (field_names) |field_name| {
                 const FieldType = @TypeOf(@field(fake, field_name));
                 const wire_size = @sizeOf(FieldType);
-                if (wire_size != try in_stream.readIntNative(u32)) {
+                if (wire_size != try reader.readIntNative(u32)) {
                     return error.SizeMismatch;
                 }
 
-                try in_stream.skipBytes(wire_size);
+                try reader.skipBytes(wire_size);
             }
         }
 
-        fn restore(self: *T, in_stream: var) !void {
+        fn restore(self: *T, reader: var) !void {
             inline for (field_names) |field_name| {
                 const FieldType = @TypeOf(@field(self, field_name));
                 const wire_size = @sizeOf(FieldType);
-                if (wire_size != try in_stream.readIntNative(u32)) {
+                if (wire_size != try reader.readIntNative(u32)) {
                     return error.SizeMismatch;
                 }
 
                 switch (@typeInfo(FieldType)) {
-                    .Bool => @field(self, field_name) = 0 != try in_stream.readByte(),
+                    .Bool => @field(self, field_name) = 0 != try reader.readByte(),
                     .Int => |int_info| {
                         const WireType = std.meta.Int(false, 8 * wire_size);
-                        const raw = try in_stream.readIntNative(WireType);
+                        const raw = try reader.readIntNative(WireType);
                         @field(self, field_name) = @intCast(FieldType, raw);
                     },
                     else => {
                         const result_location = &@field(self, field_name);
-                        try in_stream.readNoEof(std.mem.asBytes(result_location));
+                        try reader.readNoEof(std.mem.asBytes(result_location));
                     },
                 }
             }
@@ -87,7 +87,7 @@ test "dump" {
     var buf: [0x1000]u8 = undefined;
     var stream = std.io.fixedBufferStream(&buf);
 
-    try Foo.S.dump(foo, stream.outStream());
+    try Foo.S.dump(foo, stream.writer());
 
     // Size (bar = u8)
     std.testing.expectEqual(@as(u8, 1), buf[0]);
@@ -115,7 +115,7 @@ test "restore" {
     var stream = std.io.fixedBufferStream(&buf);
     var foo: Foo = undefined;
 
-    try Foo.S.restore(&foo, stream.inStream());
+    try Foo.S.restore(&foo, stream.reader());
     std.testing.expectEqual(@as(u8, 0x12), foo.bar);
     std.testing.expectEqual(@as(u16, 0x3456), foo.baz);
 }
@@ -144,45 +144,45 @@ const version = 0x00;
 const magic_number = [_]u8{ 0xDC, version, 0x46, 0x44, 0x0D, 0x0A, 0x1A, 0x0A };
 const cart_meta_len = 0x18;
 
-pub fn dump(fd: Fundude, out_stream: var) !void {
-    try out_stream.writeAll(&magic_number);
-    try out_stream.writeAll(fd.mmu.cart[0x134..][0..cart_meta_len]);
+pub fn dump(fd: Fundude, writer: var) !void {
+    try writer.writeAll(&magic_number);
+    try writer.writeAll(fd.mmu.cart[0x134..][0..cart_meta_len]);
 
-    try Cpu.dump(fd.cpu, out_stream);
-    try Mmu.dump(fd.mmu, out_stream);
-    try Timer.dump(fd.timer, out_stream);
+    try Cpu.dump(fd.cpu, writer);
+    try Mmu.dump(fd.mmu, writer);
+    try Timer.dump(fd.timer, writer);
 
-    try Video.dump(fd.video, out_stream);
+    try Video.dump(fd.video, writer);
 }
 
-fn validateHeader(fd: *Fundude, in_stream: var) !void {
-    const header = try in_stream.readBytesNoEof(magic_number.len);
+fn validateHeader(fd: *Fundude, reader: var) !void {
+    const header = try reader.readBytesNoEof(magic_number.len);
     if (!std.mem.eql(u8, &header, &magic_number)) {
         return error.HeaderMismatch;
     }
-    const cart_meta = try in_stream.readBytesNoEof(0x18);
+    const cart_meta = try reader.readBytesNoEof(0x18);
     if (!std.mem.eql(u8, &cart_meta, fd.mmu.cart[0x134..][0..cart_meta_len])) {
         return error.CartMismatch;
     }
 }
 
-pub fn validate(fd: *Fundude, in_stream: var) !void {
-    try validateHeader(fd, in_stream);
+pub fn validate(fd: *Fundude, reader: var) !void {
+    try validateHeader(fd, reader);
 
-    try Cpu.validate(in_stream);
-    try Mmu.validate(in_stream);
-    try Timer.validate(in_stream);
+    try Cpu.validate(reader);
+    try Mmu.validate(reader);
+    try Timer.validate(reader);
 
-    try Video.validate(in_stream);
+    try Video.validate(reader);
 }
 
-pub fn restore(fd: *Fundude, in_stream: var) !void {
-    try validateHeader(fd, in_stream);
+pub fn restore(fd: *Fundude, reader: var) !void {
+    try validateHeader(fd, reader);
 
-    try Cpu.restore(&fd.cpu, in_stream);
-    try Mmu.restore(&fd.mmu, in_stream);
-    try Timer.restore(&fd.timer, in_stream);
+    try Cpu.restore(&fd.cpu, reader);
+    try Mmu.restore(&fd.mmu, reader);
+    try Timer.restore(&fd.timer, reader);
 
     fd.video.reset();
-    try Video.restore(&fd.video, in_stream);
+    try Video.restore(&fd.video, reader);
 }
