@@ -183,6 +183,11 @@ export default class FundudeWasm {
     this.changed.dispatch();
   }
 
+  rewind() {
+    WASM.fd_rewind(this.pointer);
+    this.changed.dispatch();
+  }
+
   dump() {
     const dumpChunk = U8Chunk.fromFloat(WASM.fd_dump(this.pointer));
     try {

@@ -131,6 +131,10 @@ export fn fd_step_cycles(fd: *Fundude, cycles: i32) i32 {
     return target_cycles - track;
 }
 
+export fn fd_rewind(fd: *Fundude) void {
+    fd.temportal.rewind(fd);
+}
+
 export fn fd_dump(fd: *Fundude) U8Chunk.Abi {
     const mem = allocator.alloc(u8, Fundude.savestate_size) catch return U8Chunk.empty();
     var stream = std.io.fixedBufferStream(mem);

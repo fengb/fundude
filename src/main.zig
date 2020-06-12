@@ -7,7 +7,8 @@ const joypad = @import("joypad.zig");
 pub const Mmu = @import("Mmu.zig");
 const timer = @import("timer.zig");
 pub const Timer = timer.Timer;
-const savestate = @import("savestate.zig");
+pub const Savestate = @import("Savestate.zig");
+pub const Temportal = @import("Temportal.zig");
 
 pub const MHz = 4194304;
 
@@ -21,10 +22,10 @@ mmu: Mmu,
 
 inputs: joypad.Inputs,
 timer: timer.Timer,
+temportal: Temportal,
 
 step_underflow: i32,
 breakpoint: u16,
-disassembly: [24]u8,
 
 pub fn init(allocator: *std.mem.Allocator) !*Fundude {
     var fd = try allocator.create(Fundude);
@@ -48,25 +49,31 @@ pub fn reset(self: *Fundude) void {
     self.cpu.reset();
     self.inputs.reset();
     self.timer.reset();
+
+    self.temportal.reset();
+    self.temportal.save(self);
+
     self.breakpoint = 0xFFFF;
     self.step_underflow = 0;
 }
 
 // TODO: convert "catchup" to an enum
 pub fn step(self: *Fundude, catchup: bool) i8 {
+    // TODO: make cpu.step advance a consistent duration=4
     const duration = @call(.{ .modifier = .never_inline }, self.cpu.step, .{&self.mmu});
     std.debug.assert(duration > 0);
 
     @call(.{ .modifier = .never_inline }, self.video.step, .{ &self.mmu, duration, catchup });
     @call(.{ .modifier = .never_inline }, self.timer.step, .{ &self.mmu, duration });
+    @call(.{ .modifier = .never_inline }, self.temportal.step, .{ self, duration });
 
     return @intCast(i8, duration);
 }
 
-pub const dump = savestate.dump;
-pub const restore = savestate.restore;
-pub const validateSavestate = savestate.validate;
-pub const savestate_size = savestate.size;
+pub const dump = Savestate.dump;
+pub const restore = Savestate.restore;
+pub const validateSavestate = Savestate.validate;
+pub const savestate_size = Savestate.size;
 
 test "" {
     _ = Fundude;
