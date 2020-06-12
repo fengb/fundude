@@ -3,8 +3,8 @@ const Fundude = @import("main.zig");
 
 const Temportal = @This();
 
-states: [5 * 60]Fundude.Savestate,
-top: usize,
+states: [256]Fundude.Savestate,
+top: u8,
 clock: usize,
 
 pub fn reset(self: *Temportal) void {
@@ -18,12 +18,12 @@ pub fn step(self: *Temportal, fd: *Fundude, cycles: u8) void {
     if (self.clock >= Fundude.MHz) {
         self.clock -= Fundude.MHz;
         self.states[self.top].dumpFrom(fd.*);
-        self.top += 1;
+        self.top +%= 1;
     }
 }
 
 pub fn rewind(self: *Temportal, fd: *Fundude) void {
-    self.top -= 1;
+    self.top -%= 1;
     self.clock = 0;
 
     self.states[self.top].restoreInto(fd) catch unreachable;
