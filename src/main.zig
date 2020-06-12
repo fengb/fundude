@@ -59,15 +59,15 @@ pub fn reset(self: *Fundude) void {
 
 // TODO: convert "catchup" to an enum
 pub fn step(self: *Fundude, catchup: bool) i8 {
-    // TODO: make cpu.step advance a consistent duration=4
-    const duration = @call(.{ .modifier = .never_inline }, self.cpu.step, .{&self.mmu});
-    std.debug.assert(duration > 0);
+    const duration = 4;
+
+    @call(.{ .modifier = .never_inline }, self.cpu.tick, .{&self.mmu});
 
     @call(.{ .modifier = .never_inline }, self.video.step, .{ &self.mmu, duration, catchup });
     @call(.{ .modifier = .never_inline }, self.timer.step, .{ &self.mmu, duration });
     @call(.{ .modifier = .never_inline }, self.temportal.step, .{ self, duration });
 
-    return @intCast(i8, duration);
+    return duration;
 }
 
 pub const dump = Savestate.dump;

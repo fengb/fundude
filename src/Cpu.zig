@@ -8,6 +8,9 @@ const Cpu = @This();
 
 mode: Mode,
 interrupt_master: bool,
+remaining: u8,
+next: Op,
+
 reg: packed union {
     _16: util.EnumArray(Reg16, u16),
     _8: util.EnumArray(Reg8, u8),
@@ -72,19 +75,41 @@ pub fn reset(self: *Cpu) void {
     self.mode = .norm;
     self.interrupt_master = false;
     self.reg._16.set(.PC, 0);
+    self.remaining = 0;
 }
 
-pub fn step(self: *Cpu, mmu: *Fundude.Mmu) u8 {
-    if (self.irqStep(mmu)) |res| {
-        return res;
-    } else if (self.mode == .halt) {
-        return 4;
+// Always be 4 cycles
+pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
+    std.debug.assert(self.remaining % 4 == 0);
+
+    if (self.remaining == 0) {
+        self.next = self.loadNext(mmu);
+        self.remaining = self.next.durations[0];
+        std.debug.assert(self.remaining % 4 == 0);
+    }
+
+    if (self.remaining == 4) {
+        const actual_duration = self.opExecute(mmu, self.next);
+        self.remaining = actual_duration - self.next.durations[0];
+        self.next = Op._____(.nop_______);
     } else {
-        return self.opStep(mmu);
+        self.remaining -%= 4;
     }
 }
 
-fn irqStep(self: *Cpu, mmu: *Fundude.Mmu) ?u8 {
+pub fn loadNext(self: *Cpu, mmu: *Fundude.Mmu) Op {
+    if (self.irqNext(mmu)) |op| {
+        return op;
+    } else if (self.mode == .halt) {
+        return Op._____(.nop_______);
+    } else {
+        const op = Op.decode(mmu.instrBytes(self.reg._16.get(.PC)));
+        self.reg._16.set(.PC, self.reg._16.get(.PC) +% op.length);
+        return op;
+    }
+}
+
+fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?Op {
     if (!self.interrupt_master) return null;
 
     const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
@@ -120,14 +145,7 @@ fn irqStep(self: *Cpu, mmu: *Fundude.Mmu) ?u8 {
     self.mode = .norm;
     self.interrupt_master = false;
 
-    const op = Op.iw___(.call_IW___, addr);
-    return @bitCast(u8, Op.impl.call_IW___(self, mmu, op));
-}
-
-pub fn opStep(cpu: *Cpu, mmu: *Fundude.Mmu) u8 {
-    const op = @call(.{ .modifier = .always_inline }, Op.decode, .{mmu.instrBytes(cpu.reg._16.get(.PC))});
-    cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% op.length);
-    return opExecute(cpu, mmu, op);
+    return Op.iw___(.call_IW___, addr);
 }
 
 pub fn opExecute(cpu: *Cpu, mmu: *Fundude.Mmu, op: Op) u8 {
