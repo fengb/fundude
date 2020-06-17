@@ -3,7 +3,7 @@ const Fundude = @import("../main.zig");
 const Op = @import("Op.zig");
 
 test "DAA add" {
-    const DAA = Op.decode(.{ 0x27, 0, 0 });
+    const DAA = [3]u8{ 0x27, 0, 0 };
     const OP_ADD_A = 0xC6;
 
     var cpu: Fundude.Cpu = undefined;
@@ -12,7 +12,7 @@ test "DAA add" {
     {
         cpu.reg._8.set(.A, 0x0);
 
-        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_ADD_A, 0x5, 0 }));
+        _ = cpu.opExecute(&mmu, .{ OP_ADD_A, 0x5, 0 });
         std.testing.expectEqual(@as(u8, 0x5), cpu.reg._8.get(.A));
 
         _ = cpu.opExecute(&mmu, DAA);
@@ -20,7 +20,7 @@ test "DAA add" {
     }
 
     {
-        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_ADD_A, 0x9, 0 }));
+        _ = cpu.opExecute(&mmu, .{ OP_ADD_A, 0x9, 0 });
         std.testing.expectEqual(@as(u8, 0xE), cpu.reg._8.get(.A));
 
         _ = cpu.opExecute(&mmu, DAA);
@@ -29,7 +29,7 @@ test "DAA add" {
     }
 
     {
-        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_ADD_A, 0x91, 0 }));
+        _ = cpu.opExecute(&mmu, .{ OP_ADD_A, 0x91, 0 });
         std.testing.expectEqual(@as(u8, 0xA5), cpu.reg._8.get(.A));
         std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
 
@@ -40,7 +40,7 @@ test "DAA add" {
 }
 
 test "DAA sub" {
-    const DAA = Op.decode(.{ 0x27, 0, 0 });
+    const DAA = [3]u8{ 0x27, 0, 0 };
     const OP_SUB_A = 0xD6;
 
     var cpu: Fundude.Cpu = undefined;
@@ -49,7 +49,7 @@ test "DAA sub" {
     {
         cpu.reg._8.set(.A, 0x45);
 
-        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_SUB_A, 0x2, 0 }));
+        _ = cpu.opExecute(&mmu, .{ OP_SUB_A, 0x2, 0 });
         std.testing.expectEqual(@as(u8, 0x43), cpu.reg._8.get(.A));
 
         _ = cpu.opExecute(&mmu, DAA);
@@ -57,7 +57,7 @@ test "DAA sub" {
     }
 
     {
-        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_SUB_A, 0x5, 0 }));
+        _ = cpu.opExecute(&mmu, .{ OP_SUB_A, 0x5, 0 });
         std.testing.expectEqual(@as(u8, 0x3E), cpu.reg._8.get(.A));
 
         _ = cpu.opExecute(&mmu, DAA);
@@ -66,7 +66,7 @@ test "DAA sub" {
     }
 
     {
-        _ = cpu.opExecute(&mmu, Op.decode(.{ OP_SUB_A, 0x91, 0 }));
+        _ = cpu.opExecute(&mmu, .{ OP_SUB_A, 0x91, 0 });
         std.testing.expectEqual(@as(u8, 0xA7), cpu.reg._8.get(.A));
         std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
 
@@ -85,7 +85,7 @@ fn testDaa(
     var cpu: Fundude.Cpu = undefined;
     var mmu: Fundude.Mmu = undefined;
 
-    const DAA = Op.decode(.{ 0x27, 0, 0 });
+    const DAA = [3]u8{ 0x27, 0, 0 };
 
     cpu.reg._8.set(.A, before_a);
     cpu.reg.flags = before_flags;

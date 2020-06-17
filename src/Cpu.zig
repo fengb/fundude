@@ -93,8 +93,7 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
     }
 
     if (self.remaining == 4) {
-        const op = @call(.{ .modifier = .always_inline }, Op.decode, .{self.next});
-        const actual_duration = self.opExecute(mmu, op);
+        const actual_duration = @call(.{ .modifier = .never_inline }, self.opExecute, .{ mmu, self.next });
         self.remaining = if (actual_duration > self.duration) actual_duration - self.duration else 0;
         self.next = .{ 0, 0, 0 };
     } else {
@@ -163,7 +162,9 @@ fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
     return [3]u8{ 0xCD, addr, 0 };
 }
 
-pub fn opExecute(cpu: *Cpu, mmu: *Fundude.Mmu, op: Op) u8 {
+pub fn opExecute(cpu: *Cpu, mmu: *Fundude.Mmu, bytes: [3]u8) u8 {
+    const op = @call(.{ .modifier = .always_inline }, Op.decode, .{bytes});
+
     inline for (std.meta.fields(Op.Id)) |field| {
         if (field.value == @enumToInt(op.id)) {
             const func = @field(Op.impl, field.name);
@@ -184,15 +185,13 @@ test "opExecute smoke" {
 
     var i: usize = 0;
     while (i < 256) : (i += 1) {
-        const op = Op.decode(.{ @intCast(u8, i), 0, 0 });
-        _ = fd.cpu.opExecute(&fd.mmu, op);
+        _ = fd.cpu.opExecute(&fd.mmu, .{ @intCast(u8, i), 0, 0 });
     }
 
     // CB instructions
     i = 0;
     while (i < 256) : (i += 1) {
-        const op = Op.decode(.{ 0xCB, @intCast(u8, i), 0 });
-        _ = fd.cpu.opExecute(&fd.mmu, op);
+        _ = fd.cpu.opExecute(&fd.mmu, .{ 0xCB, @intCast(u8, i), 0 });
     }
 }
 
