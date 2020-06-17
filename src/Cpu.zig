@@ -161,6 +161,7 @@ fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
     self.interrupt_master = false;
 
     // return Op.iw___(.call_IW___, addr);
+    // TODO: does this really take the same duration as CALL?
     return [3]u8{ 0xCD, addr, 0 };
 }
 
