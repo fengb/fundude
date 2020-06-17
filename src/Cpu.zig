@@ -87,7 +87,7 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
 
     if (self.remaining == 0) {
         self.next = self.loadNext(mmu);
-        self.duration = estimate_duration(self.next);
+        self.duration = meta_ops[self.next[0]].durations[0];
         self.remaining = self.duration;
         std.debug.assert(self.remaining % 4 == 0);
     }
@@ -102,15 +102,14 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
     }
 }
 
-fn estimate_duration(bytes: [3]u8) u8 {
-    const op = @call(.{ .modifier = .always_inline }, Op.decode, .{bytes});
-    return op.durations[0];
-}
-
-fn find_length(bytes: [3]u8) u8 {
-    const op = @call(.{ .modifier = .always_inline }, Op.decode, .{bytes});
-    return op.length;
-}
+const meta_ops = blk: {
+    @setEvalBranchQuota(10000);
+    var result: [256]Op = undefined;
+    for (result) |*op, i| {
+        op.* = Op.decode(.{ i, 0, 0 });
+    }
+    return result;
+};
 
 pub fn loadNext(self: *Cpu, mmu: *Fundude.Mmu) [3]u8 {
     if (self.irqNext(mmu)) |irq| {
@@ -119,7 +118,7 @@ pub fn loadNext(self: *Cpu, mmu: *Fundude.Mmu) [3]u8 {
         return .{ 0, 0, 0 };
     } else {
         const bytes = mmu.instrBytes(self.reg._16.get(.PC));
-        self.reg._16.set(.PC, self.reg._16.get(.PC) +% find_length(bytes));
+        self.reg._16.set(.PC, self.reg._16.get(.PC) +% meta_ops[bytes[0]].length);
         return bytes;
     }
 }
