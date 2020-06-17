@@ -87,13 +87,14 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
 
     if (self.remaining == 0) {
         self.next = self.loadNext(mmu);
-        self.duration = meta_ops[self.next[0]].durations[0];
+        self.duration = meta_ops[self.next[0]].duration;
         self.remaining = self.duration;
         std.debug.assert(self.remaining % 4 == 0);
     }
 
     if (self.remaining == 4) {
-        const actual_duration = @call(.{ .modifier = .never_inline }, self.opExecute, .{ mmu, self.next });
+        // const actual_duration = @call(.{ .modifier = .never_inline }, self.opExecute, .{ mmu, self.next });
+        const actual_duration = @call(.{ .modifier = .always_inline }, self.opExecute, .{ mmu, self.next });
         self.remaining = if (actual_duration > self.duration) actual_duration - self.duration else 0;
         self.next = .{ 0, 0, 0 };
     } else {
@@ -103,9 +104,10 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
 
 const meta_ops = blk: {
     @setEvalBranchQuota(10000);
-    var result: [256]Op = undefined;
-    for (result) |*op, i| {
-        op.* = Op.decode(.{ i, 0, 0 });
+    var result: [256]struct { length: u8, duration: u8 } = undefined;
+    for (result) |*val, i| {
+        const op = Op.decode(.{ i, 0, 0 });
+        val.* = .{ .length = op.length, .duration = op.durations[0] };
     }
     return result;
 };
