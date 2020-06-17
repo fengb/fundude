@@ -8,8 +8,10 @@ const Cpu = @This();
 
 mode: Mode,
 interrupt_master: bool,
+
+duration: u8,
 remaining: u8,
-next: Op,
+next: [3]u8,
 
 reg: packed union {
     _16: util.EnumArray(Reg16, u16),
@@ -75,6 +77,7 @@ pub fn reset(self: *Cpu) void {
     self.mode = .norm;
     self.interrupt_master = false;
     self.reg._16.set(.PC, 0);
+    self.duration = 0;
     self.remaining = 0;
 }
 
@@ -84,36 +87,48 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
 
     if (self.remaining == 0) {
         self.next = self.loadNext(mmu);
-        self.remaining = self.next.durations[0];
+        self.duration = estimate_duration(self.next);
+        self.remaining = self.duration;
         std.debug.assert(self.remaining % 4 == 0);
     }
 
     if (self.remaining == 4) {
-        const actual_duration = self.opExecute(mmu, self.next);
-        self.remaining = actual_duration - self.next.durations[0];
-        self.next = Op._____(.nop_______);
+        const op = @call(.{ .modifier = .always_inline }, Op.decode, .{self.next});
+        const actual_duration = self.opExecute(mmu, op);
+        self.remaining = if (actual_duration > self.duration) actual_duration - self.duration else 0;
+        self.next = .{ 0, 0, 0 };
     } else {
         self.remaining -%= 4;
     }
 }
 
-pub fn loadNext(self: *Cpu, mmu: *Fundude.Mmu) Op {
-    if (self.irqNext(mmu)) |op| {
-        return op;
+fn estimate_duration(bytes: [3]u8) u8 {
+    const op = @call(.{ .modifier = .always_inline }, Op.decode, .{bytes});
+    return op.durations[0];
+}
+
+fn find_length(bytes: [3]u8) u8 {
+    const op = @call(.{ .modifier = .always_inline }, Op.decode, .{bytes});
+    return op.length;
+}
+
+pub fn loadNext(self: *Cpu, mmu: *Fundude.Mmu) [3]u8 {
+    if (self.irqNext(mmu)) |irq| {
+        return irq;
     } else if (self.mode == .halt) {
-        return Op._____(.nop_______);
+        return .{ 0, 0, 0 };
     } else {
-        const op = Op.decode(mmu.instrBytes(self.reg._16.get(.PC)));
-        self.reg._16.set(.PC, self.reg._16.get(.PC) +% op.length);
-        return op;
+        const bytes = mmu.instrBytes(self.reg._16.get(.PC));
+        self.reg._16.set(.PC, self.reg._16.get(.PC) +% find_length(bytes));
+        return bytes;
     }
 }
 
-fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?Op {
+fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
     if (!self.interrupt_master) return null;
 
     const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
-    const addr: u16 = blk: {
+    const addr: u8 = blk: {
         // Naive implementation:
         // if (cmp.vblank) {
         //     mmu.dyn.io.IF.vblank = false;
@@ -136,7 +151,7 @@ fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?Op {
         if (cmp.active()) |active| {
             std.debug.assert(cmp.get(active));
             mmu.dyn.io.IF.disable(active);
-            break :blk 0x40 + @as(u16, 8) * @enumToInt(active);
+            break :blk 0x40 + @as(u8, 8) * @enumToInt(active);
         } else {
             return null;
         }
@@ -145,7 +160,8 @@ fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?Op {
     self.mode = .norm;
     self.interrupt_master = false;
 
-    return Op.iw___(.call_IW___, addr);
+    // return Op.iw___(.call_IW___, addr);
+    return [3]u8{ 0xCD, addr, 0 };
 }
 
 pub fn opExecute(cpu: *Cpu, mmu: *Fundude.Mmu, op: Op) u8 {
