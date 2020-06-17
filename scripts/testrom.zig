@@ -22,11 +22,13 @@ pub fn main() !u8 {
             return 1;
         }
 
-        var fd: Fundude = undefined;
+        const fd = try std.heap.page_allocator.create(Fundude);
+        defer std.heap.page_allocator.destroy(fd);
+
         try fd.load(&cart);
         fd.mmu.loadBootloader(Fundude.Mmu.Bootloaders.mini);
         while (fd.cpu.reg._16.get(.PC) < 0x7FFD) {
-            _ = fd.step();
+            _ = fd.step(false);
         }
 
         const stack_top = fd.cpu.reg._16.get(.SP);

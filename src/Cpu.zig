@@ -146,7 +146,9 @@ pub fn opExecute(cpu: *Cpu, mmu: *Fundude.Mmu, op: Op) u8 {
 }
 
 test "opExecute smoke" {
-    var fd: Fundude = undefined;
+    const fd = try std.heap.page_allocator.create(Fundude);
+    defer std.heap.page_allocator.destroy(fd);
+
     fd.mmu.cart_meta.mbc = .None;
 
     var i: usize = 0;
