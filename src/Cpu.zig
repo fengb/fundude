@@ -86,15 +86,15 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
     std.debug.assert(self.remaining % 4 == 0);
 
     if (self.remaining == 0) {
-        self.next = self.loadNext(mmu);
+        self.next = self.loadNext(mmu) orelse return;
         self.duration = meta_ops[self.next[0]].duration;
         self.remaining = self.duration;
         std.debug.assert(self.remaining % 4 == 0);
     }
 
     if (self.remaining == 4) {
-        // const actual_duration = @call(.{ .modifier = .never_inline }, self.opExecute, .{ mmu, self.next });
-        const actual_duration = @call(.{ .modifier = .always_inline }, self.opExecute, .{ mmu, self.next });
+        const actual_duration = @call(.{ .modifier = .never_inline }, self.opExecute, .{ mmu, self.next });
+        // const actual_duration = @call(.{ .modifier = .always_inline }, self.opExecute, .{ mmu, self.next });
         self.remaining = if (actual_duration > self.duration) actual_duration - self.duration else 0;
         self.next = .{ 0, 0, 0 };
     } else {
@@ -112,11 +112,11 @@ const meta_ops = blk: {
     return result;
 };
 
-pub fn loadNext(self: *Cpu, mmu: *Fundude.Mmu) [3]u8 {
+pub fn loadNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
     if (self.irqNext(mmu)) |irq| {
         return irq;
     } else if (self.mode == .halt) {
-        return .{ 0, 0, 0 };
+        return null;
     } else {
         const bytes = mmu.instrBytes(self.reg._16.get(.PC));
         self.reg._16.set(.PC, self.reg._16.get(.PC) +% meta_ops[bytes[0]].length);
