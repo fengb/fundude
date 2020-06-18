@@ -86,10 +86,23 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
     std.debug.assert(self.remaining % 4 == 0);
 
     if (self.remaining == 0) {
-        self.next = self.loadNext(mmu) orelse return;
-        self.duration = meta_ops[self.next[0]].duration;
-        self.remaining = self.duration;
-        std.debug.assert(self.remaining % 4 == 0);
+        if (self.irqNext(mmu)) |irqBytes| {
+            self.next = irqBytes;
+
+            // TODO: does this really take the same duration as CALL?
+            const meta = meta_ops[self.next[0]];
+            self.duration = meta.duration;
+            self.remaining = meta.duration;
+        } else if (self.mode == .halt) {
+            return;
+        } else {
+            self.next = mmu.instrBytes(self.reg._16.get(.PC));
+
+            const meta = meta_ops[self.next[0]];
+            self.duration = meta.duration;
+            self.remaining = meta.duration;
+            self.reg._16.set(.PC, self.reg._16.get(.PC) +% meta.length);
+        }
     }
 
     if (self.remaining == 4) {
@@ -111,18 +124,6 @@ const meta_ops = blk: {
     }
     return result;
 };
-
-pub fn loadNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
-    if (self.irqNext(mmu)) |irq| {
-        return irq;
-    } else if (self.mode == .halt) {
-        return null;
-    } else {
-        const bytes = mmu.instrBytes(self.reg._16.get(.PC));
-        self.reg._16.set(.PC, self.reg._16.get(.PC) +% meta_ops[bytes[0]].length);
-        return bytes;
-    }
-}
 
 fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
     if (!self.interrupt_master) return null;
@@ -161,7 +162,6 @@ fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
     self.interrupt_master = false;
 
     // return Op.iw___(.call_IW___, addr);
-    // TODO: does this really take the same duration as CALL?
     return [3]u8{ 0xCD, addr, 0 };
 }
 
