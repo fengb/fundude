@@ -28,10 +28,11 @@ dyn: extern struct {
 },
 
 cart: []const u8,
-bank: u8,
+bank: u9,
 
 cart_meta: struct {
     mbc: Mbc,
+    rumble: bool = false,
     timer: bool = false,
     ram: bool = false,
     battery: bool = false,
@@ -139,6 +140,7 @@ pub const Mbc = enum {
     None,
     Mbc1,
     Mbc3,
+    Mbc5,
 };
 
 pub fn reset(self: *Mmu) void {
@@ -162,6 +164,12 @@ pub fn load(self: *Mmu, cart: []const u8) CartHeaderError!void {
         0x11 => .{ .mbc = .Mbc3 },
         0x12 => .{ .mbc = .Mbc3, .ram = true },
         0x13 => .{ .mbc = .Mbc3, .ram = true, .battery = true },
+        0x19 => .{ .mbc = .Mbc5 },
+        0x1A => .{ .mbc = .Mbc5, .ram = true },
+        0x1B => .{ .mbc = .Mbc5, .ram = true, .battery = true },
+        0x1C => .{ .mbc = .Mbc5, .rumble = true },
+        0x1D => .{ .mbc = .Mbc5, .rumble = true, .ram = true },
+        0x1E => .{ .mbc = .Mbc5, .rumble = true, .ram = true, .battery = true },
         else => return error.CartTypeError,
     };
 
@@ -239,8 +247,7 @@ fn setRom(self: *Mmu, addr: u15, val: u8) void {
                     if (bank % 0x20 == 0) {
                         bank += 1;
                     }
-                    const total_banks = self.cart.len / BANK_SIZE;
-                    self.selectRomBank(std.math.min(bank, total_banks));
+                    self.selectRomBank(bank);
                 },
                 0x4000...0x5FFF => {}, // RAM bank
                 0x6000...0x7FFF => {}, // ROM/RAM Mode Select
@@ -251,8 +258,24 @@ fn setRom(self: *Mmu, addr: u15, val: u8) void {
                 0x0000...0x1FFF => {}, // RAM/Timer enable
                 0x2000...0x3FFF => {
                     const bank = std.math.max(1, val & 0x7F);
-                    const total_banks = self.cart.len / BANK_SIZE;
-                    self.selectRomBank(std.math.min(bank, total_banks));
+                    self.selectRomBank(bank);
+                },
+                0x4000...0x5FFF => {}, // RAM bank
+                0x6000...0x7FFF => {}, // Latch clock
+            }
+        },
+        .Mbc5 => {
+            switch (addr) {
+                0x0000...0x1FFF => {}, // RAM enable
+                0x2000...0x2FFF => {
+                    const mask = @as(u9, 1) << 8;
+                    const bank = (self.bank & mask) | val;
+                    self.selectRomBank(bank);
+                },
+                0x3000...0x3FFF => {
+                    const mask = @as(u9, 1) << 8;
+                    const bank = (@as(u9, val) << 8) | (self.bank & ~mask);
+                    self.selectRomBank(bank);
                 },
                 0x4000...0x5FFF => {}, // RAM bank
                 0x6000...0x7FFF => {}, // Latch clock
@@ -261,7 +284,9 @@ fn setRom(self: *Mmu, addr: u15, val: u8) void {
     }
 }
 
-fn selectRomBank(self: *Mmu, bank: u8) void {
+fn selectRomBank(self: *Mmu, bank: u9) void {
+    const total_banks = self.cart.len / BANK_SIZE;
+    const target = std.math.min(bank, total_banks);
     if (self.bank == bank) return;
 
     self.bank = bank;
