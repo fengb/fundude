@@ -106,7 +106,7 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
     }
 
     if (self.remaining == 4) {
-        const actual_duration = @call(.{ .modifier = .never_inline }, self.opExecute, .{ mmu, self.next });
+        const actual_duration = @call(Fundude.profiling_call, self.opExecute, .{ mmu, self.next });
         // const actual_duration = @call(.{ .modifier = .always_inline }, self.opExecute, .{ mmu, self.next });
         self.remaining = if (actual_duration > self.duration) actual_duration - self.duration else 0;
         self.next = .{ 0, 0, 0 };

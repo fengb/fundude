@@ -7,7 +7,7 @@ const util = @import("util.zig");
 
 const CYCLES_PER_MS = Fundude.MHz / 1000;
 
-const is_benchmarking = false;
+pub const is_profiling = false;
 
 const allocator = if (builtin.link_libc)
     std.heap.c_allocator
@@ -122,7 +122,7 @@ export fn fd_step_cycles(fd: *Fundude, cycles: i32) i32 {
     var track = target_cycles;
 
     while (track >= 0) {
-        const catchup = track > 140_000 and !is_benchmarking;
+        const catchup = track > 140_000 and !is_profiling;
         fd.tick(catchup);
         track -= 4;
 

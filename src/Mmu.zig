@@ -187,7 +187,7 @@ pub fn get(self: Mmu, addr: u16) u8 {
 
 pub fn set(self: *Mmu, addr: u16, val: u8) void {
     if (addr < BEYOND_CART) {
-        return @call(.{ .modifier = .never_inline }, self.setRom, .{ @intCast(u15, addr), val });
+        return @call(Fundude.profiling_call, self.setRom, .{ @intCast(u15, addr), val });
     }
 
     const bytes = std.mem.asBytes(&self.dyn);
