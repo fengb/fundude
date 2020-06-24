@@ -1,4 +1,5 @@
 const std = @import("std");
+const root = @import("root");
 
 pub const Cpu = @import("Cpu.zig");
 const video = @import("video.zig");
@@ -11,6 +12,9 @@ pub const Savestate = @import("Savestate.zig");
 pub const Temportal = @import("Temportal.zig");
 
 pub const MHz = 4194304;
+pub const profiling_call = std.builtin.CallOptions{
+    .modifier = if (@hasDecl(root, "is_profiling") and root.is_profiling) .never_inline else .auto,
+};
 
 const Fundude = @This();
 
@@ -24,7 +28,6 @@ inputs: joypad.Inputs,
 timer: timer.Timer,
 temportal: Temportal,
 
-step_underflow: i32,
 breakpoint: u16,
 
 pub fn init(allocator: *std.mem.Allocator) !*Fundude {
@@ -54,20 +57,14 @@ pub fn reset(self: *Fundude) void {
     self.temportal.save(self);
 
     self.breakpoint = 0xFFFF;
-    self.step_underflow = 0;
 }
 
 // TODO: convert "catchup" to an enum
-pub fn step(self: *Fundude, catchup: bool) i8 {
-    // TODO: make cpu.step advance a consistent duration=4
-    const duration = @call(.{ .modifier = .never_inline }, self.cpu.step, .{&self.mmu});
-    std.debug.assert(duration > 0);
-
-    @call(.{ .modifier = .never_inline }, self.video.step, .{ &self.mmu, duration, catchup });
-    @call(.{ .modifier = .never_inline }, self.timer.step, .{ &self.mmu, duration });
-    @call(.{ .modifier = .never_inline }, self.temportal.step, .{ self, duration });
-
-    return @intCast(i8, duration);
+pub fn tick(self: *Fundude, catchup: bool) void {
+    @call(Fundude.profiling_call, self.cpu.tick, .{&self.mmu});
+    @call(Fundude.profiling_call, self.video.tick, .{ &self.mmu, catchup });
+    @call(Fundude.profiling_call, self.timer.tick, .{&self.mmu});
+    @call(Fundude.profiling_call, self.temportal.tick, .{self});
 }
 
 pub const dump = Savestate.dump;

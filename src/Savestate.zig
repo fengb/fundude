@@ -124,6 +124,9 @@ const Cpu = Serializer(Fundude.Cpu, &[_][]const u8{
     "mode",
     "interrupt_master",
     "reg",
+    "duration",
+    "remaining",
+    "next",
 });
 const Mmu = Serializer(Fundude.Mmu, &[_][]const u8{
     "dyn",

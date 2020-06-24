@@ -8,6 +8,11 @@ const Cpu = @This();
 
 mode: Mode,
 interrupt_master: bool,
+
+duration: u8,
+remaining: u8,
+next: [3]u8,
+
 reg: packed union {
     _16: util.EnumArray(Reg16, u16),
     _8: util.EnumArray(Reg8, u8),
@@ -72,23 +77,59 @@ pub fn reset(self: *Cpu) void {
     self.mode = .norm;
     self.interrupt_master = false;
     self.reg._16.set(.PC, 0);
+    self.duration = 0;
+    self.remaining = 0;
 }
 
-pub fn step(self: *Cpu, mmu: *Fundude.Mmu) u8 {
-    if (self.irqStep(mmu)) |res| {
-        return res;
-    } else if (self.mode == .halt) {
-        return 4;
+// Always be 4 cycles
+pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
+    std.debug.assert(self.remaining % 4 == 0);
+
+    if (self.remaining == 0) {
+        if (self.irqNext(mmu)) |irqBytes| {
+            self.next = irqBytes;
+
+            // TODO: does this really take the same duration as CALL?
+            const meta = meta_ops[self.next[0]];
+            self.duration = meta.duration;
+            self.remaining = meta.duration;
+        } else if (self.mode == .halt) {
+            return;
+        } else {
+            self.next = mmu.instrBytes(self.reg._16.get(.PC));
+
+            const meta = meta_ops[self.next[0]];
+            self.duration = meta.duration;
+            self.remaining = meta.duration;
+            self.reg._16.set(.PC, self.reg._16.get(.PC) +% meta.length);
+        }
+    }
+
+    if (self.remaining == 4) {
+        const actual_duration = @call(Fundude.profiling_call, self.opExecute, .{ mmu, self.next });
+        // const actual_duration = @call(.{ .modifier = .always_inline }, self.opExecute, .{ mmu, self.next });
+        self.remaining = if (actual_duration > self.duration) actual_duration - self.duration else 0;
+        self.next = .{ 0, 0, 0 };
     } else {
-        return self.opStep(mmu);
+        self.remaining -%= 4;
     }
 }
 
-fn irqStep(self: *Cpu, mmu: *Fundude.Mmu) ?u8 {
+const meta_ops = blk: {
+    @setEvalBranchQuota(10000);
+    var result: [256]struct { length: u8, duration: u8 } = undefined;
+    for (result) |*val, i| {
+        const op = Op.decode(.{ i, 0, 0 });
+        val.* = .{ .length = op.length, .duration = op.durations[0] };
+    }
+    return result;
+};
+
+fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
     if (!self.interrupt_master) return null;
 
     const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
-    const addr: u16 = blk: {
+    const addr: u8 = blk: {
         // Naive implementation:
         // if (cmp.vblank) {
         //     mmu.dyn.io.IF.vblank = false;
@@ -111,7 +152,7 @@ fn irqStep(self: *Cpu, mmu: *Fundude.Mmu) ?u8 {
         if (cmp.active()) |active| {
             std.debug.assert(cmp.get(active));
             mmu.dyn.io.IF.disable(active);
-            break :blk 0x40 + @as(u16, 8) * @enumToInt(active);
+            break :blk 0x40 + @as(u8, 8) * @enumToInt(active);
         } else {
             return null;
         }
@@ -120,17 +161,13 @@ fn irqStep(self: *Cpu, mmu: *Fundude.Mmu) ?u8 {
     self.mode = .norm;
     self.interrupt_master = false;
 
-    const op = Op.iw___(.call_IW___, addr);
-    return @bitCast(u8, Op.impl.call_IW___(self, mmu, op));
+    // return Op.iw___(.call_IW___, addr);
+    return [3]u8{ 0xCD, addr, 0 };
 }
 
-pub fn opStep(cpu: *Cpu, mmu: *Fundude.Mmu) u8 {
-    const op = @call(.{ .modifier = .always_inline }, Op.decode, .{mmu.instrBytes(cpu.reg._16.get(.PC))});
-    cpu.reg._16.set(.PC, cpu.reg._16.get(.PC) +% op.length);
-    return opExecute(cpu, mmu, op);
-}
+pub fn opExecute(cpu: *Cpu, mmu: *Fundude.Mmu, bytes: [3]u8) u8 {
+    const op = @call(.{ .modifier = .always_inline }, Op.decode, .{bytes});
 
-pub fn opExecute(cpu: *Cpu, mmu: *Fundude.Mmu, op: Op) u8 {
     inline for (std.meta.fields(Op.Id)) |field| {
         if (field.value == @enumToInt(op.id)) {
             const func = @field(Op.impl, field.name);
@@ -153,15 +190,13 @@ test "opExecute smoke" {
 
     var i: usize = 0;
     while (i < 256) : (i += 1) {
-        const op = Op.decode(.{ @intCast(u8, i), 0, 0 });
-        _ = fd.cpu.opExecute(&fd.mmu, op);
+        _ = fd.cpu.opExecute(&fd.mmu, .{ @intCast(u8, i), 0, 0 });
     }
 
     // CB instructions
     i = 0;
     while (i < 256) : (i += 1) {
-        const op = Op.decode(.{ 0xCB, @intCast(u8, i), 0 });
-        _ = fd.cpu.opExecute(&fd.mmu, op);
+        _ = fd.cpu.opExecute(&fd.mmu, .{ 0xCB, @intCast(u8, i), 0 });
     }
 }
 
