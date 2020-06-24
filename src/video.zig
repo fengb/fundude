@@ -1,5 +1,6 @@
 const std = @import("std");
-const base = @import("base.zig");
+
+const Fundude = @import("main.zig");
 const Matrix = @import("util.zig").Matrix;
 const MatrixSlice = @import("util.zig").MatrixSlice;
 const EnumArray = @import("util.zig").EnumArray;
@@ -8,6 +9,7 @@ const SCREEN_WIDTH = 160;
 const SCREEN_HEIGHT = 144;
 const DOTS_PER_LINE = 456;
 const BUFFER_LINES = 10;
+const RENDER_LINES = SCREEN_HEIGHT + BUFFER_LINES;
 const DOTS_PER_FRAME = (SCREEN_HEIGHT + BUFFER_LINES) * DOTS_PER_LINE;
 
 pub const Io = packed struct {
@@ -45,25 +47,53 @@ pub const Io = packed struct {
     WX: u8, // $FF4B
 };
 
-const LcdcMode = enum(u2) {
+const LcdcMode = packed enum(u2) {
     hblank = 0,
     vblank = 1,
     searching = 2,
     transferring = 3,
 };
 
-const Color = enum(u8) {
+const Color = extern enum(u8) {
     _0 = 0,
     _1 = 1,
     _2 = 2,
     _3 = 3,
 };
 
-const Shade = enum(u8) {
+const Shade = extern enum(u8) {
     White = 0,
     Light = 1,
     Dark = 2,
     Black = 3,
+
+    fn asOpaque(self: Shade) Pixel {
+        const value: u5 = switch (self) {
+            .White => 31,
+            .Light => 21,
+            .Dark => 11,
+            .Black => 0,
+        };
+        return .{
+            .r = value,
+            .g = value,
+            .b = value,
+            .opaque = true,
+        };
+    }
+
+    fn asPixel(self: Shade) Pixel {
+        var result = self.asOpaque();
+        result.opaque = self != .White;
+        return result;
+    }
+};
+
+const Pixel = packed struct {
+    r: u5 align(2),
+    g: u5,
+    b: u5,
+    opaque: bool,
 };
 
 const ColorPalette = packed struct {
@@ -72,8 +102,11 @@ const ColorPalette = packed struct {
     fn lookup(self: ColorPalette) EnumArray(Color, Shade) {
         var result: EnumArray(Color, Shade) = undefined;
         result.set(._0, @intToEnum(Shade, self._ >> (0 * 2) & 0b11));
-        result.set(._1, @intToEnum(Shade, self._ >> (1 * 2) & 0b11));
-        result.set(._2, @intToEnum(Shade, self._ >> (2 * 2) & 0b11));
+
+        // I have no idea why these two values are reversed
+        result.set(._1, @intToEnum(Shade, self._ >> (2 * 2) & 0b11));
+        result.set(._2, @intToEnum(Shade, self._ >> (1 * 2) & 0b11));
+
         result.set(._3, @intToEnum(Shade, self._ >> (3 * 2) & 0b11));
         return result;
     }
@@ -96,12 +129,12 @@ pub const SpriteAttr = packed struct {
     },
 };
 
-const SpritePalette = enum(u1) {
+const SpritePalette = packed enum(u1) {
     OBP0 = 0,
     OBP1 = 1,
 };
 
-const TileAddressing = enum(u1) {
+const TileAddressing = packed enum(u1) {
     _8800 = 0,
     _8000 = 1,
 
@@ -110,7 +143,7 @@ const TileAddressing = enum(u1) {
     }
 };
 
-const TileMapAddressing = enum(u1) {
+const TileMapAddressing = packed enum(u1) {
     _9800 = 0,
     _9C00 = 1,
 };
@@ -122,31 +155,31 @@ pub const Vram = packed struct {
         _9800: Matrix(u8, 32, 32), // $9800-9BFF
         _9C00: Matrix(u8, 32, 32), // $9C00-9FFF
 
-        pub fn get(self: *@This(), addressing: TileMapAddressing) MatrixSlice(u8) {
+        pub fn get(self: @This(), addressing: TileMapAddressing) Matrix(u8, 32, 32) {
             return switch (addressing) {
-                ._9800 => self._9800.toSlice(),
-                ._9C00 => self._9C00.toSlice(),
+                ._9800 => self._9800,
+                ._9C00 => self._9C00,
             };
         }
     },
 };
 
 pub const Video = struct {
-    buffer0: Matrix(Shade, SCREEN_WIDTH, SCREEN_HEIGHT),
-    buffer1: Matrix(Shade, SCREEN_WIDTH, SCREEN_HEIGHT),
+    buffers: [2]Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
+    screen_index: u1,
 
-    screen: MatrixSlice(Shade),
-    draw: MatrixSlice(Shade),
-
-    clock: u32,
+    clock: extern struct {
+        line: u32,
+        offset: u32,
+    },
     cache: struct {
         const CachedPattern = Matrix(Color, 8, 8);
 
         const TilesCache = struct {
-            data: Matrix(Shade, 256, 256),
+            data: Matrix(Pixel, 256, 256),
             dirty: bool,
 
-            fn run(self: *@This(), mmu: *base.Mmu, patternsData: []CachedPattern, tile_map_addr: TileMapAddressing) void {
+            fn run(self: *@This(), mmu: Fundude.Mmu, patternsData: []CachedPattern, tile_map_addr: TileMapAddressing) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -169,8 +202,9 @@ pub const Video = struct {
                             var y: usize = 0;
                             while (y < pattern.height) : (y += 1) {
                                 const ybg = y + j * pattern.height;
-                                const pixel = pattern.get(x, y);
-                                self.data.set(xbg, ybg, palette.get(pixel));
+                                const color = pattern.get(x, y);
+                                const shade = palette.get(color);
+                                self.data.set(xbg, ybg, shade.asPixel());
                             }
                         }
                     }
@@ -182,7 +216,16 @@ pub const Video = struct {
             data: [3 * 128]CachedPattern,
             dirty: bool,
 
-            fn run(self: *@This(), mmu: *base.Mmu) void {
+            // TODO: this is pretty brutal
+            pub fn toMatrixSlice(self: *@This()) MatrixSlice(u8) {
+                return .{
+                    .ptr = @ptrCast([*]u8, &self.data),
+                    .width = CachedPattern.width,
+                    .height = CachedPattern.height * self.data.len,
+                };
+            }
+
+            fn run(self: *@This(), mmu: Fundude.Mmu) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
@@ -206,27 +249,44 @@ pub const Video = struct {
         },
         sprites: struct {
             const SpriteMeta = extern struct {
-                opaque: bool = false,
                 in_front: bool = true,
             };
 
-            data: Matrix(Shade, 256 + 2 * 8, 256 + 2 * 16),
+            data: Matrix(Pixel, 256 + 2 * 8, 256 + 2 * 16),
             meta: Matrix(SpriteMeta, 256 + 2 * 8, 256 + 2 * 16),
             dirty: bool,
+            prev_oam: [40]SpriteAttr,
 
-            fn oamLessThan(lhs: SpriteAttr, rhs: SpriteAttr) bool {
-                return lhs.x_pos > rhs.x_pos;
+            fn oamLessThan(context: void, lhs: SpriteAttr, rhs: SpriteAttr) bool {
+                return lhs.x_pos < rhs.x_pos;
             }
 
-            fn run(self: *@This(), mmu: *base.Mmu, patternsData: []CachedPattern) void {
+            fn run(self: *@This(), mmu: Fundude.Mmu, patternsData: []CachedPattern) void {
                 if (!self.dirty) return;
                 self.dirty = false;
 
-                self.data.reset(.White);
-                self.meta.reset(.{});
+                const width = 8;
+                const height: usize = switch (mmu.dyn.io.video.LCDC.obj_size) {
+                    .Small => 8,
+                    .Large => 16,
+                };
+
+                for (self.prev_oam) |prev, i| {
+                    const curr = mmu.dyn.oam[i];
+                    if (@bitCast(u32, prev) == @bitCast(u32, curr)) continue;
+
+                    var y: usize = 0;
+                    while (y < height) : (y += 1) {
+                        const ys = prev.y_pos + y;
+
+                        const slice = self.data.sliceLine(prev.x_pos, ys);
+                        std.mem.set(Pixel, slice[0..width], Shade.White.asPixel());
+                    }
+                }
+                std.mem.copy(SpriteAttr, &self.prev_oam, &mmu.dyn.oam);
 
                 var sorted = mmu.dyn.oam;
-                std.sort.sort(SpriteAttr, &sorted, oamLessThan);
+                std.sort.insertionSort(SpriteAttr, &sorted, {}, oamLessThan);
                 // Lower == higher priority, so we need to iterate backwards for painters algorithm
                 // TODO: ignore sprites > 10
                 std.mem.reverse(SpriteAttr, &sorted);
@@ -238,40 +298,35 @@ pub const Video = struct {
                     .Small => 0xFF,
                     .Large => 0xFE,
                 };
-                const height: usize = switch (mmu.dyn.io.video.LCDC.obj_size) {
-                    .Small => 8,
-                    .Large => 16,
-                };
-
                 for (sorted) |sprite_attr, i| {
                     const palette = switch (sprite_attr.flags.palette) {
                         .OBP0 => obp0,
                         .OBP1 => obp1,
                     };
 
-                    const pattern0 = patternsData[sprite_attr.pattern & mask];
-                    const pattern1 = patternsData[sprite_attr.pattern | ~mask];
+                    var pattern = patternsData[sprite_attr.pattern & mask].toSlice();
+                    // Large sprites are right next to each other in memory
+                    // So we can simply expand this height
+                    pattern.height = height;
 
                     var x: usize = 0;
-                    while (x < pattern0.width) : (x += 1) {
+                    while (x < pattern.width) : (x += 1) {
                         const xs = sprite_attr.x_pos +
-                            if (sprite_attr.flags.x_flip) pattern0.width - x - 1 else x;
+                            if (sprite_attr.flags.x_flip) pattern.width - x - 1 else x;
 
                         var y: usize = 0;
-                        while (y < height) : (y += 1) {
+                        while (y < pattern.height) : (y += 1) {
                             const ys = sprite_attr.y_pos +
-                                if (sprite_attr.flags.y_flip) height - y - 1 else y;
+                                if (sprite_attr.flags.y_flip) pattern.height - y - 1 else y;
 
-                            const color = if (y < pattern0.height)
-                                pattern0.get(x, y)
-                            else
-                                pattern1.get(x, y - pattern0.height);
+                            const color = pattern.get(x, y);
 
                             if (color != ._0) {
-                                const pixel = palette.get(color);
-                                self.data.set(xs, ys, pixel);
+                                const shade = palette.get(color);
+                                self.data.set(xs, ys, shade.asOpaque());
                                 self.meta.set(xs, ys, .{
-                                    .opaque = color != ._0,
+                                    // TODO: why was this redundant check here?
+                                    // .opaque = color != ._0,
                                     .in_front = !sprite_attr.flags.priority,
                                 });
                             }
@@ -284,19 +339,28 @@ pub const Video = struct {
         window: TilesCache,
     },
 
-    pub fn reset(self: *Video) void {
-        self.buffer0.reset(.White);
-        self.screen = self.buffer0.toSlice();
-        self.draw = self.buffer1.toSlice();
-        self.clock = 0;
+    pub fn screen(self: *Video) *Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT) {
+        return &self.buffers[self.screen_index];
+    }
 
-        self.cache.patterns.dirty = true;
+    pub fn reset(self: *Video) void {
+        self.buffers[0].reset(Shade.White.asPixel());
+        self.screen_index = 0;
+        self.clock.offset = 0;
+        self.clock.line = 0;
+
+        self.resetCache();
+    }
+
+    pub fn resetCache(self: *Video) void {
         self.cache.sprites.dirty = true;
+        self.cache.sprites.data.reset(Shade.White.asPixel());
+        self.cache.patterns.dirty = true;
         self.cache.window.dirty = true;
         self.cache.background.dirty = true;
     }
 
-    pub fn updatedVram(self: *Video, mmu: *base.Mmu, addr: u16, val: u8) void {
+    pub fn updatedVram(self: *Video, mmu: *Fundude.Mmu, addr: u16, val: u8) void {
         self.cache.patterns.dirty = true;
         self.cache.window.dirty = true;
         self.cache.background.dirty = true;
@@ -306,49 +370,58 @@ pub const Video = struct {
         }
     }
 
-    pub fn updatedOam(self: *Video, mmu: *base.Mmu, addr: u16, val: u8) void {
+    pub fn updatedOam(self: *Video, mmu: *Fundude.Mmu, addr: u16, val: u8) void {
         self.cache.sprites.dirty = true;
     }
 
-    pub fn updatedIo(self: *Video, mmu: *base.Mmu, addr: u16, val: u8) void {
+    pub fn updatedIo(self: *Video, mmu: *Fundude.Mmu, addr: u16, val: u8) void {
         switch (addr) {
             0xFF40, 0xFF47 => {
                 self.cache.window.dirty = true;
                 self.cache.background.dirty = true;
             },
-            0xFF46, 0xFF48, 0xFF49 => self.cache.sprites.dirty = true,
+            0xFF46, 0xFF48, 0xFF49 => {
+                self.cache.sprites.dirty = true;
+            },
             else => {},
         }
     }
 
-    pub fn step(self: *Video, mmu: *base.Mmu, cycles: u16) void {
+    pub fn tick(self: *Video, mmu: *Fundude.Mmu, catchup: bool) void {
         // FIXME: this isn't how DMA works
         if (mmu.dyn.io.video.DMA != 0) {
             const addr = @intCast(u16, mmu.dyn.io.video.DMA) << 8;
-            const oam = @ptrCast([*]u8, &mmu.dyn.oam);
-            std.mem.copy(u8, oam[0..160], mmu.ptr(addr)[0..160]);
+            const oam = std.mem.asBytes(&mmu.dyn.oam);
+            std.mem.copy(u8, oam, std.mem.asBytes(&mmu.dyn)[addr..][0..oam.len]);
+
             mmu.dyn.io.video.DMA = 0;
+            self.cache.sprites.dirty = true;
         }
 
         if (!mmu.dyn.io.video.LCDC.lcd_enable) {
-            if (self.clock != 0) {
-                self.buffer0.reset(.White);
-                self.screen = self.buffer0.toSlice();
-                self.draw = self.buffer1.toSlice();
-                self.clock = 0;
-
+            if (self.clock.line != 0 or self.clock.offset != 0) {
                 mmu.dyn.io.video.STAT.mode = .hblank;
+                self.reset();
             }
             return;
         }
 
-        self.clock += cycles;
+        self.clock.offset += 4;
 
-        if (self.clock > DOTS_PER_FRAME) {
-            self.clock -= DOTS_PER_FRAME;
+        // Manually wrapping this reduces overhead by ~20%
+        // compared to using division + modulus
+        if (self.clock.offset >= DOTS_PER_LINE) {
+            self.clock.offset -= DOTS_PER_LINE;
+            self.clock.line += 1;
+
+            if (self.clock.line >= RENDER_LINES) {
+                self.clock.line -= RENDER_LINES;
+            }
         }
 
-        const line_num = self.clock / DOTS_PER_LINE;
+        const line_num = self.clock.line;
+        const line_offset = self.clock.offset;
+
         if (mmu.dyn.io.video.LY != line_num) {
             mmu.dyn.io.video.LY = @intCast(u8, line_num);
             mmu.dyn.io.video.STAT.coincidence = line_num == mmu.dyn.io.video.LYC;
@@ -361,7 +434,7 @@ pub const Video = struct {
         const new_mode: LcdcMode = if (line_num >= SCREEN_HEIGHT)
             .vblank
         else
-            @as(LcdcMode, switch (self.clock % DOTS_PER_LINE) {
+            @as(LcdcMode, switch (line_offset) {
                 0...79 => .searching,
                 80...291 => .transferring,
                 else => .hblank,
@@ -374,20 +447,23 @@ pub const Video = struct {
 
         switch (new_mode) {
             .searching => {
-                // TODO: ready the pixel gun here and draw the dots across .transferring
-                self.render(mmu, line_num);
+                // TODO: ready the pixel gun here
                 if (mmu.dyn.io.video.STAT.irq_oam) {
                     mmu.dyn.io.IF.lcd_stat = true;
                 }
             },
-            .transferring => {},
+            .transferring => {
+                if (!catchup) {
+                    @call(Fundude.profiling_call, self.render, .{ mmu.*, line_num });
+                }
+            },
             .hblank => {
                 if (mmu.dyn.io.video.STAT.irq_hblank) {
                     mmu.dyn.io.IF.lcd_stat = true;
                 }
             },
             .vblank => {
-                std.mem.swap(MatrixSlice(Shade), &self.screen, &self.draw);
+                self.screen_index ^= 1;
 
                 mmu.dyn.io.IF.vblank = true;
                 if (mmu.dyn.io.video.STAT.irq_vblank) {
@@ -398,44 +474,54 @@ pub const Video = struct {
     }
 
     // TODO: audit this function
-    fn render(self: *Video, mmu: *base.Mmu, y: usize) void {
-        self.cache.patterns.run(mmu);
-        self.cache.sprites.run(mmu, &self.cache.patterns.data);
-        self.cache.background.run(mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map);
-        self.cache.window.run(mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.window_tile_map);
+    fn render(self: *Video, mmu: Fundude.Mmu, y: usize) void {
+        // TODO: Cache specific lines instead of doing it all at once
+        @call(Fundude.profiling_call, self.cache.patterns.run, .{mmu});
+        @call(Fundude.profiling_call, self.cache.sprites.run, .{ mmu, &self.cache.patterns.data });
+        @call(Fundude.profiling_call, self.cache.background.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map });
+        @call(Fundude.profiling_call, self.cache.window.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.window_tile_map });
 
-        const line = self.draw.sliceLine(0, y);
+        const draw_index = self.screen_index ^ 1;
+        const line = self.buffers[draw_index].sliceLine(0, y);
 
         if (mmu.dyn.io.video.LCDC.bg_enable) {
             const xbg = mmu.dyn.io.video.SCX % self.cache.background.data.width;
             const ybg = (mmu.dyn.io.video.SCY + y) % self.cache.background.data.height;
 
-            const bg_start = self.cache.background.data.sliceLine(xbg, ybg);
-            std.mem.copy(Shade, line, bg_start[0..std.math.min(bg_start.len, line.len)]);
-
-            if (line.len > bg_start.len) {
-                const bg_rest = self.cache.background.data.sliceLine(0, ybg);
-                std.mem.copy(Shade, line[bg_start.len..], bg_rest[0 .. line.len - bg_start.len]);
-            }
+            const bg_line = self.cache.background.data.sliceLine(0, ybg);
+            const bg_start = bg_line[xbg..];
+            const split_idx = std.math.min(bg_start.len, line.len);
+            std.mem.copy(Pixel, line, bg_start[0..split_idx]);
+            std.mem.copy(Pixel, line[split_idx..], bg_line[0 .. line.len - split_idx]);
         } else {
-            std.mem.set(Shade, line, .White);
+            std.mem.set(Pixel, line, Shade.White.asPixel());
         }
 
-        const xw = mmu.dyn.io.video.WX -% 7;
-        const yw = y -% mmu.dyn.io.video.WY;
-        if (mmu.dyn.io.video.LCDC.window_enable and xw < self.cache.window.data.width and yw < self.cache.window.data.height) {
-            const win = self.cache.window.data.sliceLine(0, yw);
-            std.mem.copy(Shade, line[xw..], win[0 .. line.len - xw]);
+        if (mmu.dyn.io.video.LCDC.window_enable and y >= mmu.dyn.io.video.WY) {
+            const win_line = self.cache.window.data.sliceLine(0, y - mmu.dyn.io.video.WY);
+            if (mmu.dyn.io.video.WX < 7) {
+                // TODO: add hardware bugs
+                const xw = 7 - mmu.dyn.io.video.WX;
+                std.mem.copy(Pixel, line, win_line[xw..][0..line.len]);
+            } else {
+                const xw = mmu.dyn.io.video.WX - 7;
+                std.mem.copy(Pixel, line[xw..], win_line[0 .. line.len - xw]);
+            }
         }
 
-        // TODO: vectorize
         if (mmu.dyn.io.video.LCDC.obj_enable) {
-            const sprites = self.cache.sprites.data.sliceLine(8, y + 16);
+            const sprites = self.cache.sprites.data.sliceLine(8, y + 16)[0..SCREEN_WIDTH];
             const metas = self.cache.sprites.meta.sliceLine(8, y + 16);
 
-            for (line) |*pixel, x| {
-                if (metas[x].opaque and (metas[x].in_front or pixel.* == .White)) {
-                    pixel.* = sprites[x];
+            // TODO: use real vectors
+            for (std.mem.bytesAsSlice(u64, std.mem.sliceAsBytes(sprites))) |chunk, i| {
+                if (chunk == 0) continue;
+
+                for (@bitCast([4]Pixel, chunk)) |pixel, j| {
+                    const x = 4 * i + j;
+                    if (pixel.opaque and (metas[x].in_front or !line[x].opaque)) {
+                        line[x] = pixel;
+                    }
                 }
             }
         }

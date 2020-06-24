@@ -1,4 +1,4 @@
-const base = @import("base.zig");
+const main = @import("main.zig");
 
 pub const Io = packed struct {
     DIV: u8, // $FF04
@@ -20,21 +20,24 @@ pub const Timer = struct {
         self.timer = 0;
     }
 
-    pub fn step(self: *Timer, mmu: *base.Mmu, cycles: u8) void {
-        self.clock +%= cycles;
-        mmu.dyn.io.timer.DIV = @intCast(u8, self.clock / 256);
+    pub fn tick(self: *Timer, mmu: *main.Mmu) void {
+        // if (@addWithOverflow(u8, self.clock, 4, &self.clock)) {
+        //     mmu.dyn.io.timer.DIV +%= 1;
+        // }
+        self.clock +%= 4;
+        mmu.dyn.io.timer.DIV = @truncate(u8, self.clock >> 8);
 
         if (!mmu.dyn.io.timer.TAC.active) {
             return;
         }
 
-        self.timer += cycles;
-        if (self.timer >= mmu.dyn.io.timer.TAC.speed.frequency()) {
-            self.timer -= mmu.dyn.io.timer.TAC.speed.frequency();
+        self.timer += 4;
 
-            if (mmu.dyn.io.timer.TIMA != 0xFF) {
-                mmu.dyn.io.timer.TIMA +%= 1;
-            } else {
+        const freq = mmu.dyn.io.timer.TAC.speed.frequency();
+        if (self.timer >= freq) {
+            self.timer -= freq;
+
+            if (@addWithOverflow(u8, mmu.dyn.io.timer.TIMA, 1, &mmu.dyn.io.timer.TIMA)) {
                 // TODO: this effect actually happen 1 cycle later
                 mmu.dyn.io.timer.TIMA = mmu.dyn.io.timer.TMA;
                 mmu.dyn.io.IF.timer = true;

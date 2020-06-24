@@ -25,13 +25,13 @@ export const Context = React.createContext<Item>(null);
 export class Provider extends React.Component<Props, State> {
   prevSpin?: number;
   raf?: number;
-  timeout?: number;
+  interval?: number;
 
   constructor(props: Props) {
     super(props);
 
     this.state = {
-      fd: new FundudeWasm(props.bootCart)
+      fd: new FundudeWasm(props.bootCart),
     };
 
     Object.assign(window, { fd: this.state.fd });
@@ -39,7 +39,8 @@ export class Provider extends React.Component<Props, State> {
     this.handleChange = this.handleChange.bind(this);
     this.run = this.run.bind(this);
     this.pause = this.pause.bind(this);
-    this.spin = this.spin.bind(this);
+    this.main = this.main.bind(this);
+    this.catchup = this.catchup.bind(this);
   }
 
   componentDidMount() {
@@ -55,16 +56,6 @@ export class Provider extends React.Component<Props, State> {
   }
 
   spin(ts: DOMHighResTimeStamp) {
-    if (!this.prevSpin) {
-      return;
-    }
-    cancelAnimationFrame(this.raf);
-    clearTimeout(this.timeout);
-
-    if (!ts) {
-      ts = performance.now();
-    }
-
     // TODO: re-enable no-skip
     // this.state.fd.stepFrames(1);
     const elapsed = ts - this.prevSpin;
@@ -72,11 +63,36 @@ export class Provider extends React.Component<Props, State> {
     this.prevSpin = ts;
 
     if (this.state.fd.cpu().PC() === this.state.fd.breakpoint) {
-      return this.pause();
+      this.pause();
+      return false;
     }
 
-    this.raf = requestAnimationFrame(this.spin);
-    this.timeout = setTimeout(this.spin, 1000);
+    return true;
+  }
+
+  main(ts: DOMHighResTimeStamp) {
+    if (!this.prevSpin) {
+      return;
+    }
+
+    if (this.spin(ts)) {
+      this.raf = requestAnimationFrame(this.main);
+    }
+  }
+
+  catchup() {
+    if (!this.prevSpin) {
+      clearInterval(this.interval);
+      return;
+    }
+
+    const ts = performance.now();
+    const elapsed = ts - this.prevSpin;
+    if (elapsed > 200) {
+      if (!this.spin(ts)) {
+        clearInterval(this.interval);
+      }
+    }
   }
 
   run() {
@@ -84,8 +100,8 @@ export class Provider extends React.Component<Props, State> {
       this.state.fd.changed.remove(this.handleChange);
       this.prevSpin = performance.now();
 
-      this.raf = requestAnimationFrame(this.spin);
-      this.timeout = setTimeout(this.spin, 1000);
+      this.raf = requestAnimationFrame(this.main);
+      this.interval = setInterval(this.catchup, 1000);
     }
   }
 
@@ -94,7 +110,7 @@ export class Provider extends React.Component<Props, State> {
       this.state.fd.changed.add(this.handleChange);
       this.prevSpin = null;
       cancelAnimationFrame(this.raf);
-      clearTimeout(this.timeout);
+      clearInterval(this.interval);
     }
   }
 

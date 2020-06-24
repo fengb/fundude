@@ -9,23 +9,78 @@ export type Matrix<T> = T & {
   height: number;
 };
 
-function wasmArray(ptr: number, length: number) {
-  return new Uint8Array(WASM.memory.buffer, ptr, length);
+class U8Chunk extends Uint8Array {
+  constructor(public ptr: number, length: number) {
+    super(WASM.memory.buffer, ptr, length);
+  }
+
+  //toInt(): bigint {
+  //  return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
+  //}
+
+  // TODO: remove floats
+  // JS can't handle i64 yet so we're using f64 for now
+  toFloat(): number {
+    let buf = new ArrayBuffer(8);
+    let u32s = new Uint32Array(buf);
+    u32s[0] = this.ptr;
+    u32s[1] = this.length;
+    return new Float64Array(buf)[0];
+  }
+
+  static fromFloat(value: number): U8Chunk {
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = value;
+    let u32s = new Uint32Array(buf);
+    return new U8Chunk(u32s[0], u32s[1]);
+  }
+
+  static matrix(value: number): Matrix<U8Chunk> {
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = value;
+    let u16s = new Uint16Array(buf);
+    const ptr = u16s[0] | (u16s[1] << 16);
+    const width = u16s[2];
+    const height = u16s[3];
+    return Object.assign(new U8Chunk(ptr, width * height), { width, height });
+  }
 }
 
-function wasmMatrix(
-  ptr: number,
-  width: number,
-  height: number
-): Matrix<Uint8Array> {
-  return Object.assign(wasmArray(ptr, width * height), { width, height });
-}
+class U16Chunk extends Uint16Array {
+  constructor(private ptr: number, length: number) {
+    super(WASM.memory.buffer, ptr, length);
+  }
 
-function toUTF8(ptr: number) {
-  const scan = new Uint8Array(WASM.memory.buffer, ptr);
-  const end = scan.indexOf(0);
-  const rawBytes = scan.subarray(0, end);
-  return new TextDecoder("utf-8").decode(rawBytes);
+  //toInt(): bigint {
+  //  return BigInt(this.ptr) | (BigInt(this.length) << BigInt(32));
+  //}
+
+  // TODO: remove floats
+  // JS can't handle i64 yet so we're using f64 for now
+  toFloat(): number {
+    let buf = new ArrayBuffer(8);
+    let u32s = new Uint32Array(buf);
+    u32s[0] = this.ptr;
+    u32s[1] = this.length;
+    return new Float64Array(buf)[0];
+  }
+
+  static fromFloat(value: number): U16Chunk {
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = value;
+    let u32s = new Uint32Array(buf);
+    return new U16Chunk(u32s[0], u32s[1]);
+  }
+
+  static matrix(value: number): Matrix<U16Chunk> {
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = value;
+    let u16s = new Uint16Array(buf);
+    const ptr = u16s[0] | (u16s[1] << 16);
+    const width = u16s[2];
+    const height = u16s[3];
+    return Object.assign(new U16Chunk(ptr, width * height), { width, height });
+  }
 }
 
 export const MMU_OFFSETS = {
@@ -35,8 +90,8 @@ export const MMU_OFFSETS = {
     { start: 0xc000, end: 0xe000 - 1, name: "ram" },
     { start: 0xfe00, end: 0xfea0 - 1, name: "oam" },
     { start: 0xff00, end: 0xff4c - 1, name: "io" },
-    { start: 0xff80, end: 0xffff - 1, name: "himem" }
-  ]
+    { start: 0xff80, end: 0xffff - 1, name: "himem" },
+  ],
 };
 
 enum InputBitMapping {
@@ -48,7 +103,7 @@ enum InputBitMapping {
   a = 16,
   b = 32,
   select = 64,
-  start = 128
+  start = 128,
 }
 
 export type Input = keyof typeof InputBitMapping;
@@ -60,72 +115,58 @@ export default class FundudeWasm {
   cart: Uint8Array;
   private cartCopyPtr: number;
 
-  readonly width: number;
-  readonly height: number;
-
   constructor(cart: Uint8Array) {
-    this.pointer = WASM.fd_alloc();
-    this.init(cart);
-
-    this.width = 160;
-    this.height = 144;
+    this.pointer = WASM.fd_init();
+    this.load(cart);
   }
 
   screen() {
-    return wasmMatrix(
-      WASM.fd_screen_ptr(this.pointer),
-      this.width,
-      this.height
-    );
+    return U16Chunk.matrix(WASM.fd_screen(this.pointer));
   }
 
   background() {
-    return wasmMatrix(WASM.fd_background_ptr(this.pointer), 256, 256);
+    return U16Chunk.matrix(WASM.fd_background(this.pointer));
   }
 
   window() {
-    return wasmMatrix(WASM.fd_window_ptr(this.pointer), 256, 256);
+    return U16Chunk.matrix(WASM.fd_window(this.pointer));
   }
 
   sprites() {
-    return wasmMatrix(
-      WASM.fd_sprites_ptr(this.pointer),
-      256 + 2 * 8,
-      256 + 2 * 16
-    );
+    return U16Chunk.matrix(WASM.fd_sprites(this.pointer));
   }
 
   patterns() {
-    return wasmMatrix(WASM.fd_patterns_ptr(this.pointer), 8, 8 * 128 * 3);
+    return U8Chunk.matrix(WASM.fd_patterns(this.pointer));
   }
 
   cpu() {
-    const raw = wasmArray(WASM.fd_cpu_ptr(this.pointer), 12);
+    const raw = U8Chunk.fromFloat(WASM.fd_cpu_reg(this.pointer));
     return Object.assign(raw, {
       AF: () => raw[0] + (raw[1] << 8),
       BC: () => raw[2] + (raw[3] << 8),
       DE: () => raw[4] + (raw[5] << 8),
       HL: () => raw[6] + (raw[7] << 8),
       SP: () => raw[8] + (raw[9] << 8),
-      PC: () => raw[10] + (raw[11] << 8)
+      PC: () => raw[10] + (raw[11] << 8),
     });
   }
 
   mmu() {
-    return wasmArray(WASM.fd_mmu_ptr(this.pointer), 0x8000);
+    return U8Chunk.fromFloat(WASM.fd_mmu(this.pointer));
   }
 
-  init(cart: Uint8Array) {
+  load(cart: Uint8Array) {
     if (this.cartCopyPtr) {
       WASM.free(this.cartCopyPtr);
     }
 
     this.cart = cart;
     this.cartCopyPtr = WASM.malloc(cart.length);
-    const copy = wasmArray(this.cartCopyPtr, cart.length);
+    const copy = new U8Chunk(this.cartCopyPtr, cart.length);
     copy.set(cart);
 
-    const status = WASM.fd_init(this.pointer, cart.length, this.cartCopyPtr);
+    const status = WASM.fd_load(this.pointer, copy.toFloat());
     switch (status) {
       case 0:
         break;
@@ -142,9 +183,41 @@ export default class FundudeWasm {
     this.changed.dispatch();
   }
 
+  rewind() {
+    WASM.fd_rewind(this.pointer);
+    this.changed.dispatch();
+  }
+
+  dump() {
+    const dumpChunk = U8Chunk.fromFloat(WASM.fd_dump(this.pointer));
+    try {
+      return Uint8Array.from(dumpChunk);
+    } finally {
+      WASM.free(dumpChunk.ptr);
+    }
+  }
+
+  restore(bytes: Uint8Array) {
+    const ptr = WASM.malloc(bytes.length);
+    if (ptr == 0) {
+      throw "WASM out of memory";
+    }
+
+    const copy = new U8Chunk(ptr, bytes.length);
+    copy.set(bytes);
+    try {
+      const result = WASM.fd_restore(this.pointer, copy.toFloat());
+      if (result !== 0) {
+        alert("Load failed");
+      }
+    } finally {
+      WASM.free(ptr);
+    }
+  }
+
   dealloc() {
     WASM.free(this.cartCopyPtr);
-    WASM.free(this.pointer);
+    WASM.fd_deinit(this.pointer);
   }
 
   breakpoint: number = -1;
@@ -203,18 +276,25 @@ export default class FundudeWasm {
   }
 
   *disassemble(): IterableIterator<[number, string]> {
-    const fd = new FundudeWasm(this.cart);
+    const stringPtr = WASM.malloc(16);
     try {
-      while (true) {
-        const addr = fd.cpu().PC();
-        const outPtr = WASM.fd_disassemble(fd.pointer);
-        if (!outPtr) {
-          return;
-        }
-        yield [addr, toUTF8(outPtr)];
+      let i = 0;
+      while (i < this.cart.length) {
+        const byte0 = this.cart[i];
+        const byte1 = this.cart[i + 1] || 0;
+        const byte2 = this.cart[i + 2] || 0;
+
+        const outChunk = U8Chunk.fromFloat(
+          WASM.fd_disassemble(stringPtr, byte0, byte1, byte2)
+        );
+        const utf8 = new TextDecoder("utf-8").decode(outChunk);
+
+        yield [i, utf8];
+
+        i += WASM.fd_instr_len(byte0);
       }
     } finally {
-      fd.dealloc();
+      WASM.free(stringPtr);
     }
   }
 }

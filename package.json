@@ -5,8 +5,8 @@
   "author": "Benjamin Feng <contact@fengb.me>",
   "license": "MIT",
   "scripts": {
-    "dev": "parcel src/web/index.html",
-    "build": "parcel build src/web/index.html --public-url ./",
+    "dev": "parcel web/index.html",
+    "build": "parcel build web/index.html --public-url ./",
     "postbuild": "react-snap"
   },
   "reactSnap": {
@@ -41,6 +41,7 @@
     "react-window": "1.8.0"
   },
   "resolutions": {
+    "mkdirp": "0.5.5",
     "parse5": "5.1.0"
   }
 }

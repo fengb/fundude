@@ -1,10 +1,13 @@
 const std = @import("std");
 
-pub fn Matrix(comptime T: type, width: usize, height: usize) type {
+pub fn Matrix(comptime T: type, widt: usize, heigh: usize) type {
     return packed struct {
         const Self = @This();
 
-        data: [height * width]T,
+        pub const width = widt;
+        pub const height = heigh;
+
+        data: [height * width]T align(@alignOf(T)),
         comptime width: usize = width,
         comptime height: usize = height,
 
@@ -14,7 +17,7 @@ pub fn Matrix(comptime T: type, width: usize, height: usize) type {
 
         pub fn toSlice(self: *Self) MatrixSlice(T) {
             return MatrixSlice(T){
-                .data = self.toArraySlice(),
+                .ptr = &self.data,
                 .width = width,
                 .height = height,
             };
@@ -52,24 +55,24 @@ pub fn MatrixSlice(comptime T: type) type {
     return struct {
         const Self = @This();
 
-        data: []T,
+        ptr: [*]T,
         width: usize,
         height: usize,
 
         pub fn get(self: Self, x: usize, y: usize) T {
             const i = self.idx(x, y);
-            return self.data[i];
+            return self.ptr[i];
         }
 
         pub fn set(self: Self, x: usize, y: usize, val: T) void {
             const i = self.idx(x, y);
-            self.data[i] = val;
+            self.ptr[i] = val;
         }
 
         pub fn sliceLine(self: *Self, x: usize, y: usize) []T {
             const start = self.idx(x, y);
             const len = self.width - (x % self.width);
-            return self.data[start .. start + len];
+            return self.ptr[start .. start + len];
         }
 
         fn idx(self: Self, x: usize, y: usize) usize {
@@ -82,19 +85,50 @@ pub fn MatrixSlice(comptime T: type) type {
 
 // Adapted from https://github.com/ziglang/zig/issues/793#issuecomment-482927820
 pub fn EnumArray(comptime E: type, comptime T: type) type {
-    return packed struct {
-        data: [@memberCount(E)]T,
+    return extern struct {
+        const len = @typeInfo(E).Enum.fields.len;
+        data: [len]T,
 
-        fn get(self: @This(), tag: E) T {
+        pub fn get(self: @This(), tag: E) T {
             return self.data[@enumToInt(tag)];
         }
 
-        fn set(self: *@This(), tag: E, value: T) void {
+        pub fn set(self: *@This(), tag: E, value: T) void {
             self.data[@enumToInt(tag)] = value;
         }
 
-        fn copy(self: *@This(), dst: E, src: E) void {
+        pub fn copy(self: *@This(), dst: E, src: E) void {
             self.set(dst, self.get(src));
         }
     };
+}
+/// Super simple "perfect hash" algorithm
+/// Only really useful for switching on strings
+// TODO: can we auto detect and promote the underlying type?
+pub fn Swhash(comptime max_bytes: comptime_int) type {
+    const T = std.meta.IntType(false, max_bytes * 8);
+
+    return struct {
+        pub fn match(string: []const u8) T {
+            return hash(string) orelse std.math.maxInt(T);
+        }
+
+        pub fn case(comptime string: []const u8) T {
+            return hash(string) orelse @compileError("Cannot hash '" ++ string ++ "'");
+        }
+
+        fn hash(string: []const u8) ?T {
+            if (string.len > max_bytes) return null;
+            var tmp = [_]u8{0} ** max_bytes;
+            std.mem.copy(u8, &tmp, string);
+            return std.mem.readIntNative(T, &tmp);
+        }
+    };
+}
+
+pub fn makeUpper(buffer: []u8) []u8 {
+    for (buffer) |*letter| {
+        letter.* = std.ascii.toUpper(letter.*);
+    }
+    return buffer;
 }
