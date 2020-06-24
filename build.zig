@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
 
-    const lib = b.addStaticLibrary("fundude", "src/c.zig");
+    const lib = b.addStaticLibrary("fundude", "src/exports.zig");
     lib.setOutputDir("zig-cache");
     lib.setBuildMode(mode);
     lib.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
