@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const Fundude = @import("main.zig");
+
 pub const Io = packed struct {
     SB: u8, // $FF01
     SC: packed struct { // $FF02
@@ -11,59 +13,47 @@ pub const Io = packed struct {
 };
 
 const master_cycles = 512;
-const buffer_size = 1024;
-
-const Fifo = std.fifo.LinearFifo(u8, std.fifo.LinearFifoBufferType{ .Static = buffer_size });
 
 pub const Serial = struct {
     clock: usize,
 
-    buffer_in: Fifo,
-    buffer_out: [buffer_size]u8,
-    buffer_out_cur: usize,
-
-    shift_in: u8,
-    shift_out: u8,
+    guest_sb: ?*u8,
     current_bit: u3,
 
     pub fn reset(self: *Serial) void {
         self.clock = 0;
-        self.buffer_in = Fifo.init();
-        self.buffer_out_cur = 0;
-        self.shift_in = 0xFF;
-        self.shift_out = 0xFF;
-        self.current_bit = 7;
+        self.guest_sb = null;
+        self.current_bit = 0;
     }
 
     fn getBit(val: u8, pos: u3) u8 {
         return val >> pos & 1;
     }
 
-    pub fn out(self: *Serial) []u8 {
-        defer self.buffer_out_cur = 0;
-        return self.buffer_out[0..self.buffer_out_cur];
-    }
+    const zero: u8 = 0;
 
-    pub fn shift(self: *Serial, mmu: *base.Mmu) void {
-        self.shift_out |= getBit(mmu.dyn.io.serial.SB, 7) << self.current_bit;
-        mmu.dyn.io.serial.SB = mmu.dyn.io.serial.SB << 1 | getBit(self.shift_in, self.current_bit);
+    pub fn shift(self: *Serial, mmu: *Fundude.Mmu) void {
+        if (self.guest_sb) |guest_sb| {
+            const host_msb = getBit(mmu.dyn.io.serial.SB, 7);
+            const guest_msb = getBit(guest_sb.*, 7);
 
-        self.current_bit -= 1;
+            mmu.dyn.io.serial.SB = (mmu.dyn.io.serial.SB << 1) | guest_msb;
+            guest_sb.* = (guest_sb.* << 1) | host_msb;
+        } else {
+            mmu.dyn.io.serial.SB <<= 1;
+        }
 
-        if (self.current_bit == 7) {
-            self.shift_in = self.buffer_in.readItem() catch 0xFF;
-            self.buffer_out.writeItem(self.shift_out);
+        if (@addWithOverflow(u3, self.current_bit, 1, &self.current_bit)) {
             mmu.dyn.io.IF.serial = true;
         }
     }
 
-    pub fn step(self: *Serial, mmu: *base.Mmu, cycles: u8) void {
-        if (!mmu.dyn.io.serial.SC.transfer_start_flag or
-            mmu.dyn.io.serial.SC.shift_clock == .External) return;
+    pub fn tick(self: *Serial, mmu: *Fundude.Mmu) void {
+        self.clock +%= 4;
 
-        self.clock +%= cycles;
-        if (self.clock >= master_cycles) {
-            self.clock -= master_cycles;
+        if (mmu.dyn.io.serial.SC.shift_clock == .External) {
+            // If 8 bits have shifted in, set interrupt
+        } else if (mmu.dyn.io.serial.SC.transfer_start_flag and self.clock % master_cycles == 0) {
             self.shift(mmu);
         }
     }

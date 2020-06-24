@@ -67,6 +67,8 @@ pub fn tick(self: *Fundude, catchup: bool) void {
     @call(Fundude.profiling_call, self.cpu.tick, .{&self.mmu});
     @call(Fundude.profiling_call, self.video.tick, .{ &self.mmu, catchup });
     @call(Fundude.profiling_call, self.timer.tick, .{&self.mmu});
+    @call(Fundude.profiling_call, self.serial.tick, .{&self.mmu});
+
     @call(Fundude.profiling_call, self.temportal.tick, .{self});
 }
 
