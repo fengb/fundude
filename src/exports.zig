@@ -88,6 +88,11 @@ export fn fd_deinit(fd: *Fundude) void {
     fd.deinit();
 }
 
+export fn fd_clone(fd: *Fundude) i8 {
+    fd.clone() catch return -1;
+    return 0;
+}
+
 export fn fd_load(fd: *Fundude, cart: U8Chunk.Abi) i8 {
     fd.load(U8Chunk.toSlice(cart)) catch |err| return switch (err) {
         error.CartTypeError => 1,

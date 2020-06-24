@@ -20,6 +20,7 @@ pub const profiling_call = std.builtin.CallOptions{
 const Fundude = @This();
 
 allocator: *std.mem.Allocator,
+guest: ?*Fundude,
 
 video: video.Video,
 cpu: Cpu,
@@ -35,17 +36,35 @@ breakpoint: u16,
 pub fn init(allocator: *std.mem.Allocator) !*Fundude {
     var fd = try allocator.create(Fundude);
     fd.allocator = allocator;
+    fd.guest = null;
     return fd;
 }
 
 pub fn deinit(self: *Fundude) void {
+    if (self.guest) |guest| {
+        guest.deinit();
+        self.guest = null;
+    }
+
     self.allocator.destroy(self);
     self.* = undefined;
+}
+
+pub fn clone(self: *Fundude) !void {
+    self.guest = try Fundude.init(self.allocator);
 }
 
 pub fn load(self: *Fundude, cart: []const u8) !void {
     try self.mmu.load(cart);
     self.reset();
+
+    if (self.guest) |guest| {
+        // TODO: recursion doesn't work -- investigate why
+        // guest.load(cart) catch unreachable;
+
+        guest.mmu.load(cart) catch unreachable;
+        guest.reset();
+    }
 }
 
 pub fn reset(self: *Fundude) void {
@@ -60,6 +79,10 @@ pub fn reset(self: *Fundude) void {
     self.temportal.save(self);
 
     self.breakpoint = 0xFFFF;
+
+    if (self.guest) |guest| {
+        guest.reset();
+    }
 }
 
 // TODO: convert "catchup" to an enum
@@ -70,6 +93,10 @@ pub fn tick(self: *Fundude, catchup: bool) void {
     @call(Fundude.profiling_call, self.serial.tick, .{&self.mmu});
 
     @call(Fundude.profiling_call, self.temportal.tick, .{self});
+
+    if (self.guest) |guest| {
+        guest.tick(catchup);
+    }
 }
 
 pub const dump = Savestate.dump;
