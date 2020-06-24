@@ -31,7 +31,7 @@ export class Provider extends React.Component<Props, State> {
     super(props);
 
     this.state = {
-      fd: new FundudeWasm(props.bootCart),
+      fd: FundudeWasm.create(props.bootCart),
     };
 
     Object.assign(window, { fd: this.state.fd });

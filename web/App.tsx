@@ -100,6 +100,15 @@ export function App(props: { debug?: boolean }) {
             scale={2}
             blend
           />
+          {fd.guest && (
+            <Display
+              className={CSS.display}
+              pixels={() => fd.guest.screen()}
+              signal={fd.guest.changed}
+              scale={2}
+              blend
+            />
+          )}
           <h1 className={CSS.title}>
             <Logo className={CSS.logo} />
             FUN

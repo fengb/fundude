@@ -88,9 +88,9 @@ export fn fd_deinit(fd: *Fundude) void {
     fd.deinit();
 }
 
-export fn fd_clone(fd: *Fundude) i8 {
-    fd.clone() catch return -1;
-    return 0;
+export fn fd_clone(fd: *Fundude) ?*Fundude {
+    fd.clone() catch return null;
+    return fd.guest;
 }
 
 export fn fd_load(fd: *Fundude, cart: U8Chunk.Abi) i8 {

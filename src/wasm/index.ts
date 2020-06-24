@@ -111,13 +111,20 @@ export type Input = keyof typeof InputBitMapping;
 export default class FundudeWasm {
   public changed = new PicoSignal<void>();
 
-  private readonly pointer: number;
-  cart: Uint8Array;
-  private cartCopyPtr: number;
+  cartPtr?: number;
+  cartSize: number;
+  guest?: FundudeWasm;
 
-  constructor(cart: Uint8Array) {
-    this.pointer = WASM.fd_init();
-    this.load(cart);
+  constructor(private readonly pointer: number) {}
+
+  static create(cart: Uint8Array): FundudeWasm {
+    const result = new FundudeWasm(WASM.fd_init());
+    result.load(cart);
+    return result;
+  }
+
+  clone() {
+    this.guest = new FundudeWasm(WASM.fd_clone(this.pointer));
   }
 
   screen() {
@@ -157,13 +164,13 @@ export default class FundudeWasm {
   }
 
   load(cart: Uint8Array) {
-    if (this.cartCopyPtr) {
-      WASM.free(this.cartCopyPtr);
+    if (this.cartPtr) {
+      WASM.free(this.cartPtr);
     }
 
-    this.cart = cart;
-    this.cartCopyPtr = WASM.malloc(cart.length);
-    const copy = new U8Chunk(this.cartCopyPtr, cart.length);
+    this.cartSize = cart.length;
+    this.cartPtr = WASM.malloc(cart.length);
+    const copy = new U8Chunk(this.cartPtr, cart.length);
     copy.set(cart);
 
     const status = WASM.fd_load(this.pointer, copy.toFloat());
@@ -216,7 +223,7 @@ export default class FundudeWasm {
   }
 
   dealloc() {
-    WASM.free(this.cartCopyPtr);
+    WASM.free(this.cartPtr);
     WASM.fd_deinit(this.pointer);
   }
 
@@ -277,12 +284,13 @@ export default class FundudeWasm {
 
   *disassemble(): IterableIterator<[number, string]> {
     const stringPtr = WASM.malloc(16);
+    const cart = new U8Chunk(this.cartPtr, this.cartSize);
     try {
       let i = 0;
-      while (i < this.cart.length) {
-        const byte0 = this.cart[i];
-        const byte1 = this.cart[i + 1] || 0;
-        const byte2 = this.cart[i + 2] || 0;
+      while (i < cart.length) {
+        const byte0 = cart[i];
+        const byte1 = cart[i + 1] || 0;
+        const byte2 = cart[i + 2] || 0;
 
         const outChunk = U8Chunk.fromFloat(
           WASM.fd_disassemble(stringPtr, byte0, byte1, byte2)

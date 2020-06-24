@@ -6,7 +6,7 @@ import useDimensions from "react-use-dimensions";
 import nano from "../nano";
 import { fromEntries } from "../smalldash";
 
-import FundudeWasm from "../../wasm";
+import FundudeWasm from "../../src/wasm";
 import { hex2, hex4 } from "./util";
 
 const CSS = {
@@ -46,7 +46,7 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
   React.useEffect(() => {
     const assembly = props.fd.disassemble();
     setAssembly(fromEntries(assembly));
-  }, [props.fd.cart]);
+  }, [props.fd.cartPtr, props.fd.cartSize]);
 
   const listRef = React.useRef<FixedSizeList>();
   React.useEffect(() => {
@@ -62,7 +62,7 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
         height={height || 0}
         width={240}
         itemSize={15}
-        itemCount={props.fd.cart.length}
+        itemCount={props.fd.cartSize}
       >
         {({ index, style }) => (
           <div
@@ -77,7 +77,7 @@ export default function Disassembler(props: { fd: FundudeWasm }) {
             />
             <span className={CSS.childSegment}>${hex4(index)}</span>
             <span className={CSS.childSegment}>
-              {hex2(props.fd.cart[index])}
+              {/* {hex2(props.fd.cart[index])} */}
             </span>
             <strong className={CSS.childSegment}>
               {assembly[index] || ""}

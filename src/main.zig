@@ -51,7 +51,9 @@ pub fn deinit(self: *Fundude) void {
 }
 
 pub fn clone(self: *Fundude) !void {
-    self.guest = try Fundude.init(self.allocator);
+    const guest = try Fundude.init(self.allocator);
+    self.guest = guest;
+    try guest.load(self.mmu.cart);
 }
 
 pub fn load(self: *Fundude, cart: []const u8) !void {
@@ -61,7 +63,6 @@ pub fn load(self: *Fundude, cart: []const u8) !void {
     if (self.guest) |guest| {
         // TODO: recursion doesn't work -- investigate why
         // guest.load(cart) catch unreachable;
-
         guest.mmu.load(cart) catch unreachable;
         guest.reset();
     }
