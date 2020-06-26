@@ -15,13 +15,10 @@ pub const Io = packed struct {
 const master_cycles = 512;
 
 pub const Serial = struct {
-    clock: usize,
-
     guest_sb: ?*u8,
     current_bit: u3,
 
     pub fn reset(self: *Serial) void {
-        self.clock = 0;
         self.guest_sb = null;
         self.current_bit = 0;
     }
@@ -48,12 +45,11 @@ pub const Serial = struct {
         }
     }
 
-    pub fn tick(self: *Serial, mmu: *Fundude.Mmu) void {
-        self.clock +%= 4;
-
-        if (mmu.dyn.io.serial.SC.shift_clock == .External) {
-            // If 8 bits have shifted in, set interrupt
-        } else if (mmu.dyn.io.serial.SC.transfer_start_flag and self.clock % master_cycles == 0) {
+    pub fn tick(self: *Serial, mmu: *Fundude.Mmu, clock: u32) void {
+        if (clock % master_cycles == 0 and
+            mmu.dyn.io.serial.SC.transfer_start_flag and
+            mmu.dyn.io.serial.SC.shift_clock == .Internal)
+        {
             self.shift(mmu);
         }
     }

@@ -88,12 +88,13 @@ pub fn reset(self: *Fundude) void {
 
 // TODO: convert "catchup" to an enum
 pub fn tick(self: *Fundude, catchup: bool) void {
+    const clock = @call(Fundude.profiling_call, self.timer.tick, .{&self.mmu});
+
     @call(Fundude.profiling_call, self.cpu.tick, .{&self.mmu});
     @call(Fundude.profiling_call, self.video.tick, .{ &self.mmu, catchup });
-    @call(Fundude.profiling_call, self.timer.tick, .{&self.mmu});
-    @call(Fundude.profiling_call, self.serial.tick, .{&self.mmu});
+    @call(Fundude.profiling_call, self.serial.tick, .{ &self.mmu, clock });
 
-    @call(Fundude.profiling_call, self.temportal.tick, .{self});
+    @call(Fundude.profiling_call, self.temportal.tick, .{ self, clock });
 
     if (self.guest) |guest| {
         guest.tick(catchup);

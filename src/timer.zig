@@ -12,7 +12,7 @@ pub const Io = packed struct {
 };
 
 pub const Timer = struct {
-    clock: u16,
+    clock: u32,
     timer: u32,
 
     pub fn reset(self: *Timer) void {
@@ -20,7 +20,7 @@ pub const Timer = struct {
         self.timer = 0;
     }
 
-    pub fn tick(self: *Timer, mmu: *main.Mmu) void {
+    pub fn tick(self: *Timer, mmu: *main.Mmu) u32 {
         // if (@addWithOverflow(u8, self.clock, 4, &self.clock)) {
         //     mmu.dyn.io.timer.DIV +%= 1;
         // }
@@ -28,7 +28,7 @@ pub const Timer = struct {
         mmu.dyn.io.timer.DIV = @truncate(u8, self.clock >> 8);
 
         if (!mmu.dyn.io.timer.TAC.active) {
-            return;
+            return self.clock;
         }
 
         self.timer += 4;
@@ -43,6 +43,8 @@ pub const Timer = struct {
                 mmu.dyn.io.IF.timer = true;
             }
         }
+
+        return self.clock;
     }
 };
 
