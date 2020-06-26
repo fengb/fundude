@@ -10,7 +10,7 @@ const timer = @import("timer.zig");
 pub const Timer = timer.Timer;
 pub const Savestate = @import("Savestate.zig");
 pub const Temportal = @import("Temportal.zig");
-pub const serial = @import("serial.zig");
+pub const Serial = @import("Serial.zig");
 
 pub const MHz = 4194304;
 pub const profiling_call = std.builtin.CallOptions{
@@ -26,7 +26,7 @@ video: video.Video,
 cpu: Cpu,
 mmu: Mmu,
 
-serial: serial.Serial,
+serial: Serial,
 inputs: joypad.Inputs,
 timer: timer.Timer,
 temportal: Temportal,
@@ -131,5 +131,5 @@ pub const savestate_size = Savestate.size;
 test "" {
     _ = Fundude;
     _ = Savestate;
-    _ = serial;
+    _ = Serial;
 }
