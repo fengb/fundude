@@ -16,10 +16,12 @@ const master_cycles = 512;
 
 pub const Serial = struct {
     guest_sb: ?*u8,
+    guest_if: ?*Fundude.Cpu.Irq,
+
     current_bit: u3,
 
     pub fn reset(self: *Serial) void {
-        self.guest_sb = null;
+        self.disconnect();
         self.current_bit = 0;
     }
 
@@ -27,7 +29,15 @@ pub const Serial = struct {
         return val >> pos & 1;
     }
 
-    const zero: u8 = 0;
+    pub fn connect(self: *Serial, target_mmio: *Fundude.Mmu.Io) void {
+        self.guest_sb = &target_mmio.serial.SB;
+        self.guest_if = &target_mmio.IF;
+    }
+
+    pub fn disconnect(self: *Serial) void {
+        self.guest_sb = null;
+        self.guest_if = null;
+    }
 
     pub fn shift(self: *Serial, mmu: *Fundude.Mmu) void {
         if (self.guest_sb) |guest_sb| {
@@ -42,6 +52,9 @@ pub const Serial = struct {
 
         if (@addWithOverflow(u3, self.current_bit, 1, &self.current_bit)) {
             mmu.dyn.io.IF.serial = true;
+            if (self.guest_if) |guest_if| {
+                guest_if.serial = true;
+            }
         }
     }
 
@@ -54,3 +67,56 @@ pub const Serial = struct {
         }
     }
 };
+
+fn expectMmio(mmio: Fundude.Mmu.Io, SB: u8, IF: bool) !void {
+    std.testing.expectEqual(SB, mmio.serial.SB);
+    std.testing.expectEqual(IF, mmio.IF.serial);
+}
+
+test "basic shift" {
+    var serial: Serial = undefined;
+    serial.reset();
+
+    var mmu: Fundude.Mmu = undefined;
+    var other_mmio: Fundude.Mmu.Io = undefined;
+
+    serial.connect(&other_mmio);
+
+    mmu.dyn.io.IF.serial = false;
+    other_mmio.IF.serial = false;
+
+    mmu.dyn.io.serial.SB = 0x00;
+    other_mmio.serial.SB = 0xFF;
+
+    serial.shift(&mmu);
+    try expectMmio(mmu.dyn.io, 0x01, false);
+    try expectMmio(other_mmio, 0xFE, false);
+
+    serial.shift(&mmu);
+    try expectMmio(mmu.dyn.io, 0x03, false);
+    try expectMmio(other_mmio, 0xFC, false);
+
+    serial.shift(&mmu);
+    try expectMmio(mmu.dyn.io, 0x07, false);
+    try expectMmio(other_mmio, 0xF8, false);
+
+    serial.shift(&mmu);
+    try expectMmio(mmu.dyn.io, 0x0F, false);
+    try expectMmio(other_mmio, 0xF0, false);
+
+    serial.shift(&mmu);
+    try expectMmio(mmu.dyn.io, 0x1F, false);
+    try expectMmio(other_mmio, 0xE0, false);
+
+    serial.shift(&mmu);
+    try expectMmio(mmu.dyn.io, 0x3F, false);
+    try expectMmio(other_mmio, 0xC0, false);
+
+    serial.shift(&mmu);
+    try expectMmio(mmu.dyn.io, 0x7F, false);
+    try expectMmio(other_mmio, 0x80, false);
+
+    serial.shift(&mmu);
+    try expectMmio(mmu.dyn.io, 0xFF, true);
+    try expectMmio(other_mmio, 0x00, true);
+}

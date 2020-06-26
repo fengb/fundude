@@ -53,7 +53,29 @@ pub fn deinit(self: *Fundude) void {
 pub fn clone(self: *Fundude) !void {
     const guest = try Fundude.init(self.allocator);
     self.guest = guest;
+
     try guest.load(self.mmu.cart);
+    self.serialConnect(guest);
+}
+
+pub fn serialConnect(self: *Fundude, other: *Fundude) void {
+    std.debug.assert(self.serial.guest_sb == null);
+    std.debug.assert(self.serial.guest_if == null);
+    std.debug.assert(other.serial.guest_sb == null);
+    std.debug.assert(other.serial.guest_if == null);
+
+    self.serial.connect(&other.mmu.dyn.io);
+    other.serial.connect(&self.mmu.dyn.io);
+}
+
+pub fn serialDisconnect(self: *Fundude, other: *Fundude) void {
+    std.debug.assert(self.serial.guest_sb != null);
+    std.debug.assert(self.serial.guest_if != null);
+    std.debug.assert(other.serial.guest_sb != null);
+    std.debug.assert(other.serial.guest_if != null);
+
+    self.serial.disconnect();
+    other.serial.disconnect();
 }
 
 pub fn load(self: *Fundude, cart: []const u8) !void {
@@ -109,4 +131,5 @@ pub const savestate_size = Savestate.size;
 test "" {
     _ = Fundude;
     _ = Savestate;
+    _ = serial;
 }
