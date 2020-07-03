@@ -28,7 +28,7 @@ pub fn main() !u8 {
         try fd.load(&cart);
         fd.mmu.loadBootloader(Fundude.Mmu.Bootloaders.mini);
         while (fd.cpu.reg._16.get(.PC) < 0x7FFD) {
-            _ = fd.step(false);
+            _ = fd.tick(false);
         }
 
         const stack_top = fd.cpu.reg._16.get(.SP);
