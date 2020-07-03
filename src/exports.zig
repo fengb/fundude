@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const zee_alloc = @import("vendor/zee_alloc.zig");
+const zee_alloc = @import("zee_alloc");
 
 const Fundude = @import("main.zig");
 const util = @import("util.zig");

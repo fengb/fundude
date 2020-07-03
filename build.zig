@@ -5,6 +5,7 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
 
     const lib = b.addStaticLibrary("fundude", "src/exports.zig");
+    lib.addPackagePath("zee_alloc", "submodules/zee_alloc/src/main.zig");
     lib.setOutputDir("zig-cache");
     lib.setBuildMode(mode);
     lib.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });

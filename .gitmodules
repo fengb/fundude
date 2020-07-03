@@ -1,0 +1,3 @@
+[submodule "submodules/zee_alloc"]
+	path = submodules/zee_alloc
+	url = git@github.com:fengb/zee_alloc.git
