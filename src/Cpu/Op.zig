@@ -562,10 +562,10 @@ fn disassembleArg(writer: var, name: *const [2]u8, arg: Op.Arg) !void {
     if (std.ascii.isUpper(name[0])) {
         _ = try writer.write("(");
     }
-    const swh = util.Swhash(4);
+    const swh = util.Swhash(2);
     switch (swh.match(name)) {
         swh.case("zc") => _ = try writer.write(@tagName(arg.zc)),
-        swh.case("bt") => try printHexes(writer, 1, arg.bt),
+        swh.case("bt") => _ = try writer.write(&[1]u8{'0' + @as(u8, arg.bt)}),
         swh.case("ib"), swh.case("IB") => try printHexes(writer, 2, arg.ib),
         swh.case("iw"), swh.case("IW") => try printHexes(writer, 4, arg.iw),
         swh.case("rb"), swh.case("RB") => _ = try writer.write(@tagName(arg.rb)),
