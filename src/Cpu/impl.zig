@@ -9,7 +9,7 @@ test "" {
     _ = @import("impl_daa_test.zig");
 }
 
-pub fn Result(lengt: u2, duration: var) type {
+pub fn Result(lengt: u2, duration: anytype) type {
     if (duration.len == 1) {
         return extern struct {
             pub const length = lengt;

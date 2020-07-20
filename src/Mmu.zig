@@ -71,7 +71,7 @@ test "offsets" {
     std.testing.expectEqual(0xFFFF, @byteOffsetOf(Linear, "interrupt_enable"));
 }
 
-fn offsetOf(ref: var, target: var) usize {
+fn offsetOf(ref: anytype, target: anytype) usize {
     return @ptrToInt(target) - @ptrToInt(ref);
 }
 

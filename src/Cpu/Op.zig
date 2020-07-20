@@ -554,7 +554,7 @@ fn disassembleSpecial(op: Op) ?[]const u8 {
     };
 }
 
-fn disassembleArg(writer: var, name: *const [2]u8, arg: Op.Arg) !void {
+fn disassembleArg(writer: anytype, name: *const [2]u8, arg: Op.Arg) !void {
     if (std.mem.eql(u8, "__", name)) return;
 
     _ = try writer.write(" ");
@@ -578,7 +578,7 @@ fn disassembleArg(writer: var, name: *const [2]u8, arg: Op.Arg) !void {
     }
 }
 
-fn printHexes(writer: var, length: u3, val: u16) !void {
+fn printHexes(writer: anytype, length: u3, val: u16) !void {
     @setCold(true);
     _ = try writer.write("$");
     var i: u4 = length;

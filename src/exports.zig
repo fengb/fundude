@@ -57,7 +57,7 @@ pub fn MatrixChunk(comptime T: type) type {
         width: UsizeHalf,
         height: UsizeHalf,
 
-        pub fn fromMatrix(matrix: var) Abi {
+        pub fn fromMatrix(matrix: anytype) Abi {
             const M = std.meta.Child(@TypeOf(matrix.ptr));
             if (@sizeOf(M) != @sizeOf(T)) @compileError("Unsupported Matrix type: " ++ @typeName(M));
 

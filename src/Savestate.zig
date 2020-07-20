@@ -28,7 +28,7 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
             break :blk result;
         };
 
-        fn dump(self: T, writer: var) !void {
+        fn dump(self: T, writer: anytype) !void {
             inline for (field_names) |field_name| {
                 const field_ptr = &@field(self, field_name);
                 const FieldType = @TypeOf(field_ptr.*);
@@ -37,7 +37,7 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
             }
         }
 
-        fn validate(reader: var) !void {
+        fn validate(reader: anytype) !void {
             var fake: T = undefined;
             inline for (field_names) |field_name| {
                 const FieldType = @TypeOf(@field(fake, field_name));
@@ -50,7 +50,7 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
             }
         }
 
-        fn restore(self: *T, reader: var) !void {
+        fn restore(self: *T, reader: anytype) !void {
             inline for (field_names) |field_name| {
                 const FieldType = @TypeOf(@field(self, field_name));
                 const wire_size = @sizeOf(FieldType);
@@ -147,7 +147,7 @@ const version = 0x00;
 const magic_number = [_]u8{ 0xDC, version, 0x46, 0x44, 0x0D, 0x0A, 0x1A, 0x0A };
 const cart_meta_len = 0x18;
 
-pub fn dump(fd: Fundude, writer: var) !void {
+pub fn dump(fd: Fundude, writer: anytype) !void {
     try writer.writeAll(&magic_number);
     try writer.writeAll(fd.mmu.cart[0x134..][0..cart_meta_len]);
 
@@ -158,7 +158,7 @@ pub fn dump(fd: Fundude, writer: var) !void {
     try Video.dump(fd.video, writer);
 }
 
-fn validateHeader(fd: *Fundude, reader: var) !void {
+fn validateHeader(fd: *Fundude, reader: anytype) !void {
     const header = try reader.readBytesNoEof(magic_number.len);
     if (!std.mem.eql(u8, &header, &magic_number)) {
         return error.HeaderMismatch;
@@ -169,7 +169,7 @@ fn validateHeader(fd: *Fundude, reader: var) !void {
     }
 }
 
-pub fn validate(fd: *Fundude, reader: var) !void {
+pub fn validate(fd: *Fundude, reader: anytype) !void {
     try validateHeader(fd, reader);
 
     try Cpu.validate(reader);
@@ -179,7 +179,7 @@ pub fn validate(fd: *Fundude, reader: var) !void {
     try Video.validate(reader);
 }
 
-pub fn restore(fd: *Fundude, reader: var) !void {
+pub fn restore(fd: *Fundude, reader: anytype) !void {
     try validateHeader(fd, reader);
 
     try Cpu.restore(&fd.cpu, reader);
