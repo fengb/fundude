@@ -78,13 +78,13 @@ const Shade = extern enum(u8) {
             .r = value,
             .g = value,
             .b = value,
-            .opaque = true,
+            .@"opaque" = true,
         };
     }
 
     fn asPixel(self: Shade) Pixel {
         var result = self.asOpaque();
-        result.opaque = self != .White;
+        result.@"opaque" = self != .White;
         return result;
     }
 };
@@ -93,7 +93,7 @@ const Pixel = packed struct {
     r: u5 align(2),
     g: u5,
     b: u5,
-    opaque: bool,
+    @"opaque": bool,
 };
 
 const ColorPalette = packed struct {
@@ -519,7 +519,7 @@ pub const Video = struct {
 
                 for (@bitCast([4]Pixel, chunk)) |pixel, j| {
                     const x = 4 * i + j;
-                    if (pixel.opaque and (metas[x].in_front or !line[x].opaque)) {
+                    if (pixel.@"opaque" and (metas[x].in_front or !line[x].@"opaque")) {
                         line[x] = pixel;
                     }
                 }

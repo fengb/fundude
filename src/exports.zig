@@ -11,11 +11,12 @@ pub const is_profiling = false;
 
 const allocator = if (builtin.link_libc)
     std.heap.c_allocator
-else if (builtin.arch.isWasm()) blk: {
+else if (builtin.arch.isWasm())
+blk: {
     (zee_alloc.ExportC{
         .allocator = zee_alloc.ZeeAllocDefaults.wasm_allocator,
-        .malloc = true,
-        .free = true,
+        .malloc = false,
+        .free = false,
     }).run();
     break :blk zee_alloc.ZeeAllocDefaults.wasm_allocator;
 } else {
@@ -50,7 +51,7 @@ pub const U8Chunk = packed struct {
 
 pub fn MatrixChunk(comptime T: type) type {
     return packed struct {
-        const UsizeHalf = std.meta.IntType(true, @bitSizeOf(usize) / 2);
+        const UsizeHalf = std.meta.Int(.signed, @bitSizeOf(usize) / 2);
         const Abi = if (builtin.arch.isWasm()) U8Chunk.Abi else MatrixChunk(T);
 
         ptr: [*]T,

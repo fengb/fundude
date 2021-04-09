@@ -25,7 +25,7 @@ pub fn build(b: *std.build.Builder) void {
 }
 
 fn addScript(b: *std.build.Builder, name: []const u8) void {
-    const filename = std.fmt.allocPrint(b.allocator, "scripts/{}.zig", .{name}) catch unreachable;
+    const filename = std.fmt.allocPrint(b.allocator, "scripts/{s}.zig", .{name}) catch unreachable;
     const mode = b.standardReleaseOptions();
     const exe = b.addExecutable(name, filename);
     exe.setBuildMode(mode);

@@ -122,7 +122,7 @@ const meta_ops = blk: {
         const op = Op.decode(.{ i, 0, 0 });
         val.* = .{ .length = op.length, .duration = op.durations[0] };
     }
-    return result;
+    break :blk result;
 };
 
 fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {

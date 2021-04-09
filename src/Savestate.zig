@@ -46,7 +46,7 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
                     return error.SizeMismatch;
                 }
 
-                try reader.skipBytes(wire_size);
+                try reader.skipBytes(wire_size, .{ .buf_size = 64 });
             }
         }
 
@@ -61,7 +61,7 @@ fn Serializer(comptime T: type, comptime field_names: []const []const u8) type {
                 switch (@typeInfo(FieldType)) {
                     .Bool => @field(self, field_name) = 0 != try reader.readByte(),
                     .Int => |int_info| {
-                        const WireType = std.meta.Int(false, 8 * wire_size);
+                        const WireType = std.meta.Int(.unsigned, 8 * wire_size);
                         const raw = try reader.readIntNative(WireType);
                         @field(self, field_name) = @intCast(FieldType, raw);
                     },
