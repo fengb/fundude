@@ -57,7 +57,7 @@ pub const Io = extern struct {
 };
 
 test "offsets" {
-    const Linear = std.meta.fieldInfo(Mmu, "dyn").field_type;
+    const Linear = std.meta.fieldInfo(Mmu, .dyn).field_type;
     std.testing.expectEqual(0x10000, @sizeOf(Linear));
 
     std.testing.expectEqual(0x0000, @byteOffsetOf(Linear, "rom"));
@@ -71,24 +71,24 @@ test "offsets" {
     std.testing.expectEqual(0xFFFF, @byteOffsetOf(Linear, "interrupt_enable"));
 }
 
-fn offsetOf(ref: anytype, target: anytype) usize {
+fn ptrOffsetOf(ref: anytype, target: anytype) usize {
     return @ptrToInt(target) - @ptrToInt(ref);
 }
 
 test "Io offsets" {
     var mmu: Mmu = undefined;
-    std.testing.expectEqual(@as(usize, 0xFF04), offsetOf(&mmu.dyn, &mmu.dyn.io.timer));
-    std.testing.expectEqual(@as(usize, 0xFF0F), offsetOf(&mmu.dyn, &mmu.dyn.io.IF));
+    std.testing.expectEqual(@as(usize, 0xFF04), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.timer));
+    std.testing.expectEqual(@as(usize, 0xFF0F), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.IF));
 
-    std.testing.expectEqual(@as(usize, 0xFF10), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR10));
-    std.testing.expectEqual(@as(usize, 0xFF1E), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR34));
-    std.testing.expectEqual(@as(usize, 0xFF20), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR41));
-    std.testing.expectEqual(@as(usize, 0xFF26), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR52));
-    std.testing.expectEqual(@as(usize, 0xFF30), offsetOf(&mmu.dyn, &mmu.dyn.io.audio.wave_pattern));
+    std.testing.expectEqual(@as(usize, 0xFF10), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR10));
+    std.testing.expectEqual(@as(usize, 0xFF1E), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR34));
+    std.testing.expectEqual(@as(usize, 0xFF20), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR41));
+    std.testing.expectEqual(@as(usize, 0xFF26), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR52));
+    std.testing.expectEqual(@as(usize, 0xFF30), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.wave_pattern));
 
-    std.testing.expectEqual(@as(usize, 0xFF40), offsetOf(&mmu.dyn, &mmu.dyn.io.video.LCDC));
-    std.testing.expectEqual(@as(usize, 0xFF49), offsetOf(&mmu.dyn, &mmu.dyn.io.video.OBP1));
-    std.testing.expectEqual(@as(usize, 0xFF4A), offsetOf(&mmu.dyn, &mmu.dyn.io.video.WY));
+    std.testing.expectEqual(@as(usize, 0xFF40), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.video.LCDC));
+    std.testing.expectEqual(@as(usize, 0xFF49), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.video.OBP1));
+    std.testing.expectEqual(@as(usize, 0xFF4A), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.video.WY));
 }
 
 const CartHeaderError = error{
