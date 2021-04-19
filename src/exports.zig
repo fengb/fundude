@@ -15,8 +15,8 @@ else if (builtin.arch.isWasm())
 blk: {
     (zee_alloc.ExportC{
         .allocator = zee_alloc.ZeeAllocDefaults.wasm_allocator,
-        .malloc = false,
-        .free = false,
+        .malloc = true,
+        .free = true,
     }).run();
     break :blk zee_alloc.ZeeAllocDefaults.wasm_allocator;
 } else {

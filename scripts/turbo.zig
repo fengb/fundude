@@ -4,7 +4,7 @@ const Fundude = @import("fundude");
 pub fn main() !u8 {
     const args = try std.process.argsAlloc(std.heap.page_allocator);
     if (args.len != 2) {
-        std.debug.warn("Usage: {} [path/to/test-rom.gb]\n", .{"turbo"});
+        std.debug.print("Usage: {s} [path/to/test-rom.gb]\n", .{"turbo"});
         return 1;
     }
 
@@ -18,17 +18,17 @@ pub fn main() !u8 {
 
     const red = try file.readAll(cart);
     if (red != cart.len) {
-        std.debug.warn("Cart length {} != {}", .{ red, cart.len });
+        std.debug.print("Cart length {} != {}", .{ red, cart.len });
         return 1;
     }
 
     var fd: Fundude = undefined;
     try fd.load(cart);
-    fd.mmu.loadBootloader(Fundude.mmu.Bootloaders.mini);
+    fd.mmu.loadBootloader(Fundude.Mmu.Bootloaders.mini);
 
     var i: usize = 0;
     while (i < 300_000_000) : (i += 1) {
-        _ = fd.step();
+        _ = fd.tick(false);
     }
 
     return 0;

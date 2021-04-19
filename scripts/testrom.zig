@@ -4,7 +4,7 @@ const Fundude = @import("fundude");
 pub fn main() !u8 {
     const args = try std.process.argsAlloc(std.heap.page_allocator);
     if (args.len < 2) {
-        std.debug.warn("Usage: {} [path/to/test-rom.gb]\n", .{"testrom"});
+        std.debug.print("Usage: {s} [path/to/test-rom.gb]\n", .{"testrom"});
         return 1;
     }
 
@@ -18,7 +18,7 @@ pub fn main() !u8 {
 
         const red = try file.readAll(&cart);
         if (red != cart.len) {
-            std.debug.warn("Cart length {} != {}", .{ red, cart.len });
+            std.debug.print("Cart length {} != {}", .{ red, cart.len });
             return 1;
         }
 
@@ -35,11 +35,11 @@ pub fn main() !u8 {
         const expecteds = cart[0x4000..];
         const actuals = std.mem.asBytes(&fd.mmu.dyn)[stack_top..0xE000];
 
-        std.debug.warn("\n{}\n    compared bytes: 0x{X}\n", .{ arg, actuals.len });
+        std.debug.print("\n{s}\n    compared bytes: 0x{X}\n", .{ arg, actuals.len });
 
         for (actuals) |actual, i| {
             if (actual != expecteds[i]) {
-                std.debug.warn("    0x{X}: 0x{X} != 0x{X} \n", .{ stack_top + i, actual, expecteds[i] });
+                std.debug.print("    0x{X}: 0x{X} != 0x{X} \n", .{ stack_top + i, actual, expecteds[i] });
                 status = 1;
             }
         }
