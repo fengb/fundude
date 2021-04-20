@@ -81,25 +81,29 @@ pub fn MatrixChunk(comptime T: type) type {
     };
 }
 
-export fn fd_init() ?*Fundude {
-    return Fundude.init(allocator) catch return null;
+export fn fd_create() ?*Fundude {
+    const fd = allocator.create(Fundude) catch return null;
+    fd.* = .{};
+    return fd;
 }
 
-export fn fd_deinit(fd: *Fundude) void {
-    fd.deinit();
+export fn fd_destroy(fd: *Fundude) void {
+    fd.deinit(allocator);
+    allocator.destroy(fd);
 }
 
 export fn fd_load(fd: *Fundude, cart: U8Chunk.Abi) i8 {
-    fd.load(U8Chunk.toSlice(cart)) catch |err| return switch (err) {
+    fd.init(allocator, .{ .cart = U8Chunk.toSlice(cart) }) catch |err| return switch (err) {
         error.CartTypeError => 1,
         error.RomSizeError => 2,
         error.RamSizeError => 3,
+        error.OutOfMemory => 127,
     };
     return 0;
 }
 
 export fn fd_reset(fd: *Fundude) void {
-    fd.reset();
+    fd.init(allocator, .{}) catch unreachable;
 }
 
 export fn fd_step(fd: *Fundude) i8 {

@@ -18,45 +18,39 @@ pub const profiling_call = std.builtin.CallOptions{
 
 const Fundude = @This();
 
-allocator: *std.mem.Allocator,
+video: video.Video = undefined,
+cpu: Cpu = undefined,
+mmu: Mmu = undefined,
 
-video: video.Video,
-cpu: Cpu,
-mmu: Mmu,
+inputs: joypad.Inputs = undefined,
+timer: timer.Timer = undefined,
+temportal: Temportal = .{},
 
-inputs: joypad.Inputs,
-timer: timer.Timer,
-temportal: Temportal,
+breakpoint: u16 = 0xFFFF,
 
-breakpoint: u16,
+pub fn init(self: *Fundude, allocator: *std.mem.Allocator, args: struct {
+    cart: ?[]const u8 = null,
+    temportal_states: usize = 256,
+}) !void {
+    if (args.cart) |cart| {
+        try self.mmu.load(cart);
+    }
 
-pub fn init(allocator: *std.mem.Allocator) !*Fundude {
-    var fd = try allocator.create(Fundude);
-    fd.allocator = allocator;
-    return fd;
-}
+    try self.temportal.init(allocator, args.temportal_states);
+    self.temportal.save(self);
 
-pub fn deinit(self: *Fundude) void {
-    self.allocator.destroy(self);
-    self.* = undefined;
-}
-
-pub fn load(self: *Fundude, cart: []const u8) !void {
-    try self.mmu.load(cart);
-    self.reset();
-}
-
-pub fn reset(self: *Fundude) void {
     self.mmu.reset();
     self.video.reset();
     self.cpu.reset();
     self.inputs.reset();
     self.timer.reset();
 
-    self.temportal.reset();
-    self.temportal.save(self);
-
     self.breakpoint = 0xFFFF;
+}
+
+pub fn deinit(self: *Fundude, allocator: *std.mem.Allocator) void {
+    self.temportal.deinit(allocator);
+    self.* = .{};
 }
 
 // TODO: convert "catchup" to an enum
@@ -72,7 +66,6 @@ pub const restore = Savestate.restore;
 pub const validateSavestate = Savestate.validate;
 pub const savestate_size = Savestate.size;
 
-test "" {
-    _ = Fundude;
-    _ = Savestate;
+test {
+    std.testing.refAllDecls(@This());
 }

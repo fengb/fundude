@@ -22,11 +22,10 @@ pub fn main() !u8 {
         return 1;
     }
 
-    var fd = try std.heap.page_allocator.create(Fundude);
-    defer std.heap.page_allocator.destroy(fd);
+    var fd = Fundude{};
     const ticks = Fundude.MHz / 4 * 500;
     {
-        try fd.load(cart);
+        try fd.init(std.heap.page_allocator, .{ .cart = cart });
         var timer = try std.time.Timer.start();
         var i: usize = 0;
         while (i < ticks) : (i += 1) {
@@ -35,7 +34,7 @@ pub fn main() !u8 {
         std.debug.print("Catchup: {}\n", .{std.fmt.fmtDuration(timer.read())});
     }
     {
-        try fd.load(cart);
+        try fd.init(std.heap.page_allocator, .{ .cart = cart });
         var timer = try std.time.Timer.start();
         var i: usize = 0;
         while (i < ticks) : (i += 1) {

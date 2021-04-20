@@ -3,15 +3,23 @@ const Fundude = @import("main.zig");
 
 const Temportal = @This();
 
-states: [256]Fundude.Savestate,
-bottom: u8,
-top: u8,
-clock: usize,
+states: []Fundude.Savestate = &.{},
+bottom: usize = 0,
+top: usize = 0,
+clock: usize = 0,
 
-pub fn reset(self: *Temportal) void {
+pub fn init(self: *Temportal, allocator: *std.mem.Allocator, states: usize) !void {
+    if (self.states.len != states) {
+        self.states = try allocator.realloc(self.states, states);
+    }
     self.bottom = 0;
     self.top = 0;
     self.clock = 0;
+}
+
+pub fn deinit(self: *Temportal, allocator: *std.mem.Allocator) void {
+    allocator.free(self.states);
+    self.* = .{};
 }
 
 pub fn tick(self: *Temportal, fd: *Fundude) void {
@@ -25,10 +33,19 @@ pub fn tick(self: *Temportal, fd: *Fundude) void {
 }
 
 pub fn save(self: *Temportal, fd: *Fundude) void {
+    if (self.states.len == 0) return;
+
     self.states[self.top].dumpFrom(fd.*);
-    self.top +%= 1;
+    self.top += 1;
+    if (self.top >= self.states.len) {
+        self.top = 0;
+    }
+
     if (self.top == self.bottom) {
-        self.bottom +%= 1;
+        self.bottom += 1;
+        if (self.bottom >= self.states.len) {
+            self.bottom = 0;
+        }
     }
 }
 

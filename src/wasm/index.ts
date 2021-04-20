@@ -116,7 +116,7 @@ export default class FundudeWasm {
   private cartCopyPtr: number;
 
   constructor(cart: Uint8Array) {
-    this.pointer = WASM.fd_init();
+    this.pointer = WASM.fd_create();
     this.load(cart);
   }
 
@@ -217,7 +217,7 @@ export default class FundudeWasm {
 
   dealloc() {
     WASM.free(this.cartCopyPtr);
-    WASM.fd_deinit(this.pointer);
+    WASM.fd_destroy(this.pointer);
   }
 
   breakpoint: number = -1;
