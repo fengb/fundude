@@ -166,7 +166,7 @@ pub const Vram = packed struct {
 
 pub const Video = struct {
     buffers: [2]Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT),
-    screen_index: u1,
+    draw_index: u1,
 
     clock: extern struct {
         line: u32,
@@ -340,12 +340,12 @@ pub const Video = struct {
     },
 
     pub fn screen(self: *Video) *Matrix(Pixel, SCREEN_WIDTH, SCREEN_HEIGHT) {
-        return &self.buffers[self.screen_index];
+        return &self.buffers[self.draw_index ^ 1];
     }
 
     pub fn reset(self: *Video) void {
         self.buffers[0].reset(Shade.White.asPixel());
-        self.screen_index = 0;
+        self.draw_index = 0;
         self.clock.offset = 0;
         self.clock.line = 0;
 
@@ -463,7 +463,7 @@ pub const Video = struct {
                 }
             },
             .vblank => {
-                self.screen_index ^= 1;
+                self.draw_index ^= 1;
 
                 mmu.dyn.io.IF.vblank = true;
                 if (mmu.dyn.io.video.STAT.irq_vblank) {
@@ -481,8 +481,7 @@ pub const Video = struct {
         @call(Fundude.profiling_call, self.cache.background.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map });
         @call(Fundude.profiling_call, self.cache.window.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.window_tile_map });
 
-        const draw_index = self.screen_index ^ 1;
-        const line = self.buffers[draw_index].sliceLine(0, y);
+        const line = self.buffers[self.draw_index].sliceLine(0, y);
 
         if (mmu.dyn.io.video.LCDC.bg_enable) {
             const xbg = mmu.dyn.io.video.SCX % self.cache.background.data.width;
