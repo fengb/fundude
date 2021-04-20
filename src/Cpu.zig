@@ -200,7 +200,7 @@ test "opExecute smoke" {
     }
 }
 
-pub const Mode = enum(u16) {
+pub const Mode = enum {
     norm,
     halt,
     stop,

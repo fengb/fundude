@@ -157,7 +157,7 @@ pub const Arg = union {
     mo: Cpu.Mode,
 };
 
-pub const ZC = enum(u32) {
+pub const ZC = enum(u16) {
     nz = 0x0_80,
     z = 0x80_80,
     nc = 0x0_10,
