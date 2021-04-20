@@ -22,13 +22,26 @@ pub fn main() !u8 {
         return 1;
     }
 
-    var fd: Fundude = undefined;
-    try fd.load(cart);
-    fd.mmu.loadBootloader(Fundude.Mmu.Bootloaders.mini);
-
-    var i: usize = 0;
-    while (i < 300_000_000) : (i += 1) {
-        _ = fd.tick(false);
+    var fd = try std.heap.page_allocator.create(Fundude);
+    defer std.heap.page_allocator.destroy(fd);
+    const ticks = Fundude.MHz / 4 * 500;
+    {
+        try fd.load(cart);
+        var timer = try std.time.Timer.start();
+        var i: usize = 0;
+        while (i < ticks) : (i += 1) {
+            _ = fd.tick(true);
+        }
+        std.debug.print("Catchup: {}\n", .{std.fmt.fmtDuration(timer.read())});
+    }
+    {
+        try fd.load(cart);
+        var timer = try std.time.Timer.start();
+        var i: usize = 0;
+        while (i < ticks) : (i += 1) {
+            _ = fd.tick(false);
+        }
+        std.debug.print("Slowpath: {}\n", .{std.fmt.fmtDuration(timer.read())});
     }
 
     return 0;
