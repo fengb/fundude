@@ -126,8 +126,6 @@ const meta_ops = blk: {
 };
 
 fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
-    if (!self.interrupt_master) return null;
-
     const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
     const addr: u8 = blk: {
         // Naive implementation:
@@ -149,7 +147,8 @@ fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
         // } else {
         //     return null;
         // }
-        if (cmp.active()) |active| {
+        if (cmp.isActive() and self.interrupt_master) {
+            const active = cmp.active().?;
             std.debug.assert(cmp.get(active));
             mmu.dyn.io.IF.disable(active);
             break :blk 0x40 + @as(u8, 8) * @enumToInt(active);
@@ -235,7 +234,7 @@ pub const Irq = packed struct {
     timer: bool,
     serial: bool,
     joypad: bool,
-    _pad: u3,
+    _pad: u3 = 0,
 
     pub const Pos = enum(u3) {
         vblank,
@@ -255,6 +254,10 @@ pub const Irq = packed struct {
 
     pub fn get(self: Irq, pos: Pos) bool {
         return pos.mask() & @bitCast(u8, self) != 0;
+    }
+
+    pub fn isActive(self: Irq) bool {
+        return @bitCast(u8, self) != 0;
     }
 
     pub fn active(self: Irq) ?Pos {
