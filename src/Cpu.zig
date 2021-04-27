@@ -164,16 +164,38 @@ fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
     return [3]u8{ 0xCD, addr, 0 };
 }
 
+fn targetRegValue(cpu: Cpu, op: Op) u16 {
+    const name = @tagName(op.id);
+    const sw = util.Swhash(2);
+    return switch (sw.match(name[5..7])) {
+        sw.case("rw"), sw.case("RW") => cpu.reg._16.get(op.arg0.rw),
+        sw.case("rb"), sw.case("RB") => cpu.reg._8.get(op.arg0.rb),
+        else => undefined,
+    };
+}
+
 pub fn opExecute(cpu: *Cpu, mmu: *Fundude.Mmu, bytes: [3]u8) u8 {
     const op = @call(.{ .modifier = .always_inline }, Op.decode, .{bytes});
 
     inline for (std.meta.fields(Op.Id)) |field| {
         if (field.value == @enumToInt(op.id)) {
-            const func = @field(Op.impl, field.name);
-            const result = func(cpu, mmu, op);
+            const meta = @field(Op.impl, field.name);
 
-            const Result = @typeInfo(@TypeOf(func)).Fn.return_type.?;
+            const last = if (@hasDecl(meta, "flags")) targetRegValue(cpu.*, op) else undefined;
+
+            const Fn = @typeInfo(@TypeOf(meta.exec)).Fn;
+            const result = if (Fn.args.len == 3)
+                meta.exec(cpu, mmu, op)
+            else
+                meta.exec(cpu, mmu, op, cpu.reg.flags);
+
+            const Result = @TypeOf(result);
             std.debug.assert(result.duration == Result.durations[0] or result.duration == Result.durations[1]);
+
+            if (@hasDecl(meta, "flags")) {
+                const curr = targetRegValue(cpu.*, op);
+                cpu.reg.flags = meta.flags(curr, last, cpu.reg.flags);
+            }
 
             return @bitCast(u8, result);
         }

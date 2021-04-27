@@ -594,8 +594,8 @@ fn printHexes(writer: anytype, length: u3, val: u16) !void {
 // -- init helpers
 
 fn init(comptime id: Id, arg0: Arg, arg1: Arg) Op {
-    const func = @field(Op.impl, @tagName(id));
-    const ResultMeta = @typeInfo(@TypeOf(func)).Fn.return_type.?;
+    const meta = @field(Op.impl, @tagName(id));
+    const ResultMeta = @typeInfo(@TypeOf(meta.exec)).Fn.return_type.?;
 
     return .{
         .id = id,
