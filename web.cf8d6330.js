@@ -92,6 +92,6 @@ module.exports=function(t){return fetch(t).then(function(t){return WebAssembly.i
 },{}],"Yi9z":[function(require,module,exports) {
 module.exports=function(n){return new Promise(function(e,o){var r=document.createElement("script");r.async=!0,r.type="text/javascript",r.charset="utf-8",r.src=n,r.onerror=function(n){r.onerror=r.onload=null,o(n)},r.onload=function(){r.onerror=r.onload=null,e()},document.getElementsByTagName("head")[0].appendChild(r)})};
 },{}],0:[function(require,module,exports) {
-var b=require("TUK3");b.register("wasm",require("SeQb"));b.register("js",require("Yi9z"));b.load([["fundude.c70403a1.wasm","Sb9Q"]]).then(function(){require("zo2T");});
+var b=require("TUK3");b.register("wasm",require("SeQb"));b.register("js",require("Yi9z"));b.load([["fundude.28267490.wasm","Sb9Q"]]).then(function(){require("zo2T");});
 },{}]},{},[0], null)
 //# sourceMappingURL=web.cf8d6330.js.map
