@@ -45,7 +45,14 @@ pub fn main() anyerror!u8 {
 
     const screen = fd.video.screen();
 
-    var window = c.SDL_CreateWindow("fundude", c.SDL_WINDOWPOS_CENTERED, c.SDL_WINDOWPOS_CENTERED, screen.width, screen.height, c.SDL_WINDOW_OPENGL);
+    var window = c.SDL_CreateWindow(
+        "fundude",
+        c.SDL_WINDOWPOS_CENTERED,
+        c.SDL_WINDOWPOS_CENTERED,
+        screen.width * 3,
+        screen.height * 3,
+        c.SDL_WINDOW_OPENGL | c.SDL_WINDOW_RESIZABLE,
+    );
     defer c.SDL_DestroyWindow(window);
 
     var renderer = c.SDL_CreateRenderer(
@@ -54,6 +61,8 @@ pub fn main() anyerror!u8 {
         c.SDL_RENDERER_PRESENTVSYNC,
     );
     defer c.SDL_DestroyRenderer(renderer);
+
+    _ = c.SDL_RenderSetLogicalSize(renderer, screen.width, screen.height);
 
     var texture = c.SDL_CreateTexture(
         renderer,
