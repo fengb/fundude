@@ -1,17 +1,15 @@
 const std = @import("std");
-const builtin = @import("builtin");
+const builtin = std.builtin;
 const zee_alloc = @import("zee_alloc");
 
 const Fundude = @import("main.zig");
 const util = @import("util.zig");
 
-const CYCLES_PER_MS = Fundude.MHz / 1000;
-
 pub const is_profiling = false;
 
 const allocator = if (builtin.link_libc)
     std.heap.c_allocator
-else if (builtin.arch.isWasm())
+else if (builtin.cpu.arch.isWasm())
 blk: {
     (zee_alloc.ExportC{
         .allocator = zee_alloc.ZeeAllocDefaults.wasm_allocator,
@@ -29,7 +27,7 @@ pub const U8Chunk = packed struct {
     // JS can't handle i64 yet so we're using f64 for now
     // const Int = std.meta.IntType(true, 2 * @bitSizeOf(usize));
     const Float = @Type(builtin.TypeInfo{ .Float = .{ .bits = 2 * @bitSizeOf(usize) } });
-    const Abi = if (builtin.arch.isWasm()) Float else U8Chunk;
+    const Abi = if (builtin.cpu.arch.isWasm()) Float else U8Chunk;
 
     ptr: [*]u8,
     len: usize,
@@ -52,7 +50,7 @@ pub const U8Chunk = packed struct {
 pub fn MatrixChunk(comptime T: type) type {
     return packed struct {
         const UsizeHalf = std.meta.Int(.signed, @bitSizeOf(usize) / 2);
-        const Abi = if (builtin.arch.isWasm()) U8Chunk.Abi else MatrixChunk(T);
+        const Abi = if (builtin.cpu.arch.isWasm()) U8Chunk.Abi else MatrixChunk(T);
 
         ptr: [*]T,
         width: UsizeHalf,
@@ -107,36 +105,15 @@ export fn fd_reset(fd: *Fundude) void {
 }
 
 export fn fd_step(fd: *Fundude) i8 {
-    fd.tick(false);
-    var duration: i8 = 4;
-    while (fd.cpu.remaining > 0) {
-        fd.tick(false);
-        duration += 4;
-    }
-    return duration;
+    return fd.step();
 }
 
 export fn fd_step_ms(fd: *Fundude, ms: f64) i32 {
-    const cycles = @as(f64, ms) * CYCLES_PER_MS;
-    std.debug.assert(cycles < std.math.maxInt(i32));
-    return fd_step_cycles(fd, @floatToInt(i32, cycles));
+    return fd.step_ms(@floatToInt(i64, ms), is_profiling);
 }
 
 export fn fd_step_cycles(fd: *Fundude, cycles: i32) i32 {
-    const target_cycles: i32 = cycles;
-    var track = target_cycles;
-
-    while (track >= 0) {
-        const catchup = track > 140_000 and !is_profiling;
-        fd.tick(catchup);
-        track -= 4;
-
-        if (fd.breakpoint == fd.cpu.reg._16.get(.PC)) {
-            return target_cycles - track;
-        }
-    }
-
-    return target_cycles - track;
+    return fd.step_cycles(cycles, is_profiling);
 }
 
 export fn fd_rewind(fd: *Fundude) void {
