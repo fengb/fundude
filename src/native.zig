@@ -17,16 +17,27 @@ const input = packed struct {
     start: bool,
 };
 
-pub fn main() anyerror!void {
+pub fn main() anyerror!u8 {
     _ = c.SDL_Init(c.SDL_INIT_VIDEO);
     defer c.SDL_Quit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = &gpa.allocator;
 
+    var arg_iter = std.process.ArgIterator.init();
+
+    const binary_name = try arg_iter.next(allocator) orelse @panic("missing first arugment");
+    defer allocator.free(binary_name);
+
+    const rom_file = try arg_iter.next(allocator) orelse {
+        std.debug.print("usage:\n  {s} [rom.gb]\n", .{binary_name});
+        return 1;
+    };
+    defer allocator.free(rom_file);
+
     var fd: Fundude = .{};
 
-    const data = try std.fs.cwd().readFileAlloc(allocator, std.mem.span(std.os.argv[1]), 0xfffffff);
+    const data = try std.fs.cwd().readFileAlloc(allocator, rom_file, 0xfffffff);
     defer allocator.free(data);
 
     try fd.init(allocator, .{ .cart = data });
@@ -117,4 +128,6 @@ pub fn main() anyerror!void {
         _ = c.SDL_RenderCopy(renderer, texture, null, null);
         c.SDL_RenderPresent(renderer);
     }
+
+    return 0;
 }
