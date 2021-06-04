@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 
 pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
+    const target = b.standardTargetOptions(.{});
 
     const lib = b.addStaticLibrary("fundude", "src/exports.zig");
     lib.addPackagePath("zee_alloc", "submodules/zee_alloc/src/main.zig");
@@ -18,6 +19,24 @@ pub fn build(b: *std.build.Builder) void {
 
     b.default_step.dependOn(&lib.step);
     b.installArtifact(lib);
+
+    var native = b.addExecutable("fundude_native", "src/native.zig");
+    native.linkSystemLibrary("sdl2");
+    native.setTarget(target);
+    native.setBuildMode(mode);
+    native.install();
+
+    const native_step = b.step("native", "Build native SDL version");
+    native_step.dependOn(&native.step);
+
+    const run_cmd = native.run();
+    run_cmd.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
+
+    const run_step = b.step("run", "Run the app");
+    run_step.dependOn(&run_cmd.step);
 
     addScript(b, "opcodes");
     addScript(b, "testrom");
