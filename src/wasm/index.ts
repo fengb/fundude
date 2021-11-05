@@ -1,5 +1,5 @@
 //@ts-ignore
-import WASM from "../../zig-cache/fundude.wasm";
+import WASM from "../../zig-out/lib/fundude.wasm";
 import PicoSignal from "./PicoSignal";
 
 Object.assign(window, { WASM });

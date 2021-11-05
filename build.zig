@@ -11,9 +11,9 @@ pub fn build(b: *std.build.Builder) void {
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&main_tests.step);
 
-    const wasm = b.addStaticLibrary("fundude", "src/exports.zig");
+    const wasm = b.addSharedLibrary("fundude", "src/exports.zig", .unversioned);
     wasm.addPackagePath("zee_alloc", "submodules/zee_alloc/src/main.zig");
-    wasm.setOutputDir("zig-cache");
+    wasm.setOutputDir("zig-out/lib");
     wasm.setBuildMode(mode);
     wasm.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
     wasm.install();
