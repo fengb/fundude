@@ -5,22 +5,23 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{});
 
-    const lib = b.addStaticLibrary("fundude", "src/exports.zig");
-    lib.addPackagePath("zee_alloc", "submodules/zee_alloc/src/main.zig");
-    lib.setOutputDir("zig-cache");
-    lib.setBuildMode(mode);
-    lib.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
-
-    var main_tests = b.addTest("src/main.zig");
+    const main_tests = b.addTest("src/main.zig");
     main_tests.setBuildMode(mode);
 
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&main_tests.step);
 
-    b.default_step.dependOn(&lib.step);
-    b.installArtifact(lib);
+    const wasm = b.addStaticLibrary("fundude", "src/exports.zig");
+    wasm.addPackagePath("zee_alloc", "submodules/zee_alloc/src/main.zig");
+    wasm.setOutputDir("zig-cache");
+    wasm.setBuildMode(mode);
+    wasm.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
+    wasm.install();
 
-    var native = b.addExecutable("fundude_native", "src/native.zig");
+    const wasm_step = b.step("wasm", "Build wasm version");
+    wasm_step.dependOn(&wasm.step);
+
+    const native = b.addExecutable("fundude_native", "src/native.zig");
     native.linkSystemLibrary("sdl2");
     native.setTarget(target);
     native.setBuildMode(mode);
