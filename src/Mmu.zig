@@ -27,6 +27,7 @@ dyn: extern struct {
     interrupt_enable: Cpu.Irq, // [$FFFF]
 },
 
+bootloader: Bootloader,
 cart: []const u8,
 bank: u9,
 
@@ -177,12 +178,8 @@ pub fn load(self: *Mmu, cart: []const u8) CartHeaderError!void {
 
     self.cart = cart;
     self.bank = 1;
-    std.mem.copy(u8, &self.dyn.rom, Bootloaders.dmg);
-    std.mem.copy(u8, self.dyn.rom[Bootloaders.len..], cart[Bootloaders.len..0x8000]);
-}
-
-pub fn loadBootloader(self: *Mmu, bootloader: *const [0x100]u8) void {
-    std.mem.copy(u8, &self.dyn.rom, bootloader);
+    std.mem.copy(u8, &self.dyn.rom, self.bootloader.rom());
+    std.mem.copy(u8, self.dyn.rom[Bootloader.len..], cart[Bootloader.len..0x8000]);
 }
 
 pub fn instrBytes(self: Mmu, addr: u16) [3]u8 {
@@ -213,7 +210,7 @@ pub fn set(self: *Mmu, addr: u16, val: u8) void {
         0xFE00...0xFEA0 - 1 => fd.video.updatedOam(self, addr, val),
         0xFF00 => fd.inputs.sync(self),
         0xFF40...0xFF4C - 1 => fd.video.updatedIo(self, addr, val),
-        0xFF50 => std.mem.copy(u8, &self.dyn.rom, self.cart[0..Bootloaders.len]),
+        0xFF50 => std.mem.copy(u8, &self.dyn.rom, self.cart[0..Bootloader.len]),
         else => {},
     }
 }
@@ -300,7 +297,19 @@ fn selectRomBank(self: *Mmu, bank: u9) void {
     );
 }
 
-pub const Bootloaders = struct {
+pub const Bootloader = union(enum) {
+    dmg: void,
+    mini: void,
+    custom: *const [len]u8,
+
+    fn rom(self: Bootloader) *const [len]u8 {
+        return switch (self) {
+            .dmg => dmg,
+            .mini => mini,
+            .custom => |custom| custom,
+        };
+    }
+
     const len = 0x100;
     pub const dmg = &[len]u8{
         0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,

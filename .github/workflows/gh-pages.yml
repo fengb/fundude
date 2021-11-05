@@ -15,9 +15,9 @@ jobs:
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v1
         with:
-          version: master
+          version: 0.8.1
 
-      - run: zig build -Drelease-safe
+      - run: zig build wasm -Drelease-safe
 
       - name: Setup Node.js
         uses: actions/setup-node@v1

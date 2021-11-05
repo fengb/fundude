@@ -8,6 +8,9 @@ pub fn main() !u8 {
         return 1;
     }
 
+    const fd = try std.heap.page_allocator.create(Fundude);
+    defer std.heap.page_allocator.destroy(fd);
+
     var status: u8 = 0;
     for (args[1..]) |arg| {
         var cart: [0x8000]u8 = undefined;
@@ -22,11 +25,12 @@ pub fn main() !u8 {
             return 1;
         }
 
-        const fd = try std.heap.page_allocator.create(Fundude);
-        defer std.heap.page_allocator.destroy(fd);
+        try fd.init(std.heap.page_allocator, .{
+            .cart = &cart,
+            .bootloader = .mini,
+        });
+        defer fd.deinit(std.heap.page_allocator);
 
-        try fd.load(&cart);
-        fd.mmu.loadBootloader(Fundude.Mmu.Bootloaders.mini);
         while (fd.cpu.reg._16.get(.PC) < 0x7FFD) {
             _ = fd.tick(false);
         }

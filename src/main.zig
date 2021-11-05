@@ -32,8 +32,11 @@ breakpoint: u16 = 0xFFFF,
 
 pub fn init(self: *Fundude, allocator: *std.mem.Allocator, args: struct {
     cart: ?[]const u8 = null,
+    bootloader: Fundude.Mmu.Bootloader = .dmg,
     temportal_states: usize = 256,
 }) !void {
+    self.* = .{};
+    self.mmu.bootloader = args.bootloader;
     if (args.cart) |cart| {
         try self.mmu.load(cart);
     }
