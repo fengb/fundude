@@ -31,19 +31,19 @@ test "register arrangement" {
     var cpu: Cpu = undefined;
     cpu.reg._8.set(.A, 0x12);
     cpu.reg._8.set(.F, 0x34);
-    std.testing.expectEqual(@as(u16, 0x1234), cpu.reg._16.get(.AF));
+    try std.testing.expectEqual(@as(u16, 0x1234), cpu.reg._16.get(.AF));
 
     cpu.reg._8.set(.B, 0x23);
     cpu.reg._8.set(.C, 0x34);
-    std.testing.expectEqual(@as(u16, 0x2334), cpu.reg._16.get(.BC));
+    try std.testing.expectEqual(@as(u16, 0x2334), cpu.reg._16.get(.BC));
 
     cpu.reg._8.set(.D, 0x58);
     cpu.reg._8.set(.E, 0x76);
-    std.testing.expectEqual(@as(u16, 0x5876), cpu.reg._16.get(.DE));
+    try std.testing.expectEqual(@as(u16, 0x5876), cpu.reg._16.get(.DE));
 
     cpu.reg._8.set(.H, 0xAF);
     cpu.reg._8.set(.L, 0xCD);
-    std.testing.expectEqual(@as(u16, 0xAFCD), cpu.reg._16.get(.HL));
+    try std.testing.expectEqual(@as(u16, 0xAFCD), cpu.reg._16.get(.HL));
 }
 
 test "flags" {
@@ -54,7 +54,7 @@ test "flags" {
         .H = 1,
         .C = 1,
     };
-    std.testing.expectEqual(@as(u8, 0xF0), cpu.reg._8.get(.F));
+    try std.testing.expectEqual(@as(u8, 0xF0), cpu.reg._8.get(.F));
 
     cpu.reg.flags = .{
         .Z = true,
@@ -62,7 +62,7 @@ test "flags" {
         .H = 0,
         .C = 0,
     };
-    std.testing.expectEqual(@as(u8, 0x80), cpu.reg._8.get(.F));
+    try std.testing.expectEqual(@as(u8, 0x80), cpu.reg._8.get(.F));
 
     cpu.reg.flags = .{
         .Z = false,
@@ -70,7 +70,7 @@ test "flags" {
         .H = 0,
         .C = 1,
     };
-    std.testing.expectEqual(@as(u8, 0x10), cpu.reg._8.get(.F));
+    try std.testing.expectEqual(@as(u8, 0x10), cpu.reg._8.get(.F));
 }
 
 pub fn reset(self: *Cpu) void {

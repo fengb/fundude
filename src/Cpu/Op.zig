@@ -506,14 +506,14 @@ test "decode sanity" {
     while (i < 256) : (i += 1) {
         const bytes = [_]u8{ @truncate(u8, i), 0, 0 };
         const op = decode(bytes);
-        std.testing.expect(op.length > 0);
+        try std.testing.expect(op.length > 0);
 
-        std.testing.expect(op.durations[0] > 0);
-        std.testing.expect(op.durations[1] > 0);
-        std.testing.expect(op.durations[0] <= op.durations[1]);
+        try std.testing.expect(op.durations[0] > 0);
+        try std.testing.expect(op.durations[1] > 0);
+        try std.testing.expect(op.durations[0] <= op.durations[1]);
 
-        std.testing.expect(op.durations[0] % 4 == 0);
-        std.testing.expect(op.durations[1] % 4 == 0);
+        try std.testing.expect(op.durations[0] % 4 == 0);
+        try std.testing.expect(op.durations[1] % 4 == 0);
     }
 }
 

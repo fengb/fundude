@@ -13,29 +13,29 @@ test "DAA add" {
         cpu.reg._8.set(.A, 0x0);
 
         _ = cpu.opExecute(&mmu, .{ OP_ADD_A, 0x5, 0 });
-        std.testing.expectEqual(@as(u8, 0x5), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u8, 0x5), cpu.reg._8.get(.A));
 
         _ = cpu.opExecute(&mmu, DAA);
-        std.testing.expectEqual(@as(u8, 0x5), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u8, 0x5), cpu.reg._8.get(.A));
     }
 
     {
         _ = cpu.opExecute(&mmu, .{ OP_ADD_A, 0x9, 0 });
-        std.testing.expectEqual(@as(u8, 0xE), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u8, 0xE), cpu.reg._8.get(.A));
 
         _ = cpu.opExecute(&mmu, DAA);
-        std.testing.expectEqual(@as(u8, 0x14), cpu.reg._8.get(.A));
-        std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
+        try std.testing.expectEqual(@as(u8, 0x14), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
     }
 
     {
         _ = cpu.opExecute(&mmu, .{ OP_ADD_A, 0x91, 0 });
-        std.testing.expectEqual(@as(u8, 0xA5), cpu.reg._8.get(.A));
-        std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
+        try std.testing.expectEqual(@as(u8, 0xA5), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
 
         _ = cpu.opExecute(&mmu, DAA);
-        std.testing.expectEqual(@as(u8, 0x05), cpu.reg._8.get(.A));
-        std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
+        try std.testing.expectEqual(@as(u8, 0x05), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
     }
 }
 
@@ -50,29 +50,29 @@ test "DAA sub" {
         cpu.reg._8.set(.A, 0x45);
 
         _ = cpu.opExecute(&mmu, .{ OP_SUB_A, 0x2, 0 });
-        std.testing.expectEqual(@as(u8, 0x43), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u8, 0x43), cpu.reg._8.get(.A));
 
         _ = cpu.opExecute(&mmu, DAA);
-        std.testing.expectEqual(@as(u8, 0x43), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u8, 0x43), cpu.reg._8.get(.A));
     }
 
     {
         _ = cpu.opExecute(&mmu, .{ OP_SUB_A, 0x5, 0 });
-        std.testing.expectEqual(@as(u8, 0x3E), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u8, 0x3E), cpu.reg._8.get(.A));
 
         _ = cpu.opExecute(&mmu, DAA);
-        std.testing.expectEqual(@as(u8, 0x38), cpu.reg._8.get(.A));
-        std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
+        try std.testing.expectEqual(@as(u8, 0x38), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u1, 0), cpu.reg.flags.C);
     }
 
     {
         _ = cpu.opExecute(&mmu, .{ OP_SUB_A, 0x91, 0 });
-        std.testing.expectEqual(@as(u8, 0xA7), cpu.reg._8.get(.A));
-        std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
+        try std.testing.expectEqual(@as(u8, 0xA7), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
 
         _ = cpu.opExecute(&mmu, DAA);
-        std.testing.expectEqual(@as(u8, 0x47), cpu.reg._8.get(.A));
-        std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
+        try std.testing.expectEqual(@as(u8, 0x47), cpu.reg._8.get(.A));
+        try std.testing.expectEqual(@as(u1, 1), cpu.reg.flags.C);
     }
 }
 
@@ -92,12 +92,12 @@ fn testDaa(
 
     _ = cpu.opExecute(&mmu, DAA);
 
-    std.testing.expectEqual(after_a, cpu.reg._8.get(.A));
+    try std.testing.expectEqual(after_a, cpu.reg._8.get(.A));
 
-    std.testing.expectEqual(after_flags.Z, cpu.reg.flags.Z);
-    std.testing.expectEqual(after_flags.N, cpu.reg.flags.N);
-    std.testing.expectEqual(after_flags.H, cpu.reg.flags.H);
-    std.testing.expectEqual(after_flags.C, cpu.reg.flags.C);
+    try std.testing.expectEqual(after_flags.Z, cpu.reg.flags.Z);
+    try std.testing.expectEqual(after_flags.N, cpu.reg.flags.N);
+    try std.testing.expectEqual(after_flags.H, cpu.reg.flags.H);
+    try std.testing.expectEqual(after_flags.C, cpu.reg.flags.C);
 }
 
 fn f(raw: u4) Fundude.Cpu.Flags {

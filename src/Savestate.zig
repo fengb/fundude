@@ -90,23 +90,23 @@ test "dump" {
     try Foo.S.dump(foo, stream.writer());
 
     // Size (bar = u8)
-    std.testing.expectEqual(@as(u8, 1), buf[0]);
-    std.testing.expectEqual(@as(u8, 0), buf[1]);
-    std.testing.expectEqual(@as(u8, 0), buf[2]);
-    std.testing.expectEqual(@as(u8, 0), buf[3]);
+    try std.testing.expectEqual(@as(u8, 1), buf[0]);
+    try std.testing.expectEqual(@as(u8, 0), buf[1]);
+    try std.testing.expectEqual(@as(u8, 0), buf[2]);
+    try std.testing.expectEqual(@as(u8, 0), buf[3]);
 
     // Payload (bar = 0x12)
-    std.testing.expectEqual(@as(u8, 0x12), buf[4]);
+    try std.testing.expectEqual(@as(u8, 0x12), buf[4]);
 
     // Size (baz = u16)
-    std.testing.expectEqual(@as(u8, 2), buf[5]);
-    std.testing.expectEqual(@as(u8, 0), buf[6]);
-    std.testing.expectEqual(@as(u8, 0), buf[7]);
-    std.testing.expectEqual(@as(u8, 0), buf[8]);
+    try std.testing.expectEqual(@as(u8, 2), buf[5]);
+    try std.testing.expectEqual(@as(u8, 0), buf[6]);
+    try std.testing.expectEqual(@as(u8, 0), buf[7]);
+    try std.testing.expectEqual(@as(u8, 0), buf[8]);
 
     // Payload (bar = 0x3456)
-    std.testing.expectEqual(@as(u8, 0x56), buf[9]);
-    std.testing.expectEqual(@as(u8, 0x34), buf[10]);
+    try std.testing.expectEqual(@as(u8, 0x56), buf[9]);
+    try std.testing.expectEqual(@as(u8, 0x34), buf[10]);
 }
 
 test "restore" {
@@ -116,8 +116,8 @@ test "restore" {
     var foo: Foo = undefined;
 
     try Foo.S.restore(&foo, stream.reader());
-    std.testing.expectEqual(@as(u8, 0x12), foo.bar);
-    std.testing.expectEqual(@as(u16, 0x3456), foo.baz);
+    try std.testing.expectEqual(@as(u8, 0x12), foo.bar);
+    try std.testing.expectEqual(@as(u16, 0x3456), foo.baz);
 }
 
 const Cpu = Serializer(Fundude.Cpu, &[_][]const u8{

@@ -58,17 +58,17 @@ pub const Io = extern struct {
 
 test "offsets" {
     const Linear = std.meta.fieldInfo(Mmu, .dyn).field_type;
-    std.testing.expectEqual(0x10000, @sizeOf(Linear));
+    try std.testing.expectEqual(0x10000, @sizeOf(Linear));
 
-    std.testing.expectEqual(0x0000, @byteOffsetOf(Linear, "rom"));
-    std.testing.expectEqual(0x8000, @byteOffsetOf(Linear, "vram"));
-    std.testing.expectEqual(0xA000, @byteOffsetOf(Linear, "switchable_ram"));
-    std.testing.expectEqual(0xC000, @byteOffsetOf(Linear, "ram"));
-    std.testing.expectEqual(0xE000, @byteOffsetOf(Linear, "ram_echo"));
-    std.testing.expectEqual(0xFE00, @byteOffsetOf(Linear, "oam"));
-    std.testing.expectEqual(0xFF00, @byteOffsetOf(Linear, "io"));
-    std.testing.expectEqual(0xFF80, @byteOffsetOf(Linear, "high_ram"));
-    std.testing.expectEqual(0xFFFF, @byteOffsetOf(Linear, "interrupt_enable"));
+    try std.testing.expectEqual(0x0000, @byteOffsetOf(Linear, "rom"));
+    try std.testing.expectEqual(0x8000, @byteOffsetOf(Linear, "vram"));
+    try std.testing.expectEqual(0xA000, @byteOffsetOf(Linear, "switchable_ram"));
+    try std.testing.expectEqual(0xC000, @byteOffsetOf(Linear, "ram"));
+    try std.testing.expectEqual(0xE000, @byteOffsetOf(Linear, "ram_echo"));
+    try std.testing.expectEqual(0xFE00, @byteOffsetOf(Linear, "oam"));
+    try std.testing.expectEqual(0xFF00, @byteOffsetOf(Linear, "io"));
+    try std.testing.expectEqual(0xFF80, @byteOffsetOf(Linear, "high_ram"));
+    try std.testing.expectEqual(0xFFFF, @byteOffsetOf(Linear, "interrupt_enable"));
 }
 
 fn ptrOffsetOf(ref: anytype, target: anytype) usize {
@@ -77,18 +77,18 @@ fn ptrOffsetOf(ref: anytype, target: anytype) usize {
 
 test "Io offsets" {
     var mmu: Mmu = undefined;
-    std.testing.expectEqual(@as(usize, 0xFF04), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.timer));
-    std.testing.expectEqual(@as(usize, 0xFF0F), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.IF));
+    try std.testing.expectEqual(@as(usize, 0xFF04), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.timer));
+    try std.testing.expectEqual(@as(usize, 0xFF0F), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.IF));
 
-    std.testing.expectEqual(@as(usize, 0xFF10), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR10));
-    std.testing.expectEqual(@as(usize, 0xFF1E), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR34));
-    std.testing.expectEqual(@as(usize, 0xFF20), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR41));
-    std.testing.expectEqual(@as(usize, 0xFF26), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR52));
-    std.testing.expectEqual(@as(usize, 0xFF30), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.wave_pattern));
+    try std.testing.expectEqual(@as(usize, 0xFF10), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR10));
+    try std.testing.expectEqual(@as(usize, 0xFF1E), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR34));
+    try std.testing.expectEqual(@as(usize, 0xFF20), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR41));
+    try std.testing.expectEqual(@as(usize, 0xFF26), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.NR52));
+    try std.testing.expectEqual(@as(usize, 0xFF30), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.audio.wave_pattern));
 
-    std.testing.expectEqual(@as(usize, 0xFF40), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.video.LCDC));
-    std.testing.expectEqual(@as(usize, 0xFF49), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.video.OBP1));
-    std.testing.expectEqual(@as(usize, 0xFF4A), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.video.WY));
+    try std.testing.expectEqual(@as(usize, 0xFF40), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.video.LCDC));
+    try std.testing.expectEqual(@as(usize, 0xFF49), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.video.OBP1));
+    try std.testing.expectEqual(@as(usize, 0xFF4A), ptrOffsetOf(&mmu.dyn, &mmu.dyn.io.video.WY));
 }
 
 const CartHeaderError = error{
@@ -221,18 +221,18 @@ pub fn set(self: *Mmu, addr: u16, val: u8) void {
 test "RAM echo" {
     var mmu: Mmu = undefined;
     mmu.set(0xC000, 'A');
-    std.testing.expectEqual(@as(u8, 'A'), mmu.get(0xE000));
+    try std.testing.expectEqual(@as(u8, 'A'), mmu.get(0xE000));
 
     mmu.set(0xC000, 'z');
-    std.testing.expectEqual(@as(u8, 'z'), mmu.get(0xE000));
+    try std.testing.expectEqual(@as(u8, 'z'), mmu.get(0xE000));
 
     mmu.set(0xC777, '?');
-    std.testing.expectEqual(@as(u8, '?'), mmu.get(0xE777));
+    try std.testing.expectEqual(@as(u8, '?'), mmu.get(0xE777));
 
     // Don't echo OAM
     mmu.set(0xFE00, 69);
     mmu.set(0xDE00, 123);
-    std.testing.expectEqual(@as(u8, 69), mmu.get(0xFE00));
+    try std.testing.expectEqual(@as(u8, 69), mmu.get(0xFE00));
 }
 
 // TODO: RAM banking

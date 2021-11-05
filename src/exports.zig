@@ -68,7 +68,7 @@ pub fn MatrixChunk(comptime T: type) type {
             return @bitCast(Abi, self);
         }
 
-        pub fn toMatrix(raw: Abi) MatrixSlice(T) {
+        pub fn toMatrix(raw: Abi) U8Chunk(T) {
             const self = @bitCast(MatrixChunk(T), raw);
             return .{
                 .data = self.ptr[0 .. self.width * self.height],
