@@ -127,35 +127,35 @@ const meta_ops = blk: {
 
 fn irqNext(self: *Cpu, mmu: *Fundude.Mmu) ?[3]u8 {
     const cmp = mmu.dyn.io.IF.cmp(mmu.dyn.interrupt_enable);
-    const addr: u8 = blk: {
-        // Naive implementation:
-        // if (cmp.vblank) {
-        //     mmu.dyn.io.IF.vblank = false;
-        //     break :blk 0x40;
-        // } else if (cmp.lcd_stat) {
-        //     mmu.dyn.io.IF.lcd_stat = false;
-        //     break :blk 0x48;
-        // } else if (cmp.timer) {
-        //     mmu.dyn.io.IF.timer = false;
-        //     break :blk 0x50;
-        // } else if (cmp.serial) {
-        //     mmu.dyn.io.IF.serial = false;
-        //     break :blk 0x58;
-        // } else if (cmp.joypad) {
-        //     mmu.dyn.io.IF.joypad = false;
-        //     break :blk 0x60;
-        // } else {
-        //     return null;
-        // }
-        if (cmp.isActive() and self.interrupt_master) {
-            const active = cmp.active().?;
-            std.debug.assert(cmp.get(active));
-            mmu.dyn.io.IF.disable(active);
-            break :blk 0x40 + @as(u8, 8) * @enumToInt(active);
-        } else {
-            return null;
-        }
-    };
+    if (!cmp.isActive() or !self.interrupt_master) return null;
+
+    // Naive implementation:
+    // const addr: u8 = blk: {
+    //     if (cmp.vblank) {
+    //         mmu.dyn.io.IF.vblank = false;
+    //         break :blk 0x40;
+    //     } else if (cmp.lcd_stat) {
+    //         mmu.dyn.io.IF.lcd_stat = false;
+    //         break :blk 0x48;
+    //     } else if (cmp.timer) {
+    //         mmu.dyn.io.IF.timer = false;
+    //         break :blk 0x50;
+    //     } else if (cmp.serial) {
+    //         mmu.dyn.io.IF.serial = false;
+    //         break :blk 0x58;
+    //     } else if (cmp.joypad) {
+    //         mmu.dyn.io.IF.joypad = false;
+    //         break :blk 0x60;
+    //     } else {
+    //         return null;
+    //     }
+    // };
+
+    const active = cmp.active().?;
+    std.debug.assert(cmp.get(active));
+    mmu.dyn.io.IF.disable(active);
+
+    const addr = 0x40 + @as(u8, 8) * @enumToInt(active);
 
     self.mode = .norm;
     self.interrupt_master = false;
