@@ -77,16 +77,23 @@ pub fn reset(self: *Cpu) void {
     self.mode = .norm;
     self.interrupt_master = false;
     self.reg._16.set(.PC, 0);
-    self.duration = 0;
+    self.duration = 4;
     self.remaining = 0;
+    self.next = .{ 0, 0, 0 };
 }
 
 // Always be 4 cycles
 pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
     std.debug.assert(self.remaining % 4 == 0);
 
+    defer self.remaining -%= 4;
     if (self.remaining == 0) {
-        if (self.irqNext(mmu)) |irqBytes| {
+        const actual_duration = @call(Fundude.profiling_call, self.opExecute, .{ mmu, self.next });
+
+        if (actual_duration > self.duration) {
+            self.remaining = actual_duration - self.duration;
+            self.next = .{ 0, 0, 0 };
+        } else if (self.irqNext(mmu)) |irqBytes| {
             self.next = irqBytes;
 
             // TODO: does this really take the same duration as CALL?
@@ -103,15 +110,6 @@ pub fn tick(self: *Cpu, mmu: *Fundude.Mmu) void {
             self.remaining = meta.duration;
             self.reg._16.set(.PC, self.reg._16.get(.PC) +% meta.length);
         }
-    }
-
-    if (self.remaining == 4) {
-        const actual_duration = @call(Fundude.profiling_call, self.opExecute, .{ mmu, self.next });
-        // const actual_duration = @call(.{ .modifier = .always_inline }, self.opExecute, .{ mmu, self.next });
-        self.remaining = if (actual_duration > self.duration) actual_duration - self.duration else 0;
-        self.next = .{ 0, 0, 0 };
-    } else {
-        self.remaining -%= 4;
     }
 }
 
