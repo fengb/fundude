@@ -174,15 +174,10 @@ pub const Video = struct {
     },
     cache: struct {
         const CachedPattern = Matrix(Color, 8, 8);
-
         const TilesCache = struct {
             data: Matrix(Pixel, 256, 256),
-            dirty: bool,
 
             fn run(self: *@This(), mmu: Fundude.Mmu, patternsData: []CachedPattern, tile_map_addr: TileMapAddressing) void {
-                if (!self.dirty) return;
-                self.dirty = false;
-
                 const tile_map = mmu.dyn.vram.tile_maps.get(tile_map_addr);
                 const tile_addressing = mmu.dyn.io.video.LCDC.bg_window_tile_data;
                 const palette = mmu.dyn.io.video.BGP.lookup();
@@ -212,9 +207,15 @@ pub const Video = struct {
             }
         };
 
+        dirty: struct {
+            patterns: bool,
+            tiles: bool,
+            sprites: bool,
+            redundant: bool,
+        },
+
         patterns: struct {
             data: [3 * 128]CachedPattern,
-            dirty: bool,
 
             // TODO: this is pretty brutal
             pub fn toMatrixSlice(self: *@This()) MatrixSlice(u8) {
@@ -226,9 +227,6 @@ pub const Video = struct {
             }
 
             fn run(self: *@This(), mmu: Fundude.Mmu) void {
-                if (!self.dirty) return;
-                self.dirty = false;
-
                 for (mmu.dyn.vram.patterns) |raw_pattern, i| {
                     var patterns = &self.data[i];
 
@@ -254,7 +252,6 @@ pub const Video = struct {
 
             data: Matrix(Pixel, 256 + 2 * 8, 256 + 2 * 16),
             meta: Matrix(SpriteMeta, 256 + 2 * 8, 256 + 2 * 16),
-            dirty: bool,
             prev_oam: [40]SpriteAttr,
 
             fn oamLessThan(context: void, lhs: SpriteAttr, rhs: SpriteAttr) bool {
@@ -262,9 +259,6 @@ pub const Video = struct {
             }
 
             fn run(self: *@This(), mmu: Fundude.Mmu, patternsData: []CachedPattern) void {
-                if (!self.dirty) return;
-                self.dirty = false;
-
                 const width = 8;
                 const height: usize = switch (mmu.dyn.io.video.LCDC.obj_size) {
                     .Small => 8,
@@ -283,7 +277,7 @@ pub const Video = struct {
                         std.mem.set(Pixel, slice[0..width], Shade.White.asPixel());
                     }
                 }
-                std.mem.copy(SpriteAttr, &self.prev_oam, &mmu.dyn.oam);
+                self.prev_oam = mmu.dyn.oam;
 
                 var sorted = mmu.dyn.oam;
                 std.sort.insertionSort(SpriteAttr, &sorted, {}, oamLessThan);
@@ -353,35 +347,26 @@ pub const Video = struct {
     }
 
     pub fn resetCache(self: *Video) void {
-        self.cache.sprites.dirty = true;
-        self.cache.sprites.data.reset(Shade.White.asPixel());
-        self.cache.patterns.dirty = true;
-        self.cache.window.dirty = true;
-        self.cache.background.dirty = true;
+        self.cache.dirty.patterns = true;
+        self.cache.dirty.tiles = true;
+        self.cache.dirty.sprites = true;
     }
 
     pub fn updatedVram(self: *Video, mmu: *Fundude.Mmu, addr: u16, val: u8) void {
-        self.cache.patterns.dirty = true;
-        self.cache.window.dirty = true;
-        self.cache.background.dirty = true;
-
-        if (addr < 0x9800) {
-            self.cache.sprites.dirty = true;
-        }
+        self.cache.dirty.patterns = true;
     }
 
     pub fn updatedOam(self: *Video, mmu: *Fundude.Mmu, addr: u16, val: u8) void {
-        self.cache.sprites.dirty = true;
+        self.cache.dirty.sprites = true;
     }
 
     pub fn updatedIo(self: *Video, mmu: *Fundude.Mmu, addr: u16, val: u8) void {
         switch (addr) {
             0xFF40, 0xFF47 => {
-                self.cache.window.dirty = true;
-                self.cache.background.dirty = true;
+                self.cache.dirty.tiles = true;
             },
             0xFF46, 0xFF48, 0xFF49 => {
-                self.cache.sprites.dirty = true;
+                self.cache.dirty.sprites = true;
             },
             else => {},
         }
@@ -395,7 +380,7 @@ pub const Video = struct {
             std.mem.copy(u8, oam, std.mem.asBytes(&mmu.dyn)[addr..][0..oam.len]);
 
             mmu.dyn.io.video.DMA = 0;
-            self.cache.sprites.dirty = true;
+            self.cache.dirty.sprites = true;
         }
 
         if (!mmu.dyn.io.video.LCDC.lcd_enable) {
@@ -476,10 +461,29 @@ pub const Video = struct {
     // TODO: audit this function
     fn render(self: *Video, mmu: Fundude.Mmu, y: usize) void {
         // TODO: Cache specific lines instead of doing it all at once
-        @call(Fundude.profiling_call, self.cache.patterns.run, .{mmu});
-        @call(Fundude.profiling_call, self.cache.sprites.run, .{ mmu, &self.cache.patterns.data });
-        @call(Fundude.profiling_call, self.cache.background.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map });
-        @call(Fundude.profiling_call, self.cache.window.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.window_tile_map });
+        if (self.cache.dirty.patterns) {
+            // This style is redundant but reduces branches
+            self.cache.dirty = .{
+                .patterns = false,
+                .tiles = false,
+                .sprites = false,
+                .redundant = false,
+            };
+            @call(Fundude.profiling_call, self.cache.patterns.run, .{mmu});
+            @call(Fundude.profiling_call, self.cache.background.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map });
+            @call(Fundude.profiling_call, self.cache.window.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.window_tile_map });
+            @call(Fundude.profiling_call, self.cache.sprites.run, .{ mmu, &self.cache.patterns.data });
+        } else {
+            if (self.cache.dirty.tiles) {
+                self.cache.dirty.tiles = false;
+                @call(Fundude.profiling_call, self.cache.background.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.bg_tile_map });
+                @call(Fundude.profiling_call, self.cache.window.run, .{ mmu, &self.cache.patterns.data, mmu.dyn.io.video.LCDC.window_tile_map });
+            }
+            if (self.cache.dirty.sprites) {
+                self.cache.dirty.sprites = false;
+                @call(Fundude.profiling_call, self.cache.sprites.run, .{ mmu, &self.cache.patterns.data });
+            }
+        }
 
         const line = self.buffers[self.draw_index].sliceLine(0, y);
 
